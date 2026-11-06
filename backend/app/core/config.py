@@ -15,10 +15,12 @@ class Settings(BaseModel):
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./shipdev.db")
     FRONTEND_ORIGIN: str = os.getenv("FRONTEND_ORIGIN", "http://localhost:3000")
-    API_SECRET_KEY: str = os.getenv("API_SECRET_KEY", "dev-secret-change-in-production")
+    # Machine-to-machine integration key (e.g. Switch agent runners)
+    API_SECRET_KEY: str = os.getenv("API_SECRET_KEY", "dev-agent-secret-change-in-production")
+    # Dedicated secret for human authorization (Strictly isolated from agents and frontend JS)
+    HUMAN_APPROVAL_SECRET: str = os.getenv("HUMAN_APPROVAL_SECRET", "dev-human-secret-change-in-production")
     PROJECT_NAME: str = "ShipDev Backend"
     VERSION: str = "0.1.0"
 
 
 settings = Settings()
-

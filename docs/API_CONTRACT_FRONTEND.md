@@ -24,7 +24,19 @@ REPORTED → TRIAGED → REPRODUCING → REPRODUCED → FIX_PROPOSED → VERIFYI
 
 ---
 
-## 2. TypeScript Interfaces
+## 2. Security Invariants & Human Authentication
+
+> [!CAUTION]
+> **CRITICAL SECURITY REQUIREMENT:**
+> Browser-side JavaScript and public frontend bundles must **NEVER** contain or bundle the `HUMAN_APPROVAL_SECRET`.
+> The human approval endpoints (`/approve`, `/reject`, `/complete`) strictly require an authenticated Bearer token (`Authorization: Bearer <secret>`).
+> In production and hackathon setups:
+> - Human approvals must be proxied via a trusted Next.js Server Action / API Route where the session is authenticated (e.g., engineer login/session cookie), or
+> - Entered manually by the engineer via a secure prompt that dispatches the server-side request.
+
+---
+
+## 3. TypeScript Interfaces
 
 ```typescript
 export type TaskStatus =
@@ -94,7 +106,7 @@ export interface ApprovalRecord {
 
 ---
 
-## 3. Endpoints for Pratham's UI
+## 4. Endpoints for Pratham's UI
 
 ### 1. Submit Bug Report (Text or Wispr Flow Voice)
 * **`POST /api/v1/tasks`**
@@ -124,7 +136,7 @@ export interface ApprovalRecord {
 ### 4. Human Approval Gate
 * **`POST /api/v1/tasks/{task_id}/approve`**
 * **Required Headers:**
-  * `X-Caller-Type: human`
+  * `Authorization: Bearer <HUMAN_APPROVAL_SECRET>`
   * `X-Caller-ID: <username>` (e.g. `pratham` or `ayush`)
 * **Request Body:**
   ```json
@@ -134,12 +146,15 @@ export interface ApprovalRecord {
   }
   ```
 * **Response (200 OK):** Updated `Task` with `status: "APPROVED"`.
-* **Security:** Attempting to call this endpoint without `X-Caller-Type: human` returns **`403 Forbidden`**.
+* **Errors:**
+  * `401 Unauthorized` &mdash; Missing Bearer token.
+  * `403 Forbidden` &mdash; Invalid Bearer token.
+  * `409 Conflict` &mdash; Task is not in `AWAITING_HUMAN_APPROVAL` status.
 
 ### 5. Human Rejection
 * **`POST /api/v1/tasks/{task_id}/reject`**
 * **Required Headers:**
-  * `X-Caller-Type: human`
+  * `Authorization: Bearer <HUMAN_APPROVAL_SECRET>`
   * `X-Caller-ID: <username>`
 * **Request Body:**
   ```json
@@ -151,8 +166,16 @@ export interface ApprovalRecord {
   ```
 * **Response (200 OK):** Updated `Task` returned to `FIX_PROPOSED` for the fix agent to re-attempt.
 
+### 6. Human Task Completion
+* **`POST /api/v1/tasks/{task_id}/complete`**
+* **Required Headers:**
+  * `Authorization: Bearer <HUMAN_APPROVAL_SECRET>`
+  * `X-Caller-ID: <username>`
+* **Response (200 OK):** Updated `Task` with `status: "COMPLETED"`.
+* **Errors:**
+  * `409 Conflict` &mdash; Task is not in `APPROVED` status.
+
 ---
 
-## 4. CORS & Frontend Setup
-The backend is already configured with CORS enabled for `http://localhost:3000` (Next.js default) with all HTTP methods and headers permitted.
-
+## 5. CORS & Frontend Setup
+The backend is configured with CORS enabled for `http://localhost:3000` (Next.js default) with all HTTP methods and headers permitted.

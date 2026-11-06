@@ -386,8 +386,13 @@
           "Transitions"
         ],
         "summary": "Transition Task",
-        "description": "Execute a state transition for a task, verifying caller permissions and transition rules.\n\nThe authenticated caller type from headers takes precedence over the payload.",
+        "description": "Execute a state transition for a task, verifying caller permissions and transition rules.\n\nAI agents can advance workflow states up to AWAITING_HUMAN_APPROVAL.\nDirect transitions to 'APPROVED' or 'COMPLETED' via /transitions are strictly blocked.",
         "operationId": "transition_task_api_v1_tasks__task_id__transitions_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "parameters": [
           {
             "name": "task_id",
@@ -471,8 +476,13 @@
           "Approval"
         ],
         "summary": "Approve Task",
-        "description": "Human engineer approves proposed fix. Strictly forbidden for AI agents.",
+        "description": "Human engineer approves proposed fix with verified Bearer token.\n\nTask must be in 'AWAITING_HUMAN_APPROVAL' status.\nStrictly forbidden for AI agents.",
         "operationId": "approve_task_api_v1_tasks__task_id__approve_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "parameters": [
           {
             "name": "task_id",
@@ -481,22 +491,6 @@
             "schema": {
               "type": "string",
               "title": "Task Id"
-            }
-          },
-          {
-            "name": "x-caller-type",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Caller-Type"
             }
           },
           {
@@ -556,8 +550,13 @@
           "Approval"
         ],
         "summary": "Reject Task",
-        "description": "Human engineer rejects proposed fix with feedback. Task returns to fix stage.",
+        "description": "Human engineer rejects proposed fix with feedback.\n\nTask must be in 'AWAITING_HUMAN_APPROVAL' status.\nTask returns to FIX_PROPOSED for the fix agent to re-attempt.",
         "operationId": "reject_task_api_v1_tasks__task_id__reject_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "parameters": [
           {
             "name": "task_id",
@@ -566,22 +565,6 @@
             "schema": {
               "type": "string",
               "title": "Task Id"
-            }
-          },
-          {
-            "name": "x-caller-type",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Caller-Type"
             }
           },
           {
@@ -611,6 +594,70 @@
             }
           }
         },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tasks/{task_id}/complete": {
+      "post": {
+        "tags": [
+          "Approval"
+        ],
+        "summary": "Complete Task",
+        "description": "Human engineer marks an already-approved task as COMPLETED.\n\nTask must be in 'APPROVED' status before it can be marked complete.\nStrictly requires authenticated human credentials.",
+        "operationId": "complete_task_api_v1_tasks__task_id__complete_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          },
+          {
+            "name": "x-caller-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caller-Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1224,6 +1271,12 @@
           "type"
         ],
         "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
       }
     }
   }

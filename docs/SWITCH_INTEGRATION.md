@@ -10,7 +10,9 @@
 
 Switch orchestrates specialized AI agents through the bug-fix lifecycle.
 * **Agent Capabilities:** AI agents triage, start reproduction sandboxes, record failure outputs, propose code diffs, run verification tests, and advance tasks up to `AWAITING_HUMAN_APPROVAL`.
-* **Agent Security Boundary:** AI agents **cannot** approve or complete tasks. Calls attempting to transition to `APPROVED` or `COMPLETED` from any agent return **`403 Forbidden`**.
+* **Agent Security Boundary:** AI agents **cannot** approve or complete tasks.
+  * Direct transitions to `APPROVED` or `COMPLETED` via `POST /api/v1/tasks/{task_id}/transitions` are strictly blocked (`400 Bad Request`).
+  * The `/approve`, `/reject`, and `/complete` endpoints are cryptographically protected by `HUMAN_APPROVAL_SECRET` and return `401/403` to agents.
 
 ---
 
@@ -100,7 +102,7 @@ When a task is `REPORTED`:
        "stage": "verification",
        "command_executed": "pytest tests/",
        "exit_code": 0,
-       "stdout": "26 passed in 1.2s",
+       "stdout": "33 passed in 2.1s",
        "patch_diff": "--- a/auth/token.py\n+++ b/auth/token.py\n@@ -45,2 +45,4 @@\n+    if token.is_expired():\n+        refresh()",
        "is_mock": false
      }
@@ -126,4 +128,3 @@ When a task is `REPORTED`:
 If the human engineer rejects the fix with feedback:
 * The backend transitions the task to `REJECTED`, records human feedback in `approval_records`, and automatically bounces the task to `FIX_PROPOSED`.
 * Switch can query `GET /api/v1/tasks/{task_id}/approvals` to retrieve the human feedback text and instruct the Fix Agent to re-attempt the patch addressing the human reviewer's comments.
-

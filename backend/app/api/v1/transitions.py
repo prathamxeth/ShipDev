@@ -1,6 +1,6 @@
 """State transition REST routes."""
 
-from fastapi import APIRouter, Depends, Header, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from app.api.deps import get_caller_identity, get_repository
 from app.core.state_machine import CallerType, TaskStatus
 from app.models.task import TransitionRequest, TransitionResponse
@@ -18,10 +18,20 @@ async def transition_task(
 ):
     """Execute a state transition for a task, verifying caller permissions and transition rules.
 
-    The authenticated caller type from headers takes precedence over the payload.
+    AI agents can advance workflow states up to AWAITING_HUMAN_APPROVAL.
+    Direct transitions to 'APPROVED' or 'COMPLETED' via /transitions are strictly blocked.
     """
+    if payload.target_status in {TaskStatus.APPROVED, TaskStatus.COMPLETED}:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Direct transition to '{payload.target_status.value}' via /transitions is forbidden. "
+                "Approvals must be submitted through POST /api/v1/tasks/{task_id}/approve and "
+                "completions through POST /api/v1/tasks/{task_id}/complete."
+            ),
+        )
+
     caller_type, caller_id = caller_auth
-    # Use verified caller identity from header if provided
     verified_request = TransitionRequest(
         target_status=payload.target_status,
         actor_type=caller_type,
@@ -30,4 +40,3 @@ async def transition_task(
         evidence_id=payload.evidence_id,
     )
     return repo.record_transition(task_id, verified_request)
-
