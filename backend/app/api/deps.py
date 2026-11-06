@@ -33,12 +33,12 @@ def verify_human_bearer_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    expected_secret = settings.HUMAN_APPROVAL_SECRET or settings.API_SECRET_KEY
+    expected_secret = settings.HUMAN_APPROVAL_SECRET
     if not expected_secret:
-        # Fail closed: never allow human operations if no secret is configured
+        # Fail closed: never allow human operations if HUMAN_APPROVAL_SECRET is unconfigured
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Server security configuration error: Human approval secret is unconfigured.",
+            detail="Server security configuration error: HUMAN_APPROVAL_SECRET is unconfigured.",
         )
 
     if not secrets.compare_digest(credentials.credentials, expected_secret):

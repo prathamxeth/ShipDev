@@ -129,6 +129,67 @@ async def test_invalid_bearer_token_is_rejected(client, test_repo):
     assert "invalid human authorization token" in res.json()["detail"].lower()
 
 
+@pytest.mark.asyncio
+async def test_api_secret_key_cannot_approve(client, test_repo):
+    """Security Invariant: Machine API_SECRET_KEY cannot be used as a human approval credential."""
+    task = test_repo.create_task(TaskCreate(title="T1", description="D1", reported_by="ayush"))
+    _advance_task_to_awaiting_approval(test_repo, task.id)
+
+    agent_auth_header = {"Authorization": f"Bearer {settings.API_SECRET_KEY}"}
+    res = await client.post(
+        f"/api/v1/tasks/{task.id}/approve",
+        json={"reviewer_id": "ayush", "comments": "Agent trying to approve with machine key"},
+        headers=agent_auth_header,
+    )
+    assert res.status_code == 403
+    assert "invalid human authorization token" in res.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_api_secret_key_cannot_complete(client, test_repo):
+    """Security Invariant: Machine API_SECRET_KEY cannot authorize task completion."""
+    task = test_repo.create_task(TaskCreate(title="T1", description="D1", reported_by="ayush"))
+    _advance_task_to_awaiting_approval(test_repo, task.id)
+    await client.post(
+        f"/api/v1/tasks/{task.id}/approve",
+        json={"reviewer_id": "ayush", "comments": "Approved"},
+        headers=VALID_AUTH_HEADER,
+    )
+
+    agent_auth_header = {"Authorization": f"Bearer {settings.API_SECRET_KEY}"}
+    res = await client.post(
+        f"/api/v1/tasks/{task.id}/complete",
+        headers=agent_auth_header,
+    )
+    assert res.status_code == 403
+    assert "invalid human authorization token" in res.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_missing_human_secret_fails_closed(client, test_repo, monkeypatch):
+    """Security Invariant: Missing HUMAN_APPROVAL_SECRET fails closed with 500 error, never falling back to API_SECRET_KEY."""
+    task = test_repo.create_task(TaskCreate(title="T1", description="D1", reported_by="ayush"))
+    _advance_task_to_awaiting_approval(test_repo, task.id)
+
+    monkeypatch.setattr(settings, "HUMAN_APPROVAL_SECRET", "")
+    res = await client.post(
+        f"/api/v1/tasks/{task.id}/approve",
+        json={"reviewer_id": "ayush", "comments": "Should fail closed"},
+        headers={"Authorization": f"Bearer {settings.API_SECRET_KEY}"},
+    )
+    assert res.status_code == 500
+    assert "human_approval_secret is unconfigured" in res.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_agent_cannot_call_complete_directly(client, test_repo):
+    """Security Invariant: Calling /complete without human credentials returns 401 Unauthorized."""
+    task = test_repo.create_task(TaskCreate(title="T1", description="D1", reported_by="ayush"))
+    res = await client.post(f"/api/v1/tasks/{task.id}/complete")
+    assert res.status_code == 401
+    assert "missing bearer token" in res.json()["detail"].lower()
+
+
 # ---------------------------------------------------------------------------
 # Test 5: Valid human credential can approve a task awaiting approval (200)
 # ---------------------------------------------------------------------------
