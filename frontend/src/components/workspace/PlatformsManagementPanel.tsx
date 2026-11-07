@@ -297,7 +297,7 @@ export function PlatformsManagementPanel({
                       className={`flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-clay-pill font-medium border shrink-0 ${
                         isConnected
                           ? "bg-clay-mint/25 text-[#136149] border-clay-mint/50 font-semibold"
-                          : conn?.admin_approval_required
+                          : conn?.status_label === "Awaiting Platform Credentials"
                           ? "bg-amber-50 text-amber-800 border-amber-200"
                           : "bg-clay-surface-soft text-clay-muted border-clay-hairline"
                       }`}
@@ -306,12 +306,12 @@ export function PlatformsManagementPanel({
                         className={`w-2 h-2 rounded-full ${
                           isConnected
                             ? "bg-clay-success"
-                            : conn?.admin_approval_required
-                            ? "bg-amber-500"
+                            : conn?.status_label === "Awaiting Platform Credentials"
+                            ? "bg-amber-400"
                             : "bg-slate-300"
                         }`}
                       />
-                      <span>{isConnected ? "Connected" : "Not connected"}</span>
+                      <span>{conn?.status_label || (isConnected ? "Connected" : "Not connected")}</span>
                     </span>
                   </div>
 

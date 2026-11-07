@@ -30,7 +30,25 @@ import {
 } from "@/types";
 
 // Base URL for direct backend access (configurable via NEXT_PUBLIC_API_URL)
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+const PROD_API_URL = "https://shipdev.onrender.com/api/v1";
+
+function resolveApiBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    if (host !== "localhost" && host !== "127.0.0.1" && host !== "0.0.0.0") {
+      return PROD_API_URL;
+    }
+  }
+  if (process.env.NODE_ENV === "production") {
+    return PROD_API_URL;
+  }
+  return "http://localhost:8000/api/v1";
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
 const BACKEND_HOST = API_BASE_URL.replace(/\/api\/v1\/?$/, "");
 
 let currentActiveWorkspaceId = "ws_personal_default";

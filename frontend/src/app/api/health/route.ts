@@ -2,8 +2,12 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
+const PROD_API_URL = "https://shipdev.onrender.com/api/v1";
+
 const BACKEND_BASE =
-  process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+  process.env.BACKEND_API_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  (process.env.NODE_ENV === "production" ? PROD_API_URL : "http://localhost:8000/api/v1");
 const BACKEND_HOST = BACKEND_BASE.replace(/\/api\/v1\/?$/, "");
 
 export async function GET() {

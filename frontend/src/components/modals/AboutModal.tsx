@@ -164,7 +164,7 @@ export function AboutModal({
                 <div className="text-clay-primary font-bold mb-1">Topological Hierarchy:</div>
                 <div className="pl-2 space-y-1">
                   <div>📁 <strong>Layer 0:</strong> Root Project Workspace</div>
-                  <div>📂 <strong>Layer 1:</strong> Subdirectories (<code>demo/buggy_app</code>, <code>tests</code>)</div>
+                  <div>📂 <strong>Layer 1:</strong> Project Directories (<code>src/</code>, <code>tests/</code>)</div>
                   <div>📄 <strong>Layer 2:</strong> Domain Code Files (<code>calculator.py</code>, <code>utils.py</code>)</div>
                   <div>⚡ <strong>Layer 3:</strong> Subfile AST Symbols (<code>divide()</code>, <code>evaluate()</code>)</div>
                   <div>🐛 <strong>Layer 4:</strong> Active Bug Tasks (<code>REPORTED</code> → <code>VERIFYING</code>)</div>

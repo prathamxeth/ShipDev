@@ -28,11 +28,12 @@ export function validateSameOrigin(req: {
   const origin = req.headers.get("origin");
   const secFetchSite = req.headers.get("sec-fetch-site");
 
-  // Configured application origin (defaults to local Next.js ports)
+  // Configured application origin (defaults to local Next.js ports + production Vercel)
   const configuredAppOrigin = process.env.APP_ORIGIN;
   const allowedOrigins = new Set([
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://shipdev-frontend.vercel.app",
     ...(configuredAppOrigin ? [configuredAppOrigin] : []),
   ]);
 

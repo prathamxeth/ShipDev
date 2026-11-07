@@ -207,13 +207,19 @@ async def get_platform_connections(
             account_name = db_conn.get("account_name")
             target_name = db_conn.get("target_name")
             connected_at = db_conn.get("connected_at")
+            status_label = "Connected"
         elif health and health.configured:
-            is_connected = True
-            account_name = meta["default_account"]
-            target_name = meta["default_target"]
-            connected_at = "Configured"
-
-        status_label = "Connected" if is_connected else "Ready to Connect"
+            is_connected = False
+            account_name = None
+            target_name = None
+            connected_at = None
+            status_label = "Configured (Ready to Link)"
+        else:
+            is_connected = False
+            account_name = None
+            target_name = None
+            connected_at = None
+            status_label = "Awaiting Platform Credentials"
 
         results.append(
             PlatformConnectionInfo(

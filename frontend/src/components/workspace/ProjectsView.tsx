@@ -25,8 +25,8 @@ export function ProjectsView({ onOpenStudio, onSelectBranch }: ProjectsViewProps
   const repos = [
     {
       id: "demo-calculator",
-      name: "demo-calculator",
-      desc: "Financial calculation and arithmetic utility services with Switch sandbox verification suite",
+      name: "shipdev-core",
+      desc: "Core arithmetic and business logic service with Switch sandbox verification suite",
       defaultBranch: "main",
       branches: ["main", "feature/pratham-frontend", "feature/ayush-backend", "feature/sumit-switch"],
       status: "Synced with GitHub",
