@@ -66,6 +66,116 @@ export function SwitchAgentWorkspace({
     ? { name: "Telegram", icon: "✈️", color: "bg-[#229ED9]/10 text-[#229ED9] border-[#229ED9]/30" }
     : null;
 
+  // Accurate Agent Execution States
+  type AgentExecutionState = "Ready" | "Working" | "Waiting for approval" | "Completed" | "Needs attention";
+
+  interface AgentStatusMeta {
+    state: AgentExecutionState;
+    label: string;
+    dotColor: string;
+  }
+
+  const getDiagnosisStatus = (): AgentStatusMeta => {
+    if (!task) return { state: "Ready", label: "Standby • Ready", dotColor: "bg-gray-400" };
+    if (task.status === "REPORTED") return { state: "Working", label: "Analyzing bug report...", dotColor: "bg-sky-500 animate-pulse" };
+    if (task.status === "TRIAGE_FAILED") return { state: "Needs attention", label: "Triage Failed", dotColor: "bg-rose-500" };
+    return { state: "Completed", label: "✓ Defect Identified", dotColor: "bg-emerald-500" };
+  };
+
+  const getTesterStatus = (): AgentStatusMeta => {
+    if (!task) return { state: "Ready", label: "Standby • Sandbox Ready", dotColor: "bg-gray-400" };
+    if (task.status === "REPORTED") return { state: "Ready", label: "Standby", dotColor: "bg-gray-400" };
+    if (task.status === "TRIAGED" || task.status === "REPRODUCING") {
+      return { state: "Working", label: "Executing reproduction in sandbox...", dotColor: "bg-sky-500 animate-pulse" };
+    }
+    if (task.status === "REPRODUCTION_FAILED") return { state: "Needs attention", label: "Reproduction Failed", dotColor: "bg-rose-500" };
+    return {
+      state: "Completed",
+      label: reproFailedAsExpected ? "✓ Issue Confirmed (exit 1)" : "✓ Executed",
+      dotColor: "bg-emerald-500",
+    };
+  };
+
+  const getSolutionStatus = (): AgentStatusMeta => {
+    if (!task) return { state: "Ready", label: "Standby • Fixer Ready", dotColor: "bg-gray-400" };
+    if (["REPORTED", "TRIAGED", "REPRODUCING"].includes(task.status)) {
+      return { state: "Ready", label: "Standby", dotColor: "bg-gray-400" };
+    }
+    if (task.status === "REPRODUCED") {
+      return { state: "Working", label: "Synthesizing minimal patch...", dotColor: "bg-sky-500 animate-pulse" };
+    }
+    if (["REJECTED", "REVISION_REQUESTED"].includes(task.status)) {
+      return { state: "Needs attention", label: "Revision Requested by Reviewer", dotColor: "bg-rose-500" };
+    }
+    return { state: "Completed", label: "✓ Solution Ready", dotColor: "bg-emerald-500" };
+  };
+
+  const getReviewerStatus = (): AgentStatusMeta => {
+    if (!task) return { state: "Ready", label: "Standby • Verifier Ready", dotColor: "bg-gray-400" };
+    if (["REPORTED", "TRIAGED", "REPRODUCING"].includes(task.status)) {
+      return { state: "Ready", label: "Standby", dotColor: "bg-gray-400" };
+    }
+    if (task.status === "FIX_PROPOSED") {
+      return { state: "Ready", label: "Ready for verification", dotColor: "bg-gray-400" };
+    }
+    if (task.status === "VERIFYING") {
+      return { state: "Working", label: "Executing regression test suite...", dotColor: "bg-sky-500 animate-pulse" };
+    }
+    if (["VERIFICATION_FAILED", "FAILED"].includes(task.status)) {
+      return { state: "Needs attention", label: "Verification Failed", dotColor: "bg-rose-500" };
+    }
+    if (task.status === "AWAITING_HUMAN_APPROVAL") {
+      return { state: "Waiting for approval", label: "✓ Verified • Awaiting Human Approval", dotColor: "bg-amber-500" };
+    }
+    return { state: "Completed", label: "✓ All Tests Passed (exit 0)", dotColor: "bg-emerald-500" };
+  };
+
+  const renderStateBadge = (state: AgentExecutionState) => {
+    switch (state) {
+      case "Working":
+        return (
+          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-clay-pill bg-sky-50 text-sky-700 border border-sky-200 text-[9px] font-semibold">
+            <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />
+            Working
+          </span>
+        );
+      case "Waiting for approval":
+        return (
+          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-clay-pill bg-amber-50 text-amber-800 border border-amber-300 text-[9px] font-semibold">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+            Waiting for approval
+          </span>
+        );
+      case "Completed":
+        return (
+          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-clay-pill bg-emerald-50 text-emerald-800 border border-emerald-300 text-[9px] font-semibold">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+            Completed
+          </span>
+        );
+      case "Needs attention":
+        return (
+          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-clay-pill bg-rose-50 text-rose-800 border border-rose-300 text-[9px] font-semibold">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-600" />
+            Needs attention
+          </span>
+        );
+      case "Ready":
+      default:
+        return (
+          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-clay-pill bg-clay-surface-card text-clay-muted border border-clay-hairline text-[9px] font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+            Ready
+          </span>
+        );
+    }
+  };
+
+  const diagMeta = getDiagnosisStatus();
+  const testMeta = getTesterStatus();
+  const solnMeta = getSolutionStatus();
+  const revwMeta = getReviewerStatus();
+
   // Decision Handlers
   const handleApprove = async () => {
     if (!task) return;
@@ -265,13 +375,21 @@ export function SwitchAgentWorkspace({
           </p>
         </div>
 
-        {/* AGENT ROSTER - UNIFORM BOX SIZES & EQUAL 4-DIRECTION PADDING */}
+        {/* AGENT ROSTER - ACCURATE LIVE STATUS */}
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between px-1">
             <span className="text-[10px] font-sans font-semibold uppercase tracking-wider text-clay-muted">
               Specialized Assistants
             </span>
-            <span className="text-[10px] text-clay-muted font-mono">4 online</span>
+            <span className="text-[10px] text-clay-muted font-mono">
+              {task
+                ? isAwaitingApproval
+                  ? "1 Waiting for approval"
+                  : isCompleted
+                  ? "All Completed"
+                  : "Live Execution"
+                : "4 Ready • Standby"}
+            </span>
           </div>
 
           {/* 1. Diagnosis Assistant */}
@@ -283,14 +401,17 @@ export function SwitchAgentWorkspace({
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-clay-teal shrink-0" />
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${diagMeta.dotColor}`} />
                   <span className="font-semibold text-clay-ink text-xs group-hover:text-clay-primary transition-colors">
                     Diagnosis Assistant
                   </span>
                 </div>
-                <span className="text-[10px] text-clay-teal bg-clay-teal/10 px-2 py-0.5 rounded-clay-pill font-medium">
-                  Diagnosis
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-clay-teal bg-clay-teal/10 px-2 py-0.5 rounded-clay-pill font-medium">
+                    Diagnosis
+                  </span>
+                  {renderStateBadge(diagMeta.state)}
+                </div>
               </div>
               <p className="text-[11px] text-clay-body font-sans leading-relaxed line-clamp-2">
                 Analyzes the bug report, pinpoints the affected source file, and locates the error.
@@ -298,7 +419,7 @@ export function SwitchAgentWorkspace({
             </div>
             <div className="text-[10px] pt-2 border-t border-clay-hairline flex items-center justify-between text-clay-muted mt-2">
               <span className="text-clay-body font-medium">
-                {task ? (task.status !== "REPORTED" ? "✓ Defect Identified" : "Analyzing...") : "Standby • Ready"}
+                {diagMeta.label}
               </span>
               <span className="text-clay-primary font-medium flex items-center gap-0.5">
                 Inspect ↗
@@ -315,18 +436,17 @@ export function SwitchAgentWorkspace({
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-2">
-                  <span
-                    className={`w-2 h-2 rounded-full shrink-0 ${
-                      reproFailedAsExpected ? "bg-clay-lavender" : "bg-clay-muted"
-                    }`}
-                  />
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${testMeta.dotColor}`} />
                   <span className="font-semibold text-clay-ink text-xs group-hover:text-clay-lavender-ink transition-colors">
                     Automated Tester
                   </span>
                 </div>
-                <span className="text-[10px] text-clay-lavender-ink bg-clay-lavender/25 px-2 py-0.5 rounded-clay-pill font-semibold">
-                  Sandbox Test
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-clay-lavender-ink bg-clay-lavender/25 px-2 py-0.5 rounded-clay-pill font-semibold">
+                    Sandbox Test
+                  </span>
+                  {renderStateBadge(testMeta.state)}
+                </div>
               </div>
               <p className="text-[11px] text-clay-body font-sans leading-relaxed line-clamp-2">
                 Runs automated test scenarios in an isolated environment to verify the issue.
@@ -334,21 +454,7 @@ export function SwitchAgentWorkspace({
             </div>
             <div className="text-[10px] pt-2 border-t border-clay-hairline flex items-center justify-between text-clay-muted mt-2">
               <span className="text-clay-body font-medium">
-                {task ? (
-                  hasReproRun ? (
-                    reproFailedAsExpected ? (
-                      <span className="text-clay-lavender-ink font-semibold">
-                        ✓ Issue Confirmed
-                      </span>
-                    ) : (
-                      <span className="text-clay-muted">Executed</span>
-                    )
-                  ) : (
-                    <span className="text-clay-muted">Pending run</span>
-                  )
-                ) : (
-                  <span className="text-clay-muted">Standby • Sandbox Ready</span>
-                )}
+                {testMeta.label}
               </span>
               <span className="text-clay-muted">Details ↗</span>
             </div>
@@ -363,18 +469,17 @@ export function SwitchAgentWorkspace({
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-2">
-                  <span
-                    className={`w-2 h-2 rounded-full shrink-0 ${
-                      hasPatch ? "bg-clay-teal" : "bg-clay-muted"
-                    }`}
-                  />
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${solnMeta.dotColor}`} />
                   <span className="font-semibold text-clay-ink text-xs group-hover:text-clay-teal transition-colors">
                     Solution Assistant
                   </span>
                 </div>
-                <span className="text-[10px] text-clay-teal bg-clay-teal/10 px-2 py-0.5 rounded-clay-pill font-medium">
-                  Code Fixer
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-clay-teal bg-clay-teal/10 px-2 py-0.5 rounded-clay-pill font-medium">
+                    Code Fixer
+                  </span>
+                  {renderStateBadge(solnMeta.state)}
+                </div>
               </div>
               <p className="text-[11px] text-clay-body font-sans leading-relaxed line-clamp-2">
                 Crafts a minimal, targeted code solution that fixes the defect safely.
@@ -382,15 +487,7 @@ export function SwitchAgentWorkspace({
             </div>
             <div className="text-[10px] pt-2 border-t border-clay-hairline flex items-center justify-between text-clay-muted mt-2">
               <span className="text-clay-body font-medium">
-                {task ? (
-                  hasPatch ? (
-                    <span className="text-clay-teal font-semibold">✓ Solution Ready</span>
-                  ) : (
-                    <span className="text-clay-muted">Preparing fix...</span>
-                  )
-                ) : (
-                  <span className="text-clay-muted">Standby • Fixer Ready</span>
-                )}
+                {solnMeta.label}
               </span>
               <span className="text-clay-teal font-medium flex items-center gap-0.5">
                 Inspect ↗
@@ -407,18 +504,17 @@ export function SwitchAgentWorkspace({
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-2">
-                  <span
-                    className={`w-2 h-2 rounded-full shrink-0 ${
-                      verifyPassed ? "bg-clay-mint" : "bg-clay-muted"
-                    }`}
-                  />
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${revwMeta.dotColor}`} />
                   <span className="font-semibold text-clay-ink text-xs group-hover:text-[#136149] transition-colors">
                     Quality Reviewer
                   </span>
                 </div>
-                <span className="text-[10px] text-[#136149] bg-clay-mint/25 px-2 py-0.5 rounded-clay-pill font-semibold">
-                  Verification
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-[#136149] bg-clay-mint/25 px-2 py-0.5 rounded-clay-pill font-semibold">
+                    Verification
+                  </span>
+                  {renderStateBadge(revwMeta.state)}
+                </div>
               </div>
               <p className="text-[11px] text-clay-body font-sans leading-relaxed line-clamp-2">
                 Independently validates that all tests pass before requesting your approval.
@@ -426,23 +522,7 @@ export function SwitchAgentWorkspace({
             </div>
             <div className="text-[10px] pt-2 border-t border-clay-hairline flex items-center justify-between text-clay-muted mt-2">
               <span className="text-clay-body font-medium">
-                {task ? (
-                  hasVerifyRun ? (
-                    verifyPassed ? (
-                      <span className="text-[#136149] font-semibold">
-                        ✓ All Tests Passed
-                      </span>
-                    ) : (
-                      <span className="text-clay-coral font-semibold">
-                        Verification Failed
-                      </span>
-                    )
-                  ) : (
-                    <span className="text-clay-muted">Pending run</span>
-                  )
-                ) : (
-                  <span className="text-clay-muted">Standby • Verifier Ready</span>
-                )}
+                {revwMeta.label}
               </span>
               <span className="text-[#136149] font-medium flex items-center gap-0.5">
                 Inspect ↗

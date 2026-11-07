@@ -38,6 +38,7 @@ export interface TaskCreatePayload {
   input_source?: string;
   repository_url?: string;
   branch_name?: string;
+  workspace_id?: string;
 }
 
 export interface Evidence {

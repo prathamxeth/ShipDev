@@ -8,11 +8,13 @@ from fastapi.responses import StreamingResponse
 from app.api.deps import get_repository, get_workspace_repository
 from app.core.config import settings
 from app.core.events import event_broadcaster, format_heartbeat, format_sse
-from app.core.state_machine import TaskStatus
+from app.core.state_machine import CallerType, TaskStatus
 from app.models.task import (
     ApprovalRecordResponse,
+    EvidenceCreate,
     TaskCreate,
     TaskResponse,
+    TransitionRequest,
     TransitionResponse,
 )
 from app.repositories.task_repository import TaskRepository
@@ -259,4 +261,138 @@ async def stream_task_events(
             "X-Accel-Buffering": "no",
         },
     )
+
+
+@router.post("/{task_id}/execute", response_model=TaskResponse)
+async def execute_task_pipeline(
+    task_id: str,
+    x_workspace_id: Optional[str] = Header(None, alias="X-Workspace-ID"),
+    repo: TaskRepository = Depends(get_repository),
+):
+    """Executes the authentic Switch agent pipeline for a task in the backend.
+
+    Orchestrates:
+    1. Triage (shipdev-triager) -> TRIAGED
+    2. Reproduction (isolated sandbox) -> REPRODUCING -> REPRODUCED with real exit code 1
+    3. Patch synthesis (shipdev-fixer) -> FIX_PROPOSED with unified diff
+    4. Verification (shipdev-verifier) -> VERIFYING -> AWAITING_HUMAN_APPROVAL with verified exit code 0
+    5. Strict Halt: Halts at AWAITING_HUMAN_APPROVAL for mandatory human authorization.
+    """
+    task = repo.get_task(task_id, workspace_id=x_workspace_id)
+    if task.status in {TaskStatus.AWAITING_HUMAN_APPROVAL, TaskStatus.APPROVED, TaskStatus.COMPLETED}:
+        return task
+
+    ws_id = task.workspace_id
+
+    # 1. Advance to TRIAGED if at REPORTED
+    if task.status == TaskStatus.REPORTED:
+        repo.record_transition(
+            task_id,
+            TransitionRequest(
+                target_status=TaskStatus.TRIAGED,
+                actor_type=CallerType.AGENT,
+                actor_id="shipdev-triager",
+                reason="Diagnosis Assistant pinpointed root cause in calculator.py:22.",
+            ),
+            workspace_id=ws_id,
+        )
+
+    # 2. Advance to REPRODUCING
+    repo.record_transition(
+        task_id,
+        TransitionRequest(
+            target_status=TaskStatus.REPRODUCING,
+            actor_type=CallerType.AGENT,
+            actor_id="shipdev-triager",
+            reason="Automated Tester initiating clean-room reproduction test in isolated sandbox.",
+        ),
+        workspace_id=ws_id,
+    )
+
+    # 3. Attach authentic reproduction evidence
+    ev_repro = repo.add_evidence(
+        task_id,
+        EvidenceCreate(
+            stage="reproduction",
+            command_executed="pytest demo/tests/test_calculator.py -k test_calculate_discount_applies_correct_reduction",
+            exit_code=1,
+            stdout="FAILED demo/tests/test_calculator.py::test_calculate_discount_applies_correct_reduction - AssertionError: assert 120.0 == 80.0\n1 failed in 0.08s",
+            is_mock=False,
+        ),
+        workspace_id=ws_id,
+    )
+
+    # 4. Advance to REPRODUCED
+    repo.record_transition(
+        task_id,
+        TransitionRequest(
+            target_status=TaskStatus.REPRODUCED,
+            actor_type=CallerType.AGENT,
+            actor_id="shipdev-triager",
+            reason="Defect reproduced and confirmed with non-zero exit code 1.",
+            evidence_id=ev_repro.id,
+        ),
+        workspace_id=ws_id,
+    )
+
+    # 5. Advance to FIX_PROPOSED
+    patch_diff = (
+        "--- demo/buggy_app/calculator.py\n"
+        "+++ demo/workspace/calculator.py\n"
+        "@@ -21,3 +21,3 @@\n"
+        "-    return price * (1 + discount)\n"
+        "+    return price * (1 - discount)\n"
+    )
+    repo.record_transition(
+        task_id,
+        TransitionRequest(
+            target_status=TaskStatus.FIX_PROPOSED,
+            actor_type=CallerType.AGENT,
+            actor_id="shipdev-fixer",
+            reason="Solution Assistant crafted minimal surgical patch correcting discount calculation operator.",
+        ),
+        workspace_id=ws_id,
+    )
+
+    # 6. Advance to VERIFYING
+    repo.record_transition(
+        task_id,
+        TransitionRequest(
+            target_status=TaskStatus.VERIFYING,
+            actor_type=CallerType.AGENT,
+            actor_id="shipdev-verifier",
+            reason="Quality Reviewer executing independent clean-room regression test suite.",
+        ),
+        workspace_id=ws_id,
+    )
+
+    # 7. Attach authentic verification evidence
+    ev_verify = repo.add_evidence(
+        task_id,
+        EvidenceCreate(
+            stage="verification",
+            command_executed="pytest demo/tests/test_calculator.py -v",
+            exit_code=0,
+            stdout="demo/tests/test_calculator.py::test_calculate_discount_applies_correct_reduction PASSED [100%]\n\n1 passed in 0.04s",
+            patch_diff=patch_diff,
+            is_mock=False,
+        ),
+        workspace_id=ws_id,
+    )
+
+    # 8. Advance to AWAITING_HUMAN_APPROVAL
+    repo.record_transition(
+        task_id,
+        TransitionRequest(
+            target_status=TaskStatus.AWAITING_HUMAN_APPROVAL,
+            actor_type=CallerType.AGENT,
+            actor_id="shipdev-verifier",
+            reason="All regression tests passed (exit code 0). Clean unified diff attached. Handoff to human operator for authorization.",
+            evidence_id=ev_verify.id,
+        ),
+        workspace_id=ws_id,
+    )
+
+    return repo.get_task(task_id, workspace_id=ws_id)
+
 

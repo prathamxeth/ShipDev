@@ -219,10 +219,12 @@ export function getTaskEventsUrl(taskId: string, replayAll = true): string {
  * Submit a new bug report task (`POST /api/v1/tasks`)
  */
 export async function createTask(payload: TaskCreatePayload): Promise<Task> {
+  const wsId = payload.workspace_id || "ws_personal_default";
   return request<Task>(`${API_BASE_URL}/tasks`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      "X-Workspace-ID": wsId,
     },
     body: JSON.stringify({
       title: payload.title,
@@ -231,8 +233,24 @@ export async function createTask(payload: TaskCreatePayload): Promise<Task> {
       input_source: payload.input_source || "text",
       repository_url: payload.repository_url || null,
       branch_name: payload.branch_name || null,
+      workspace_id: wsId,
     }),
   });
+}
+
+/**
+ * Execute authentic Switch agent execution pipeline for a task
+ */
+export async function executeTaskPipeline(taskId: string): Promise<Task> {
+  try {
+    return await request<Task>(`${API_BASE_URL}/tasks/${encodeURIComponent(taskId)}/execute`, {
+      method: "POST",
+    });
+  } catch {
+    return await request<Task>(`/api/tasks/${encodeURIComponent(taskId)}/execute`, {
+      method: "POST",
+    });
+  }
 }
 
 /* =========================================================================

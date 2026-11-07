@@ -70,7 +70,7 @@ export function LeftActivityBar({
     { id: "graph", label: "System Architecture Map", icon: Network },
     { id: "knowledge", label: "Personal Knowledge & Memory", icon: BookOpen },
     { id: "agents", label: "Specialist Agents", icon: Cpu },
-    { id: "platforms", label: "Connected Platforms (Discord & Telegram)", icon: Share2 },
+    { id: "platforms", label: "Connections (Discord & Telegram)", icon: Share2 },
   ];
 
   const teamTabs: Array<{
@@ -89,7 +89,7 @@ export function LeftActivityBar({
     { id: "knowledge", label: "Org Knowledge & Guidelines", icon: BookOpen },
     { id: "agents", label: "Team Autonomous Roster", icon: Cpu },
     { id: "members", label: "Members & Roles (RBAC)", icon: Users },
-    { id: "platforms", label: "Connected Platforms (Slack & Teams)", icon: Share2 },
+    { id: "platforms", label: "Connections (Slack & Teams)", icon: Share2 },
   ];
 
   const tabs = activeWorkspaceType === "PERSONAL" ? personalTabs : teamTabs;

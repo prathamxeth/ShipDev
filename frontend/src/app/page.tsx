@@ -554,6 +554,10 @@ export default function ShipDevIDE() {
             <PersonalAssistantView
               onTaskCreated={(id: string) => {
                 setSelectedTaskId(id);
+                loadTasks(true);
+              }}
+              onOpenStudio={(id: string) => {
+                setSelectedTaskId(id);
                 setActiveActivityTab("studio");
                 loadTasks(true);
               }}
