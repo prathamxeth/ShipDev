@@ -41,7 +41,7 @@ export function SwitchAgentWorkspace({
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [selectedAgentDetail, setSelectedAgentDetail] = useState<AgentIdentifier | null>(null);
 
-  if (isLoading) {
+  if (isLoading && !task) {
     return (
       <aside className="w-80 lg:w-92 border-l border-clay-hairline bg-clay-surface-soft p-4 flex flex-col gap-3 shrink-0">
         <div className="h-4 w-1/2 bg-clay-surface-card rounded-clay-md animate-pulse" />

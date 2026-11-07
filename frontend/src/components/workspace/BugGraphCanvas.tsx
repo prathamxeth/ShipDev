@@ -117,45 +117,45 @@ export function BugGraphCanvas({
       sublabel: "Project Root",
       type: "folder",
       path: "/",
-      x: 270,
+      x: 320,
       y: 16,
       level: 0,
       collapsed: Boolean(collapsedFolders["folder_root"]),
     });
 
-    // LEVEL 1: Subdirectories
+    // LEVEL 1: Subdirectories - ALL ON THE SAME LEVEL (y: 95)
     const folders = [
       {
         id: "folder_demo",
         label: "Calculator App",
         path: "demo",
         parentId: "folder_root",
-        x: 140,
-        y: 86,
+        x: 80,
+        y: 95,
       },
       {
         id: "folder_buggy",
         label: "App Code",
         path: "demo/buggy_app",
         parentId: "folder_demo",
-        x: 90,
-        y: 156,
+        x: 240,
+        y: 95,
       },
       {
         id: "folder_tests",
         label: "Test Suite",
         path: "demo/tests",
         parentId: "folder_demo",
-        x: 270,
-        y: 156,
+        x: 400,
+        y: 95,
       },
       {
         id: "folder_scripts",
         label: "Bridge Scripts",
         path: "scripts",
         parentId: "folder_root",
-        x: 460,
-        y: 86,
+        x: 560,
+        y: 95,
       },
     ];
 
@@ -179,7 +179,7 @@ export function BugGraphCanvas({
       });
     });
 
-    // LEVEL 2: Domain Files
+    // LEVEL 2: Domain Files - ALL ON THE SAME LEVEL (y: 180)
     const files = [
       {
         id: "file_calculator",
@@ -187,8 +187,8 @@ export function BugGraphCanvas({
         path: "demo/buggy_app/calculator.py",
         fileName: "calculator.py",
         folderId: "folder_buggy",
-        x: 40,
-        y: 226,
+        x: 80,
+        y: 180,
       },
       {
         id: "file_utils",
@@ -196,8 +196,8 @@ export function BugGraphCanvas({
         path: "demo/buggy_app/utils.py",
         fileName: "utils.py",
         folderId: "folder_buggy",
-        x: 180,
-        y: 226,
+        x: 240,
+        y: 180,
       },
       {
         id: "file_test_calc",
@@ -205,8 +205,8 @@ export function BugGraphCanvas({
         path: "demo/tests/test_calculator.py",
         fileName: "test_calculator.py",
         folderId: "folder_tests",
-        x: 320,
-        y: 226,
+        x: 400,
+        y: 180,
       },
       {
         id: "file_bridge",
@@ -214,8 +214,8 @@ export function BugGraphCanvas({
         path: "scripts/switch_bridge.py",
         fileName: "switch_bridge.py",
         folderId: "folder_scripts",
-        x: 470,
-        y: 226,
+        x: 560,
+        y: 180,
       },
     ];
 
@@ -239,7 +239,7 @@ export function BugGraphCanvas({
       });
     });
 
-    // LEVEL 3: Subfile Functions & AST Symbols
+    // LEVEL 3: Subfile Functions & AST Symbols - ALL ON THE SAME LEVEL (y: 265)
     const functions = [
       {
         id: "fn_divide",
@@ -249,7 +249,7 @@ export function BugGraphCanvas({
         lineNumber: 22,
         fileId: "file_calculator",
         x: 30,
-        y: 296,
+        y: 265,
       },
       {
         id: "fn_add",
@@ -258,8 +258,8 @@ export function BugGraphCanvas({
         fileName: "calculator.py",
         lineNumber: 6,
         fileId: "file_calculator",
-        x: 120,
-        y: 296,
+        x: 165,
+        y: 265,
       },
       {
         id: "fn_eval",
@@ -268,8 +268,8 @@ export function BugGraphCanvas({
         fileName: "calculator.py",
         lineNumber: 38,
         fileId: "file_calculator",
-        x: 210,
-        y: 296,
+        x: 300,
+        y: 265,
       },
       {
         id: "fn_test_div",
@@ -278,8 +278,8 @@ export function BugGraphCanvas({
         fileName: "test_calculator.py",
         lineNumber: 14,
         fileId: "file_test_calc",
-        x: 330,
-        y: 296,
+        x: 435,
+        y: 265,
       },
       {
         id: "fn_claim",
@@ -288,8 +288,8 @@ export function BugGraphCanvas({
         fileName: "switch_bridge.py",
         lineNumber: 108,
         fileId: "file_bridge",
-        x: 470,
-        y: 296,
+        x: 570,
+        y: 265,
       },
     ];
 
@@ -323,11 +323,11 @@ export function BugGraphCanvas({
       color: "#f54e00",
     });
 
-    // LEVEL 4: Active Bug Tasks
+    // LEVEL 4: Active Bug Tasks & Smart Assistants - ALL ON THE SAME LEVEL (y: 350)
     tasks.forEach((task, index) => {
       const loc = resolveBugLocation(task);
       const bugNodeId = `bug_${task.id}`;
-      const xOffset = 30 + index * 180;
+      const xOffset = 30 + index * 145;
       const isResolved = task.status === "COMPLETED" || task.status === "APPROVED";
       const isAwaiting = task.status === "AWAITING_HUMAN_APPROVAL";
 
@@ -352,7 +352,7 @@ export function BugGraphCanvas({
         fileName: loc.fileName,
         lineNumber: loc.lineNumber,
         x: xOffset,
-        y: 366,
+        y: 350,
         level: 4,
       });
 
@@ -374,15 +374,15 @@ export function BugGraphCanvas({
       });
     });
 
-    // LEVEL 5: Switch Agents Orchestrators
+    // Smart Assistants - ON THE SAME LEVEL (y: 350)
     rawNodes.push({
       id: "agent_triager",
       label: "Diagnosis Assistant",
       sublabel: "Pinpoints defect",
       type: "agent",
-      x: 160,
-      y: 436,
-      level: 5,
+      x: 465,
+      y: 350,
+      level: 4,
     });
 
     rawNodes.push({
@@ -390,9 +390,9 @@ export function BugGraphCanvas({
       label: "Quality Reviewer",
       sublabel: "Validates fix",
       type: "agent",
-      x: 360,
-      y: 436,
-      level: 5,
+      x: 610,
+      y: 350,
+      level: 4,
     });
 
     // Connect agents to active bugs
@@ -504,7 +504,7 @@ export function BugGraphCanvas({
     const targetZoom = Math.min(Math.max(Math.min(scaleX, scaleY), 0.52), 1.0);
 
     const targetPanX = (clientWidth - graphWidth * targetZoom) / 2 - minX * targetZoom;
-    const targetPanY = Math.max(16, (availableHeight - graphHeight * targetZoom) / 2 - minY * targetZoom + 6);
+    const targetPanY = 24 - minY * targetZoom;
 
     setZoom(targetZoom);
     setPan({ x: targetPanX, y: targetPanY });
@@ -814,9 +814,12 @@ export function BugGraphCanvas({
                 // Bezier Curve connecting nodes cleanly
                 const dx = target.x - source.x;
                 const dy = target.y - source.y;
-                const midY = source.y + dy * 0.5;
+                const isSameLevel = Math.abs(dy) < 15;
+                const midY = isSameLevel ? source.y + 42 : source.y + dy * 0.5;
 
-                const pathData = `M ${source.x + 78} ${source.y + 23} C ${source.x + 78} ${midY}, ${target.x + 78} ${midY}, ${target.x + 78} ${target.y}`;
+                const pathData = isSameLevel
+                  ? `M ${source.x + 78} ${source.y + 46} C ${source.x + 78} ${source.y + 68}, ${target.x + 78} ${target.y + 68}, ${target.x + 78} ${target.y + 46}`
+                  : `M ${source.x + 78} ${source.y + 23} C ${source.x + 78} ${midY}, ${target.x + 78} ${midY}, ${target.x + 78} ${target.y}`;
                 const isRed = edge.color?.includes("ef4444") || edge.color?.includes("f87171");
                 const isGreen = edge.color?.includes("10b981");
 
@@ -834,7 +837,7 @@ export function BugGraphCanvas({
                     {edge.label && (
                       <text
                         x={(source.x + target.x) / 2 + 78}
-                        y={midY}
+                        y={isSameLevel ? source.y + 65 : midY}
                         fill="#64748b"
                         fontSize="9"
                         fontFamily="monospace"

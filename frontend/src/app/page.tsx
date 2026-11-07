@@ -208,24 +208,27 @@ export default function ShipDevIDE() {
       if (taskData) {
         const isResolved = taskData.status === "APPROVED" || taskData.status === "COMPLETED";
         const loc = resolveBugLocation(taskData);
-        if (loc.fileName && workspaceFiles[loc.fileName]) {
+        if (loc.fileName) {
           setActiveFileName(loc.fileName);
           setTargetHighlightLine(isResolved ? null : loc.lineNumber);
-          if (!openTabs.includes(loc.fileName)) {
-            setOpenTabs((prev) => [...prev, loc.fileName]);
-          }
+          setOpenTabs((prev) => (prev.includes(loc.fileName) ? prev : [...prev, loc.fileName]));
 
           // If task is resolved, update file code to the fixed version
           if (isResolved && loc.fileName === "calculator.py") {
-            const patched = getPatchedCode(loc.fileName, workspaceFiles[loc.fileName].code, null);
-            setWorkspaceFiles((prev) => ({
-              ...prev,
-              [loc.fileName]: {
-                ...prev[loc.fileName],
-                code: patched,
-                bugLine: undefined,
-              },
-            }));
+            setWorkspaceFiles((prev) => {
+              const currentCode = prev[loc.fileName]?.code;
+              if (!currentCode) return prev;
+              const patched = getPatchedCode(loc.fileName, currentCode, null);
+              if (currentCode === patched) return prev;
+              return {
+                ...prev,
+                [loc.fileName]: {
+                  ...prev[loc.fileName],
+                  code: patched,
+                  bugLine: undefined,
+                },
+              };
+            });
           }
         }
       }
@@ -234,7 +237,7 @@ export default function ShipDevIDE() {
     } finally {
       setIsLoadingDetails(false);
     }
-  }, [workspaceFiles, openTabs]);
+  }, []);
 
   // Initial load
   useEffect(() => {
