@@ -9,9 +9,10 @@ import {
   Search,
   Settings,
   Info,
+  Network,
 } from "lucide-react";
 
-export type ActivityTab = "explorer" | "bugtree" | "git" | "agents" | "search";
+export type ActivityTab = "explorer" | "bugtree" | "graph" | "git" | "agents" | "search";
 
 interface LeftActivityBarProps {
   activeTab: ActivityTab;
@@ -37,6 +38,7 @@ export function LeftActivityBar({
     badge?: number;
   }> = [
     { id: "bugtree", label: "Live Bug Tree", icon: Bug, badge: bugCount },
+    { id: "graph", label: "Live Bug Graph", icon: Network },
     { id: "explorer", label: "File Explorer", icon: Files },
     { id: "search", label: "Search Codebase", icon: Search },
     { id: "git", label: "Source Control", icon: GitBranch },

@@ -20,6 +20,7 @@ interface TopNavigationProps {
   onOpenCommandPalette: () => void;
   onOpenSettings: () => void;
   onOpenAbout: () => void;
+  onOpenAgentDetail?: (agentId: "shipdev-triager" | "shipdev-verifier") => void;
   isRefreshing?: boolean;
   isDiffMode: boolean;
   onToggleDiffMode: (diffState?: boolean) => void;
@@ -32,6 +33,7 @@ export function TopNavigation({
   onOpenCommandPalette,
   onOpenSettings,
   onOpenAbout,
+  onOpenAgentDetail,
   isRefreshing = false,
   isDiffMode,
   onToggleDiffMode,
@@ -52,7 +54,7 @@ export function TopNavigation({
   }, []);
 
   const handleCopyBranch = () => {
-    navigator.clipboard.writeText("feature/ayush-backend");
+    navigator.clipboard.writeText("main");
     setCopiedBranch(true);
     setTimeout(() => setCopiedBranch(false), 2000);
   };
@@ -119,14 +121,15 @@ export function TopNavigation({
       {/* Right: Switch Status, Actions & Preferences */}
       <div className="flex items-center gap-2">
         {/* Switch Agent Connection Pill */}
-        <div
-          title="Switch Agent Controller (:53640) & Room: #shipdev-command-center"
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-clay-pill bg-clay-surface-soft border border-clay-hairline text-[11px] font-mono shadow-xs"
+        <button
+          onClick={() => onOpenAgentDetail?.("shipdev-triager")}
+          title="Switch Agent Controller (:53640) - Click to inspect agent profile"
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-clay-pill bg-clay-surface-soft hover:bg-clay-surface-card border border-clay-hairline text-[11px] font-mono shadow-xs cursor-pointer transition-colors"
         >
           <span className="w-1.5 h-1.5 rounded-full bg-clay-success" />
           <span className="text-clay-muted hidden lg:inline">Switch:</span>
           <span className="text-clay-ink font-semibold">Live</span>
-        </div>
+        </button>
 
         {/* Backend Health indicator */}
         <div

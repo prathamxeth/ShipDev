@@ -96,6 +96,20 @@ async def missing_evidence_handler(request: Request, exc: MissingEvidenceError):
     )
 
 
+@app.get("/", tags=["Root"])
+async def root():
+    """Root status and API information endpoint."""
+    return {
+        "status": "ok",
+        "service": settings.PROJECT_NAME,
+        "environment": settings.ENVIRONMENT,
+        "version": settings.VERSION,
+        "docs_url": "/docs",
+        "health_url": "/health",
+        "api_v1_url": "/api/v1",
+    }
+
+
 @app.get("/health", tags=["Health"])
 async def health_check():
     """System health check endpoint."""
