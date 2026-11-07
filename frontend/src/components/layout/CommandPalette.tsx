@@ -276,7 +276,12 @@ export function CommandPalette({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-24 p-4 bg-black/40 backdrop-blur-xs select-none animate-in fade-in duration-100">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Command palette"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-24 p-4 bg-black/40 backdrop-blur-xs select-none animate-in fade-in duration-100"
+    >
       <div className="w-full max-w-xl rounded-clay-xl bg-clay-canvas border border-clay-hairline shadow-clay-elevated flex flex-col overflow-hidden text-xs font-mono text-clay-ink">
         {/* Search Input Bar */}
         <div className="h-12 px-4 border-b border-clay-hairline flex items-center gap-3 bg-white">
@@ -290,11 +295,13 @@ export function CommandPalette({
               setSelectedIndex(0);
             }}
             placeholder="Type a file name, bug description, or command..."
+            aria-label="Command palette search query"
             className="w-full bg-transparent outline-none text-clay-ink placeholder-clay-muted text-xs font-mono"
           />
           {query && (
             <button
               onClick={() => setQuery("")}
+              aria-label="Clear search query"
               className="text-clay-muted hover:text-clay-ink p-1 rounded-clay-xs cursor-pointer"
             >
               <X className="w-3.5 h-3.5" />
@@ -318,6 +325,8 @@ export function CommandPalette({
               return (
                 <div
                   key={item.id}
+                  role="option"
+                  aria-selected={isSelected}
                   onClick={() => item.perform()}
                   onMouseEnter={() => setSelectedIndex(idx)}
                   className={`flex items-center justify-between p-2 rounded-clay-md cursor-pointer transition-colors ${
@@ -335,7 +344,7 @@ export function CommandPalette({
                         </span>
                         {item.badge && (
                           <span
-                            className={`text-[9px] px-1.5 py-0.2 rounded-clay-pill border font-mono ${
+                            className={`text-[9px] px-1.5 py-0.5 rounded-clay-pill border font-mono ${
                               item.badgeColor || "bg-clay-surface-card text-clay-muted border-clay-hairline"
                             }`}
                           >
@@ -352,7 +361,7 @@ export function CommandPalette({
                   </div>
 
                   {item.shortcut && (
-                    <span className="text-[10px] text-clay-muted font-mono px-1.5 py-0.2 rounded-clay-xs bg-clay-surface-soft border border-clay-hairline shrink-0 ml-2">
+                    <span className="text-[10px] text-clay-muted font-mono px-1.5 py-0.5 rounded-clay-xs bg-clay-surface-soft border border-clay-hairline shrink-0 ml-2">
                       {item.shortcut}
                     </span>
                   )}

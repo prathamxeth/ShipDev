@@ -14,21 +14,39 @@ export function AboutModal({
   onClose,
   switchConnected = true,
 }: AboutModalProps) {
+  // Close on Escape key
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs select-none animate-in fade-in duration-150">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="about-dialog-title"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs select-none animate-in fade-in duration-150"
+    >
       <div className="w-full max-w-md rounded-clay-xl bg-clay-canvas border border-clay-hairline shadow-clay-elevated flex flex-col overflow-hidden text-clay-ink">
         {/* Header */}
         <div className="h-11 px-4 border-b border-clay-hairline flex items-center justify-between bg-white">
           <div className="flex items-center gap-2">
             <Info className="w-4 h-4 text-clay-primary" />
-            <h2 className="text-xs font-semibold text-clay-ink uppercase tracking-wider font-mono">
+            <h2 id="about-dialog-title" className="text-xs font-semibold text-clay-ink uppercase tracking-wider font-mono">
               About ShipDev
             </h2>
           </div>
           <button
             onClick={onClose}
+            aria-label="Close dialog"
             className="text-clay-muted hover:text-clay-ink p-1 rounded-clay-xs hover:bg-clay-surface-card transition-colors"
           >
             <X className="w-4 h-4" />

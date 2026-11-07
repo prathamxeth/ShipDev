@@ -26,13 +26,34 @@ const config: Config = {
           "surface-strong": "#ebe6d6",
           "surface-dark": "#0a1a1a",
           "surface-dark-elevated": "#1a2a2a",
-          pink: "#ff4d8b",
-          teal: "#1a3a3a",
-          lavender: "#b8a4ed",
-          peach: "#ffb084",
-          ochre: "#e8b94a",
-          mint: "#a4d4c5",
-          coral: "#ff6b5a",
+          pink: {
+            DEFAULT: "#ff4d8b",
+            ink: "#b81450",
+          },
+          teal: {
+            DEFAULT: "#1a3a3a",
+            ink: "#1a3a3a",
+          },
+          lavender: {
+            DEFAULT: "#b8a4ed",
+            ink: "#5a38a8",
+          },
+          peach: {
+            DEFAULT: "#ffb084",
+            ink: "#9a4b18",
+          },
+          ochre: {
+            DEFAULT: "#e8b94a",
+            ink: "#946200",
+          },
+          mint: {
+            DEFAULT: "#a4d4c5",
+            ink: "#136149",
+          },
+          coral: {
+            DEFAULT: "#ff6b5a",
+            ink: "#c5301e",
+          },
           success: "#22c55e",
           warning: "#f59e0b",
           error: "#ef4444",

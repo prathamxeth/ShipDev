@@ -529,7 +529,7 @@ export default function ShipDevIDE() {
         </div>
 
         <div className="flex items-center gap-3 text-clay-muted">
-          <span className="text-clay-muted uppercase text-[10px] px-1.5 py-0.2 rounded-clay-xs bg-clay-surface-card border border-clay-hairline font-medium">
+          <span className="text-clay-muted uppercase text-[10px] px-1.5 py-0.5 rounded-clay-xs bg-clay-surface-card border border-clay-hairline font-medium">
             {workspaceFiles[activeFileName]?.language || "python"}
           </span>
           <span className="text-clay-body">

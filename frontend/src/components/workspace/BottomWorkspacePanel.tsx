@@ -115,7 +115,7 @@ export function BottomWorkspacePanel({
 
       {/* Dock Tabs Header */}
       <div className="h-8 px-3 bg-clay-canvas border-b border-clay-hairline flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-1 overflow-x-auto scrollbar-none font-mono text-xs">
+        <div className="flex items-center gap-1 overflow-x-auto scrollbar-none font-mono text-xs" role="tablist" aria-label="Dock workspace tabs">
           {(
             [
               { id: "terminal", label: "Terminal", icon: Terminal, count: evidenceList.length },
@@ -131,6 +131,9 @@ export function BottomWorkspacePanel({
             return (
               <button
                 key={tab.id}
+                role="tab"
+                aria-selected={isActive}
+                aria-controls={`dock-tabpanel-${tab.id}`}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-t-clay-md border-b-2 text-xs transition-colors cursor-pointer shrink-0 ${
                   isActive
@@ -267,19 +270,28 @@ export function BottomWorkspacePanel({
 
         {/* 2. PROBLEMS TAB */}
         {activeTab === "problems" && (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2" id="dock-tabpanel-problems" role="tabpanel">
             {task ? (
               <div
+                role="button"
+                tabIndex={0}
+                aria-label={`Jump to ${task.title} at line 22`}
                 onClick={() => onNavigateToLine("calculator.py", 22)}
-                className="p-2.5 rounded-clay-lg bg-white hover:bg-clay-surface-card border border-clay-hairline hover:border-clay-primary cursor-pointer transition-colors flex items-start gap-2.5 group shadow-clay-soft"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onNavigateToLine("calculator.py", 22);
+                  }
+                }}
+                className="p-2.5 rounded-clay-lg bg-white hover:bg-clay-surface-card border border-clay-hairline hover:border-clay-primary cursor-pointer transition-colors flex items-start gap-2.5 group shadow-clay-soft focus-visible:outline-2 focus-visible:outline-clay-primary"
               >
-                <XCircle className="w-4 h-4 text-clay-coral shrink-0 mt-0.5" />
+                <XCircle className="w-4 h-4 text-clay-coral-ink shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-clay-ink font-semibold group-hover:text-clay-primary transition-colors">
                       {task.title}
                     </span>
-                    <span className="text-[10px] text-clay-muted bg-clay-surface-soft px-1.5 py-0.2 rounded-clay-xs border border-clay-hairline">
+                    <span className="text-[10px] text-clay-muted bg-clay-surface-soft px-1.5 py-0.5 rounded-clay-xs border border-clay-hairline">
                       Line 22
                     </span>
                   </div>

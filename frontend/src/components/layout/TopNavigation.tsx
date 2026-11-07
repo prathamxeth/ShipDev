@@ -69,7 +69,7 @@ export function TopNavigation({
           <span className="font-semibold text-clay-ink tracking-tight text-[13px]">
             ShipDev
           </span>
-          <span className="text-[10px] text-clay-muted bg-clay-surface-card border border-clay-hairline px-1.5 py-0.2 rounded-clay-pill font-mono hidden sm:inline">
+          <span className="text-[10px] text-clay-muted bg-clay-surface-card border border-clay-hairline px-1.5 py-0.5 rounded-clay-pill font-mono hidden sm:inline">
             IDE
           </span>
         </div>
@@ -86,13 +86,14 @@ export function TopNavigation({
           <button
             onClick={handleCopyBranch}
             title="Click to copy branch name"
+            aria-label="Copy branch name feature/ayush-backend"
             className="flex items-center gap-1 text-clay-body hover:text-clay-ink px-2 py-0.5 rounded-clay-md hover:bg-clay-surface-soft transition-colors cursor-pointer font-mono"
           >
             <GitBranch className="w-3.5 h-3.5 text-clay-teal" />
             <span className="truncate max-w-28">feature/ayush-backend</span>
             {copiedBranch && <Check className="w-3 h-3 text-clay-success" />}
           </button>
-          <span className="text-[10px] text-clay-ink bg-clay-surface-card px-1.5 py-0.2 rounded-clay-pill border border-clay-hairline font-mono font-medium">
+          <span className="text-[10px] text-clay-ink bg-clay-surface-card px-1.5 py-0.5 rounded-clay-pill border border-clay-hairline font-mono font-medium">
             1 modified
           </span>
         </div>
@@ -102,6 +103,7 @@ export function TopNavigation({
       <div className="flex-1 max-w-md mx-4 hidden md:flex items-center justify-center">
         <button
           onClick={onOpenCommandPalette}
+          aria-label="Open command palette (Command + K)"
           className="w-full flex items-center justify-between px-3 py-1.5 rounded-clay-md bg-clay-surface-soft hover:bg-clay-surface-card border border-clay-hairline text-clay-muted hover:text-clay-ink transition-colors cursor-pointer text-xs"
         >
           <div className="flex items-center gap-2">
@@ -142,7 +144,8 @@ export function TopNavigation({
         {/* Diff View Toggle Button */}
         <button
           onClick={() => onToggleDiffMode(!isDiffMode)}
-          className={`flex items-center gap-1 px-3 py-1 rounded-clay-md text-xs font-medium border transition-colors cursor-pointer ${
+          aria-label={isDiffMode ? "Exit side-by-side diff mode" : "Enter side-by-side diff mode"}
+          className={`flex items-center gap-1 px-3 py-1.5 rounded-clay-md text-xs font-medium border transition-colors cursor-pointer ${
             isDiffMode
               ? "bg-clay-peach/30 border-clay-peach text-clay-ink shadow-xs"
               : "bg-clay-surface-soft hover:bg-clay-surface-card border-clay-hairline text-clay-body hover:text-clay-ink"
@@ -156,7 +159,8 @@ export function TopNavigation({
         <button
           onClick={onRefreshClick}
           title="Refresh task queue and evidence"
-          className="p-1.5 text-clay-muted hover:text-clay-ink rounded-clay-md hover:bg-clay-surface-soft border border-transparent hover:border-clay-hairline transition-colors cursor-pointer"
+          aria-label="Refresh task queue and evidence"
+          className="h-8 w-8 flex items-center justify-center text-clay-muted hover:text-clay-ink rounded-clay-md hover:bg-clay-surface-soft border border-transparent hover:border-clay-hairline transition-colors cursor-pointer"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-clay-teal" : ""}`} />
         </button>
@@ -164,6 +168,7 @@ export function TopNavigation({
         {/* New Bug Button */}
         <button
           onClick={onNewBugClick}
+          aria-label="Report new issue to AI engineering pipeline"
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-clay-md bg-clay-primary hover:bg-clay-primary-active text-white text-xs font-semibold transition-colors cursor-pointer shadow-clay-soft"
         >
           <Plus className="w-3.5 h-3.5" />
@@ -174,7 +179,8 @@ export function TopNavigation({
         <button
           onClick={onOpenAbout}
           title="About ShipDev"
-          className="p-1.5 text-clay-muted hover:text-clay-ink rounded-clay-md hover:bg-clay-surface-soft border border-transparent hover:border-clay-hairline transition-colors cursor-pointer"
+          aria-label="About ShipDev"
+          className="h-8 w-8 flex items-center justify-center text-clay-muted hover:text-clay-ink rounded-clay-md hover:bg-clay-surface-soft border border-transparent hover:border-clay-hairline transition-colors cursor-pointer"
         >
           <Info className="w-4 h-4 text-clay-teal" />
         </button>
@@ -183,7 +189,8 @@ export function TopNavigation({
         <button
           onClick={onOpenSettings}
           title="Settings (⌘,)"
-          className="p-1.5 text-clay-muted hover:text-clay-ink rounded-clay-md hover:bg-clay-surface-soft border border-transparent hover:border-clay-hairline transition-colors cursor-pointer"
+          aria-label="Settings (Command + comma)"
+          className="h-8 w-8 flex items-center justify-center text-clay-muted hover:text-clay-ink rounded-clay-md hover:bg-clay-surface-soft border border-transparent hover:border-clay-hairline transition-colors cursor-pointer"
         >
           <Settings className="w-4 h-4" />
         </button>

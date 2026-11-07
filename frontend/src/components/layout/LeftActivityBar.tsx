@@ -44,7 +44,11 @@ export function LeftActivityBar({
   ];
 
   return (
-    <aside className="w-12 border-r border-clay-hairline bg-clay-surface-soft flex flex-col items-center py-2.5 gap-2.5 shrink-0 select-none z-20">
+    <aside
+      role="navigation"
+      aria-label="Activity Bar"
+      className="w-12 border-r border-clay-hairline bg-clay-surface-soft flex flex-col items-center py-2.5 gap-2.5 shrink-0 select-none z-20"
+    >
       {/* Primary Navigation Icons */}
       <div className="flex flex-col items-center gap-2">
         {tabs.map((tab) => {
@@ -56,7 +60,9 @@ export function LeftActivityBar({
               key={tab.id}
               onClick={() => onSelectTab(tab.id)}
               title={tab.label}
-              className={`relative p-2 rounded-clay-md transition-colors cursor-pointer group ${
+              aria-label={tab.label}
+              aria-pressed={isActive}
+              className={`relative h-9 w-9 flex items-center justify-center rounded-clay-md transition-colors cursor-pointer group ${
                 isActive
                   ? "text-white bg-clay-primary shadow-clay-soft"
                   : "text-clay-muted hover:text-clay-ink hover:bg-clay-surface-card"
@@ -76,7 +82,8 @@ export function LeftActivityBar({
         <button
           onClick={onOpenAbout}
           title="About ShipDev"
-          className="p-2 text-clay-muted hover:text-clay-ink hover:bg-clay-surface-card rounded-clay-md transition-colors cursor-pointer"
+          aria-label="About ShipDev"
+          className="h-8 w-8 flex items-center justify-center text-clay-muted hover:text-clay-ink hover:bg-clay-surface-card rounded-clay-md transition-colors cursor-pointer"
         >
           <Info className="w-4 h-4" />
         </button>
@@ -84,7 +91,8 @@ export function LeftActivityBar({
         <button
           onClick={onOpenSettings}
           title="Settings (⌘,)"
-          className="p-2 text-clay-muted hover:text-clay-ink hover:bg-clay-surface-card rounded-clay-md transition-colors cursor-pointer"
+          aria-label="Settings (Command + comma)"
+          className="h-8 w-8 flex items-center justify-center text-clay-muted hover:text-clay-ink hover:bg-clay-surface-card rounded-clay-md transition-colors cursor-pointer"
         >
           <Settings className="w-4 h-4" />
         </button>

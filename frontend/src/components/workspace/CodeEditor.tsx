@@ -234,7 +234,7 @@ export function CodeEditor({
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <span className="text-[10px] font-semibold uppercase px-1.5 py-0.2 rounded-clay-pill bg-clay-pink/20 text-clay-pink border border-clay-pink/40">
+            <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded-clay-pill bg-clay-pink/20 text-clay-pink-ink border border-clay-pink/40">
               {bugAnnotation.severity}
             </span>
             <button

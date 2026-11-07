@@ -20,6 +20,18 @@ export function NewBugModal({ isOpen, onClose, onTaskCreated }: NewBugModalProps
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Close on Escape key
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -53,19 +65,25 @@ export function NewBugModal({ isOpen, onClose, onTaskCreated }: NewBugModalProps
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs select-none animate-in fade-in duration-100">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="new-bug-dialog-title"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs select-none animate-in fade-in duration-100"
+    >
       <div className="w-full max-w-lg rounded-clay-xl bg-clay-canvas border border-clay-hairline shadow-clay-elevated flex flex-col overflow-hidden text-xs font-mono text-clay-ink">
         {/* Modal Header */}
         <div className="h-11 px-4 border-b border-clay-hairline flex items-center justify-between bg-white">
           <div className="flex items-center gap-2">
             <Bug className="w-4 h-4 text-clay-primary" />
-            <h2 className="text-xs font-semibold text-clay-ink uppercase tracking-wider font-mono">
+            <h2 id="new-bug-dialog-title" className="text-xs font-semibold text-clay-ink uppercase tracking-wider font-mono">
               Report Issue to AI Pipeline
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="text-clay-muted hover:text-clay-ink p-1 rounded-clay-xs hover:bg-clay-surface-card transition-colors cursor-pointer"
+            aria-label="Close dialog"
+            className="text-clay-muted hover:text-clay-ink p-1 rounded-clay-xs hover:bg-clay-surface-card transition-colors"
           >
             <X className="w-4 h-4" />
           </button>

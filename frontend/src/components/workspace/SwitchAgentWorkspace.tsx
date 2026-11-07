@@ -155,19 +155,19 @@ export function SwitchAgentWorkspace({
         return {
           title: "Analysis complete",
           desc: "Target isolated in demo/buggy_app/calculator.py. Handing off to sandbox reproduction.",
-          color: "text-clay-lavender font-semibold",
+          color: "text-clay-lavender-ink font-semibold",
         };
       case "REPRODUCING":
         return {
           title: "Reproducing failure",
           desc: "Executing regression test suite in isolated sandbox workspace.",
-          color: "text-clay-lavender font-semibold animate-pulse",
+          color: "text-clay-lavender-ink font-semibold",
         };
       case "REPRODUCED":
         return {
           title: "Defect confirmed",
           desc: "Reproduction confirmed genuine test failure (exit code 1). Handing off to Fix Agent.",
-          color: "text-[#9a4b18] font-semibold",
+          color: "text-clay-peach-ink font-semibold",
         };
       case "FIX_PROPOSED":
         return {
@@ -179,31 +179,31 @@ export function SwitchAgentWorkspace({
         return {
           title: "Running verification",
           desc: "Verifier agent executing full test suite against patched workspace.",
-          color: "text-[#9a4b18] font-semibold animate-pulse",
+          color: "text-clay-peach-ink font-semibold",
         };
       case "AWAITING_HUMAN_APPROVAL":
         return {
           title: "Waiting for your approval",
           desc: "All verification tests passed. Review the patch diff and decide.",
-          color: "text-[#9a4b18] font-bold",
+          color: "text-clay-peach-ink font-bold",
         };
       case "APPROVED":
         return {
           title: "Approved by human",
           desc: "Ready to ship to repository and complete.",
-          color: "text-[#136149] font-bold",
+          color: "text-clay-mint-ink font-bold",
         };
       case "COMPLETED":
         return {
           title: "Completed & shipped",
           desc: "Defect successfully resolved and verified.",
-          color: "text-[#136149] font-bold",
+          color: "text-clay-mint-ink font-bold",
         };
       case "REJECTED":
         return {
           title: "Changes requested",
           desc: "Returned to Fix Agent for re-attempt with human feedback.",
-          color: "text-clay-coral font-bold",
+          color: "text-clay-coral-ink font-bold",
         };
       default:
         return {
@@ -222,9 +222,9 @@ export function SwitchAgentWorkspace({
       <div className="h-9 px-3 border-b border-clay-hairline bg-clay-canvas flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
           <Bot className="w-4 h-4 text-clay-primary" />
-          <span className="font-semibold text-clay-ink tracking-wide uppercase text-[11px]">
+          <h2 className="font-semibold text-clay-ink tracking-wide uppercase text-[11px]">
             AI Engineering Team
-          </span>
+          </h2>
         </div>
 
         <div className="flex items-center gap-1.5">
@@ -234,7 +234,7 @@ export function SwitchAgentWorkspace({
       </div>
 
       <div className="p-3 flex flex-col gap-3.5 flex-1 overflow-y-auto">
-        {/* CURRENT ACTIVITY BANNER */}
+        {/* CURRENT ACTIVITY BANNER (Kicker removed per Impeccable craft floor) */}
         <div
           className={`p-3.5 rounded-clay-xl border flex flex-col gap-1.5 shadow-clay-card ${
             isAwaitingApproval
@@ -247,18 +247,15 @@ export function SwitchAgentWorkspace({
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-mono font-semibold tracking-wider text-clay-muted">
-              Current Activity
-            </span>
+            <h3 className={`text-xs ${statusInfo.color}`}>
+              {statusInfo.title}
+            </h3>
             {isAwaitingApproval && (
-              <span className="flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-clay-pill bg-clay-peach/40 text-[#9a4b18] border border-clay-peach/60 font-semibold">
+              <span className="flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-clay-pill bg-clay-peach/40 text-clay-peach-ink border border-clay-peach/60 font-semibold">
                 <Lock className="w-2.5 h-2.5" />
                 Human Gate
               </span>
             )}
-          </div>
-          <div className={`text-xs ${statusInfo.color}`}>
-            {statusInfo.title}
           </div>
           <p className="text-[11px] text-clay-body leading-relaxed font-sans">
             {statusInfo.desc}
@@ -315,7 +312,7 @@ export function SwitchAgentWorkspace({
                   Reproduction Agent
                 </span>
               </div>
-              <span className="text-[10px] font-mono text-clay-lavender bg-clay-lavender/25 px-1.5 py-0.5 rounded-clay-pill font-medium">
+              <span className="text-[10px] font-mono text-clay-lavender-ink bg-clay-lavender/25 px-1.5 py-0.5 rounded-clay-pill font-semibold">
                 Sandbox Runner
               </span>
             </div>
@@ -326,7 +323,7 @@ export function SwitchAgentWorkspace({
               <span className="text-clay-body">
                 {hasReproRun ? (
                   reproFailedAsExpected ? (
-                    <span className="text-[#5a38a8] font-semibold">✓ Defect Confirmed (Exit 1)</span>
+                    <span className="text-clay-lavender-ink font-semibold">✓ Defect Confirmed (Exit 1)</span>
                   ) : (
                     <span className="text-clay-muted">Executed (Exit {reproExitCode})</span>
                   )
@@ -457,6 +454,7 @@ export function SwitchAgentWorkspace({
                     value={approvalComments}
                     onChange={(e) => setApprovalComments(e.target.value)}
                     placeholder="Approval comments (optional)..."
+                    aria-label="Approval comments"
                     className="w-full px-2.5 py-1.5 rounded-clay-md bg-white border border-clay-hairline text-xs font-mono text-clay-ink placeholder-clay-muted outline-none focus:border-clay-primary shadow-clay-soft"
                   />
 
@@ -477,7 +475,7 @@ export function SwitchAgentWorkspace({
                     <button
                       onClick={() => setShowRejectForm(true)}
                       disabled={isSubmitting}
-                      className="w-full py-2 px-3 rounded-clay-md bg-white hover:bg-clay-coral/10 border border-clay-coral/60 text-clay-coral hover:text-clay-coral font-mono text-xs font-medium flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-clay-soft"
+                      className="w-full py-2 px-3 rounded-clay-md bg-white hover:bg-clay-coral/10 border border-clay-coral/60 text-clay-coral-ink font-mono text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-clay-soft"
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
                       <span>Request Changes</span>
@@ -491,6 +489,7 @@ export function SwitchAgentWorkspace({
                     value={rejectFeedback}
                     onChange={(e) => setRejectFeedback(e.target.value)}
                     placeholder="Explain required changes for the Fix Agent..."
+                    aria-label="Explain required changes for the Fix Agent"
                     className="w-full p-2 rounded-clay-md bg-white border border-clay-coral/60 text-xs font-mono text-clay-ink placeholder-clay-muted outline-none resize-none shadow-clay-soft"
                   />
                   <div className="flex items-center gap-2">

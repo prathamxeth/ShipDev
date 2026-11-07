@@ -259,49 +259,49 @@ export function BugTree({
       case "AWAITING_HUMAN_APPROVAL":
         return {
           label: "Awaiting Approval",
-          classes: "bg-clay-peach/25 text-[#9a4b18] border-clay-peach/50 font-semibold",
-          icon: <Lock className="w-2.5 h-2.5 text-[#9a4b18]" />,
+          classes: "bg-clay-peach/25 text-clay-peach-ink border-clay-peach/50 font-semibold",
+          icon: <Lock className="w-2.5 h-2.5 text-clay-peach-ink" />,
         };
       case "REPRODUCING":
         return {
           label: "Reproducing",
-          classes: "bg-clay-lavender/30 text-[#5a38a8] border-clay-lavender/60 animate-pulse",
-          icon: <RefreshCw className="w-2.5 h-2.5 text-[#5a38a8] animate-spin" />,
+          classes: "bg-clay-lavender/30 text-clay-lavender-ink border-clay-lavender/60 font-medium",
+          icon: <RefreshCw className="w-2.5 h-2.5 text-clay-lavender-ink animate-spin" />,
         };
       case "REPRODUCED":
         return {
           label: "Reproduced",
-          classes: "bg-clay-lavender/25 text-[#5a38a8] border-clay-lavender/50",
-          icon: <Bug className="w-2.5 h-2.5 text-[#5a38a8]" />,
+          classes: "bg-clay-lavender/25 text-clay-lavender-ink border-clay-lavender/50 font-medium",
+          icon: <Bug className="w-2.5 h-2.5 text-clay-lavender-ink" />,
         };
       case "FIX_PROPOSED":
         return {
           label: "Fix Proposed",
-          classes: "bg-clay-teal/15 text-clay-teal border-clay-teal/30",
+          classes: "bg-clay-teal/15 text-clay-teal border-clay-teal/30 font-medium",
           icon: <AlertCircle className="w-2.5 h-2.5 text-clay-teal" />,
         };
       case "VERIFYING":
         return {
           label: "Verifying",
-          classes: "bg-clay-peach/25 text-[#9a4b18] border-clay-peach/40 animate-pulse",
-          icon: <RefreshCw className="w-2.5 h-2.5 text-[#9a4b18] animate-spin" />,
+          classes: "bg-clay-peach/25 text-clay-peach-ink border-clay-peach/40 font-medium",
+          icon: <RefreshCw className="w-2.5 h-2.5 text-clay-peach-ink animate-spin" />,
         };
       case "APPROVED":
         return {
           label: "Approved",
-          classes: "bg-clay-mint/25 text-[#136149] border-clay-mint/50 font-semibold",
-          icon: <CheckCircle2 className="w-2.5 h-2.5 text-[#136149]" />,
+          classes: "bg-clay-mint/25 text-clay-mint-ink border-clay-mint/50 font-semibold",
+          icon: <CheckCircle2 className="w-2.5 h-2.5 text-clay-mint-ink" />,
         };
       case "COMPLETED":
         return {
           label: "Completed",
-          classes: "bg-clay-mint/25 text-[#136149] border-clay-mint/50 font-semibold",
-          icon: <CheckCircle2 className="w-2.5 h-2.5 text-[#136149]" />,
+          classes: "bg-clay-mint/25 text-clay-mint-ink border-clay-mint/50 font-semibold",
+          icon: <CheckCircle2 className="w-2.5 h-2.5 text-clay-mint-ink" />,
         };
       default:
         return {
           label: status,
-          classes: "bg-clay-surface-card text-clay-muted border-clay-hairline",
+          classes: "bg-clay-surface-card text-clay-muted border-clay-hairline font-medium",
           icon: <Clock className="w-2.5 h-2.5 text-clay-muted" />,
         };
     }
@@ -312,25 +312,25 @@ export function BugTree({
       case "Critical":
         return {
           dot: "bg-clay-pink",
-          text: "text-clay-pink font-semibold",
+          text: "text-clay-pink-ink font-semibold",
           bg: "bg-clay-pink/15 border-clay-pink/30",
         };
       case "High":
         return {
           dot: "bg-clay-coral",
-          text: "text-clay-coral font-semibold",
+          text: "text-clay-coral-ink font-semibold",
           bg: "bg-clay-coral/15 border-clay-coral/30",
         };
       case "Medium":
         return {
           dot: "bg-clay-ochre",
-          text: "text-[#946200] font-semibold",
+          text: "text-clay-ochre-ink font-semibold",
           bg: "bg-clay-ochre/25 border-clay-ochre/40",
         };
       default:
         return {
           dot: "bg-clay-mint",
-          text: "text-[#1e7e68] font-semibold",
+          text: "text-clay-mint-ink font-semibold",
           bg: "bg-clay-mint/20 border-clay-mint/40",
         };
     }
@@ -405,11 +405,13 @@ export function BugTree({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Filter bugs, files, lines..."
+                aria-label="Filter bugs, files, and lines"
                 className="w-full bg-transparent outline-none text-[11px] text-clay-ink placeholder-clay-muted font-mono"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
+                  aria-label="Clear filter query"
                   className="text-clay-muted hover:text-clay-ink cursor-pointer"
                 >
                   <X className="w-3 h-3" />
@@ -417,7 +419,7 @@ export function BugTree({
               )}
             </div>
 
-            <div className="flex items-center gap-1.5 mt-2 overflow-x-auto scrollbar-none">
+            <div className="flex items-center gap-1.5 mt-2 overflow-x-auto scrollbar-none" role="group" aria-label="Bug status filter">
               {(
                 [
                   { id: "all", label: "All" },
@@ -429,6 +431,7 @@ export function BugTree({
                 <button
                   key={chip.id}
                   onClick={() => setFilterMode(chip.id)}
+                  aria-pressed={filterMode === chip.id}
                   className={`px-2.5 py-0.5 rounded-clay-pill text-[10px] font-mono transition-colors cursor-pointer whitespace-nowrap ${
                     filterMode === chip.id
                       ? "bg-clay-primary text-white font-medium shadow-clay-soft"
@@ -761,6 +764,9 @@ export function BugTree({
       <div key={node.id} className="flex flex-col">
         {/* Node Label Row */}
         <div
+          role="button"
+          tabIndex={0}
+          aria-expanded={isFolder ? isExpanded : undefined}
           onClick={() => {
             if (isFolder) {
               toggleFolder(node.id);
@@ -768,8 +774,18 @@ export function BugTree({
               onSelectFile(node.fileName);
             }
           }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              if (isFolder) {
+                toggleFolder(node.id);
+              } else if (node.fileName) {
+                onSelectFile(node.fileName);
+              }
+            }
+          }}
           style={{ paddingLeft: `${depth * 14 + 6}px` }}
-          className={`group flex items-center justify-between py-1 px-2 rounded-clay-md cursor-pointer transition-colors ${
+          className={`group flex items-center justify-between py-1 px-2 rounded-clay-md cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-clay-primary ${
             isCurrentFile
               ? "bg-white text-clay-ink border border-clay-hairline font-medium shadow-clay-soft"
               : "text-clay-body hover:text-clay-ink hover:bg-clay-surface-card"
@@ -811,7 +827,7 @@ export function BugTree({
           {/* Bug Count on Folder/File */}
           {bugCount > 0 && (
             <span
-              className="text-[10px] font-mono px-1.5 py-0.2 rounded-clay-pill border shrink-0 bg-clay-pink/15 text-clay-pink border-clay-pink/30 font-medium"
+              className="text-[10px] font-mono px-1.5 py-0.5 rounded-clay-pill border shrink-0 bg-clay-pink/15 text-clay-pink-ink border-clay-pink/30 font-semibold"
             >
               {bugCount} {bugCount === 1 ? "bug" : "bugs"}
             </span>
@@ -836,12 +852,22 @@ export function BugTree({
               return (
                 <div
                   key={task.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={isSelected}
                   onClick={(e) => {
                     e.stopPropagation();
                     onSelectBug(task, location.fileName, location.lineNumber);
                   }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onSelectBug(task, location.fileName, location.lineNumber);
+                    }
+                  }}
                   style={{ paddingLeft: `${(depth + 1) * 14 + 10}px` }}
-                  className={`group relative p-2 mr-1 rounded-clay-lg cursor-pointer border transition-all ${
+                  className={`group relative p-2 mr-1 rounded-clay-lg cursor-pointer border transition-all focus-visible:outline-2 focus-visible:outline-clay-primary ${
                     isSelected
                       ? "bg-white border-2 border-clay-primary shadow-clay-card text-clay-ink"
                       : "bg-white hover:bg-clay-surface-card border-clay-hairline text-clay-body shadow-clay-soft"
@@ -862,7 +888,7 @@ export function BugTree({
 
                     {/* Status Pill */}
                     <div
-                      className={`flex items-center gap-1 px-1.5 py-0.2 rounded-clay-pill text-[9px] border font-mono ${statusPill.classes}`}
+                      className={`flex items-center gap-1 px-1.5 py-0.5 rounded-clay-pill text-[9px] border font-mono ${statusPill.classes}`}
                     >
                       {statusPill.icon}
                       <span>{statusPill.label}</span>
