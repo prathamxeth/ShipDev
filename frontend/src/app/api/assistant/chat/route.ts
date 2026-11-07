@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { resolveBackendApiBase } from "@/lib/server/security";
 
 export const dynamic = "force-dynamic";
-
-const PROD_API_URL = "https://shipdev.onrender.com/api/v1";
-
-const BACKEND_BASE =
-  process.env.BACKEND_API_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  (process.env.NODE_ENV === "production" ? PROD_API_URL : "http://localhost:8000/api/v1");
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,20 +14,19 @@ export async function POST(req: NextRequest) {
     }
 
     const workspaceId = (body.workspaceId || "ws_personal_default").trim();
+    const backendBase = resolveBackendApiBase();
+    const targetUrl = `${backendBase}/workspaces/${encodeURIComponent(workspaceId)}/assistant`;
 
-    const backendRes = await fetch(
-      `${BACKEND_BASE}/workspaces/${encodeURIComponent(workspaceId)}/assistant`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          "X-Workspace-ID": workspaceId,
-        },
-        body: JSON.stringify({ message: body.message }),
-        cache: "no-store",
-      }
-    );
+    const backendRes = await fetch(targetUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "X-Workspace-ID": workspaceId,
+      },
+      body: JSON.stringify({ message: body.message }),
+      cache: "no-store",
+    });
 
     const data = await backendRes.json().catch(() => null);
 

@@ -2,17 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   getOperatorIdentity,
   isValidTaskId,
+  resolveBackendApiBase,
   validateSameOrigin,
 } from "@/lib/server/security";
 
 export const dynamic = "force-dynamic";
-
-const PROD_API_URL = "https://shipdev.onrender.com/api/v1";
-
-const BACKEND_BASE =
-  process.env.BACKEND_API_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  (process.env.NODE_ENV === "production" ? PROD_API_URL : "http://localhost:8000/api/v1");
 
 export async function POST(req: NextRequest) {
   try {
@@ -56,7 +50,8 @@ export async function POST(req: NextRequest) {
     const operatorIdentity = getOperatorIdentity();
 
     // 5. Proxy to FastAPI Backend with Server-Side Secret
-    const backendResponse = await fetch(`${BACKEND_BASE}/tasks/${encodeURIComponent(taskId)}/complete`, {
+    const backendBase = resolveBackendApiBase();
+    const backendResponse = await fetch(`${backendBase}/tasks/${encodeURIComponent(taskId)}/complete`, {
       method: "POST",
       headers: {
         Accept: "application/json",

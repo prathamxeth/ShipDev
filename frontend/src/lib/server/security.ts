@@ -104,3 +104,30 @@ export function getOperatorIdentity(): string {
   }
   return "local-operator";
 }
+
+const PROD_API_URL = "https://shipdev.onrender.com/api/v1";
+
+/**
+ * Resolves the canonical backend API base URL for server-side Next.js route proxies.
+ * Normalizes input: removes trailing slashes and guarantees the '/api/v1' path prefix.
+ */
+export function resolveBackendApiBase(): string {
+  let url =
+    process.env.BACKEND_API_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    (process.env.NODE_ENV === "production" ? PROD_API_URL : "http://localhost:8000/api/v1");
+
+  url = url.trim().replace(/\/+$/, "");
+  if (!url.endsWith("/api/v1")) {
+    url = `${url}/api/v1`;
+  }
+  return url;
+}
+
+/**
+ * Resolves the canonical backend root host (without '/api/v1') for server-side health checks.
+ */
+export function resolveBackendHost(): string {
+  return resolveBackendApiBase().replace(/\/api\/v1\/?$/, "");
+}
+

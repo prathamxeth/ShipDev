@@ -1,14 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isValidTaskId } from "@/lib/server/security";
+import { isValidTaskId, resolveBackendApiBase } from "@/lib/server/security";
 
 export const dynamic = "force-dynamic";
-
-const PROD_API_URL = "https://shipdev.onrender.com/api/v1";
-
-const BACKEND_BASE =
-  process.env.BACKEND_API_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  (process.env.NODE_ENV === "production" ? PROD_API_URL : "http://localhost:8000/api/v1");
 
 /**
  * Same-Origin SSE Proxy for Task Lifecycle Events
@@ -40,7 +33,8 @@ export async function GET(
   const lastEventId = headerLastEventId || queryLastEventId;
 
   // 3. Construct backend SSE target URL
-  const backendUrl = new URL(`${BACKEND_BASE}/tasks/${encodeURIComponent(taskId)}/events`);
+  const backendBase = resolveBackendApiBase();
+  const backendUrl = new URL(`${backendBase}/tasks/${encodeURIComponent(taskId)}/events`);
   if (replayAll) {
     backendUrl.searchParams.set("replay_all", "true");
   }

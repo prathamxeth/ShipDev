@@ -33,19 +33,27 @@ import {
 const PROD_API_URL = "https://shipdev.onrender.com/api/v1";
 
 function resolveApiBaseUrl(): string {
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL;
-  }
-  if (typeof window !== "undefined") {
-    const host = window.location.hostname;
-    if (host !== "localhost" && host !== "127.0.0.1" && host !== "0.0.0.0") {
-      return PROD_API_URL;
+  let url = process.env.NEXT_PUBLIC_API_URL;
+  if (!url) {
+    if (typeof window !== "undefined") {
+      const host = window.location.hostname;
+      if (host !== "localhost" && host !== "127.0.0.1" && host !== "0.0.0.0") {
+        url = PROD_API_URL;
+      }
     }
   }
-  if (process.env.NODE_ENV === "production") {
-    return PROD_API_URL;
+  if (!url && process.env.NODE_ENV === "production") {
+    url = PROD_API_URL;
   }
-  return "http://localhost:8000/api/v1";
+  if (!url) {
+    url = "http://localhost:8000/api/v1";
+  }
+
+  url = url.trim().replace(/\/+$/, "");
+  if (!url.endsWith("/api/v1")) {
+    url = `${url}/api/v1`;
+  }
+  return url;
 }
 
 const API_BASE_URL = resolveApiBaseUrl();

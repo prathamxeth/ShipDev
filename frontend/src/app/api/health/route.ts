@@ -1,21 +1,15 @@
 import { NextResponse } from "next/server";
+import { resolveBackendHost } from "@/lib/server/security";
 
 export const dynamic = "force-dynamic";
 
-const PROD_API_URL = "https://shipdev.onrender.com/api/v1";
-
-const BACKEND_BASE =
-  process.env.BACKEND_API_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  (process.env.NODE_ENV === "production" ? PROD_API_URL : "http://localhost:8000/api/v1");
-const BACKEND_HOST = BACKEND_BASE.replace(/\/api\/v1\/?$/, "");
-
 export async function GET() {
+  const backendHost = resolveBackendHost();
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 3000);
 
   try {
-    const res = await fetch(`${BACKEND_HOST}/health`, {
+    const res = await fetch(`${backendHost}/health`, {
       method: "GET",
       headers: { Accept: "application/json" },
       signal: controller.signal,
@@ -38,7 +32,7 @@ export async function GET() {
     return NextResponse.json(
       {
         status: "unreachable",
-        target: `${BACKEND_HOST}/health`,
+        target: `${backendHost}/health`,
         error: err.name === "AbortError" ? "Health check timed out (3s)" : err.message,
       },
       { status: 503 }
