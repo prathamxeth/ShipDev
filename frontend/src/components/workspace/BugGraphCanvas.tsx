@@ -232,7 +232,7 @@ export function BugGraphCanvas({
         type: "bug",
         task,
         status: task.status,
-        severity: task.severity,
+        severity: loc.severity,
         fileName: loc.fileName,
         lineNumber: loc.lineNumber,
         x: xOffset,

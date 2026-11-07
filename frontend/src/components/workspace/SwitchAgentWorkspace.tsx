@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { ApprovalRecord, Evidence, Task, TaskStatus } from "@/types";
 import { approveTaskViaBFF, rejectTaskViaBFF, completeTaskViaBFF } from "@/lib/api";
+import { AgentDetailModal, AgentIdentifier } from "@/components/modals/AgentDetailModal";
 
 interface SwitchAgentWorkspaceProps {
   task: Task | null;
@@ -48,6 +49,7 @@ export function SwitchAgentWorkspace({
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [showRejectForm, setShowRejectForm] = useState(false);
+  const [selectedAgentDetail, setSelectedAgentDetail] = useState<AgentIdentifier | null>(null);
 
   if (isLoading) {
     return (
@@ -278,15 +280,19 @@ export function SwitchAgentWorkspace({
           </span>
 
           {/* 1. Triage Agent */}
-          <div className="p-2.5 rounded-clay-lg bg-white border border-clay-hairline shadow-clay-soft flex flex-col gap-1.5">
+          <div
+            onClick={() => setSelectedAgentDetail("shipdev-triager")}
+            className="p-2.5 rounded-clay-lg bg-white hover:bg-clay-surface-card border border-clay-hairline hover:border-clay-primary/50 shadow-clay-soft hover:shadow-clay-card flex flex-col gap-1.5 cursor-pointer transition-all group"
+            title="Click to inspect shipdev-triager instructions and telemetry"
+          >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-clay-teal" />
-                <span className="font-mono font-semibold text-clay-ink">
+                <span className="font-mono font-semibold text-clay-ink group-hover:text-clay-primary transition-colors">
                   shipdev-triager
                 </span>
               </div>
-              <span className="text-[10px] font-mono text-clay-teal bg-clay-teal/10 px-1.5 py-0.5 rounded-clay-pill">
+              <span className="text-[10px] font-mono text-clay-teal bg-clay-teal/10 px-1.5 py-0.5 rounded-clay-pill font-medium">
                 Triage Agent
               </span>
             </div>
@@ -295,12 +301,18 @@ export function SwitchAgentWorkspace({
             </p>
             <div className="text-[10px] font-mono text-clay-muted pt-1 border-t border-clay-hairline flex items-center justify-between">
               <span>Status: {task.status !== "REPORTED" ? "Analysis Posted" : "Investigating"}</span>
-              <span className="text-clay-muted">UUID: bd717264</span>
+              <span className="text-clay-primary font-medium flex items-center gap-0.5">
+                Inspect ↗
+              </span>
             </div>
           </div>
 
           {/* 2. Sandbox Reproduction Agent */}
-          <div className="p-2.5 rounded-clay-lg bg-white border border-clay-hairline shadow-clay-soft flex flex-col gap-1.5">
+          <div
+            onClick={() => setSelectedAgentDetail("shipdev-triager")}
+            className="p-2.5 rounded-clay-lg bg-white hover:bg-clay-surface-card border border-clay-hairline hover:border-clay-lavender shadow-clay-soft hover:shadow-clay-card flex flex-col gap-1.5 cursor-pointer transition-all group"
+            title="Click to inspect reproduction sandbox runner"
+          >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span
@@ -308,7 +320,7 @@ export function SwitchAgentWorkspace({
                     reproFailedAsExpected ? "bg-clay-lavender" : "bg-clay-muted"
                   }`}
                 />
-                <span className="font-mono font-semibold text-clay-ink">
+                <span className="font-mono font-semibold text-clay-ink group-hover:text-clay-lavender-ink transition-colors">
                   Reproduction Agent
                 </span>
               </div>
@@ -331,12 +343,16 @@ export function SwitchAgentWorkspace({
                   <span className="text-clay-muted">Pending run</span>
                 )}
               </span>
-              <span className="text-clay-muted">pytest</span>
+              <span className="text-clay-muted">pytest ↗</span>
             </div>
           </div>
 
           {/* 3. Fix Agent */}
-          <div className="p-2.5 rounded-clay-lg bg-white border border-clay-hairline shadow-clay-soft flex flex-col gap-1.5">
+          <div
+            onClick={() => setSelectedAgentDetail("shipdev-fixer")}
+            className="p-2.5 rounded-clay-lg bg-white hover:bg-clay-surface-card border border-clay-hairline hover:border-clay-teal shadow-clay-soft hover:shadow-clay-card flex flex-col gap-1.5 cursor-pointer transition-all group"
+            title="Click to inspect patch generator"
+          >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span
@@ -344,7 +360,7 @@ export function SwitchAgentWorkspace({
                     hasPatch ? "bg-clay-teal" : "bg-clay-muted"
                   }`}
                 />
-                <span className="font-mono font-semibold text-clay-ink">
+                <span className="font-mono font-semibold text-clay-ink group-hover:text-clay-teal transition-colors">
                   Fix Agent
                 </span>
               </div>
@@ -357,7 +373,10 @@ export function SwitchAgentWorkspace({
             </p>
             {hasPatch && (
               <button
-                onClick={onToggleDiffMode}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleDiffMode();
+                }}
                 className="mt-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-clay-md bg-clay-surface-card hover:bg-clay-surface-strong border border-clay-hairline text-clay-ink font-mono text-[11px] transition-colors cursor-pointer shadow-clay-soft"
               >
                 <SplitSquareVertical className="w-3 h-3 text-clay-primary" />
@@ -367,7 +386,11 @@ export function SwitchAgentWorkspace({
           </div>
 
           {/* 4. Verification Agent */}
-          <div className="p-2.5 rounded-clay-lg bg-white border border-clay-hairline shadow-clay-soft flex flex-col gap-1.5">
+          <div
+            onClick={() => setSelectedAgentDetail("shipdev-verifier")}
+            className="p-2.5 rounded-clay-lg bg-white hover:bg-clay-surface-card border border-clay-hairline hover:border-[#136149] shadow-clay-soft hover:shadow-clay-card flex flex-col gap-1.5 cursor-pointer transition-all group"
+            title="Click to inspect shipdev-verifier instructions and verification oracle"
+          >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span
@@ -375,7 +398,7 @@ export function SwitchAgentWorkspace({
                     verifyPassed ? "bg-clay-mint" : "bg-clay-muted"
                   }`}
                 />
-                <span className="font-mono font-semibold text-clay-ink">
+                <span className="font-mono font-semibold text-clay-ink group-hover:text-[#136149] transition-colors">
                   shipdev-verifier
                 </span>
               </div>
@@ -398,7 +421,9 @@ export function SwitchAgentWorkspace({
                   <span className="text-clay-muted">Pending run</span>
                 )}
               </span>
-              <span className="text-clay-muted">UUID: 7dc5d295</span>
+              <span className="text-[#136149] font-medium flex items-center gap-0.5">
+                Inspect ↗
+              </span>
             </div>
           </div>
         </div>
@@ -540,6 +565,13 @@ export function SwitchAgentWorkspace({
           )}
         </div>
       </div>
+      {/* AGENT DETAIL MODAL */}
+      <AgentDetailModal
+        isOpen={Boolean(selectedAgentDetail)}
+        onClose={() => setSelectedAgentDetail(null)}
+        agentId={selectedAgentDetail}
+        switchConnected={true}
+      />
     </aside>
   );
 }

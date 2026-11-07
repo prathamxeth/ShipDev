@@ -11,6 +11,7 @@ import { CommandPalette } from "@/components/layout/CommandPalette";
 import { NewBugModal } from "@/components/modals/NewBugModal";
 import { SettingsModal } from "@/components/modals/SettingsModal";
 import { AboutModal } from "@/components/modals/AboutModal";
+import { AgentDetailModal, AgentIdentifier } from "@/components/modals/AgentDetailModal";
 import {
   getTasks,
   getTaskById,
@@ -81,6 +82,7 @@ export default function ShipDevIDE() {
   const [isNewBugModalOpen, setIsNewBugModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
+  const [selectedAgentModal, setSelectedAgentModal] = useState<AgentIdentifier | null>(null);
 
   // Show Toast Helper
   const showToast = useCallback((msg: string) => {
@@ -411,6 +413,7 @@ export default function ShipDevIDE() {
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenAbout={() => setIsAboutOpen(true)}
+        onOpenAgentDetail={(id) => setSelectedAgentModal(id)}
         isRefreshing={isRefreshing}
         isDiffMode={isDiffMode}
         onToggleDiffMode={() => setIsDiffMode((prev) => !prev)}
@@ -449,6 +452,7 @@ export default function ShipDevIDE() {
               onSelectFile={handleSelectFile}
               onNavigateToLine={handleNavigateToLine}
               onCreateFile={handleCreateFile}
+              onSelectAgent={(id) => setSelectedAgentModal(id)}
               isLoading={isLoadingTasks}
               onNewBugClick={() => setIsNewBugModalOpen(true)}
               onRefreshClick={handleRefresh}
@@ -576,6 +580,13 @@ export default function ShipDevIDE() {
       <AboutModal
         isOpen={isAboutOpen}
         onClose={() => setIsAboutOpen(false)}
+        switchConnected={true}
+      />
+
+      <AgentDetailModal
+        isOpen={Boolean(selectedAgentModal)}
+        onClose={() => setSelectedAgentModal(null)}
+        agentId={selectedAgentModal}
         switchConnected={true}
       />
 
