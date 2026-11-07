@@ -1,0 +1,1433 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ShipDev Backend",
+    "description": "Backend API and verification engine for ShipDev human-supervised multi-agent engineering workflow.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/v1/tasks": {
+      "post": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Create Task",
+        "description": "Create a new bug report task (text or Wispr Flow voice transcript).",
+        "operationId": "create_task_api_v1_tasks_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "List Tasks",
+        "description": "List tasks, optionally filtered by status.",
+        "operationId": "list_tasks_api_v1_tasks_get",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/TaskStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter tasks by workflow status",
+              "title": "Status"
+            },
+            "description": "Filter tasks by workflow status"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TaskResponse"
+                  },
+                  "title": "Response List Tasks Api V1 Tasks Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tasks/{task_id}": {
+      "get": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Get Task",
+        "description": "Get complete task details by ID.",
+        "operationId": "get_task_api_v1_tasks__task_id__get",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tasks/{task_id}/history": {
+      "get": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Get Task History",
+        "description": "Get chronological immutable state transition history for a task.",
+        "operationId": "get_task_history_api_v1_tasks__task_id__history_get",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TransitionResponse"
+                  },
+                  "title": "Response Get Task History Api V1 Tasks  Task Id  History Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tasks/{task_id}/approvals": {
+      "get": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Get Task Approvals",
+        "description": "Get human approval and rejection records for a task.",
+        "operationId": "get_task_approvals_api_v1_tasks__task_id__approvals_get",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApprovalRecordResponse"
+                  },
+                  "title": "Response Get Task Approvals Api V1 Tasks  Task Id  Approvals Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tasks/{task_id}/events": {
+      "get": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Stream real-time task lifecycle events via SSE",
+        "description": "Stream real-time task lifecycle events via Server-Sent Events (SSE).\n\n- Emits real-time `task_transition` events whenever a state change commits.\n- Recovers missed events via `Last-Event-ID` header or `?last_event_id=` query param.\n- Sends periodic heartbeat pings (`: ping - <timestamp>`) to prevent timeouts.\n- Cleans up subscriptions gracefully on client disconnect.",
+        "operationId": "stream_task_events_api_v1_tasks__task_id__events_get",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          },
+          {
+            "name": "last_event_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Last Event Id"
+            }
+          },
+          {
+            "name": "replay_all",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Replay all historical transitions from inception",
+              "default": false,
+              "title": "Replay All"
+            },
+            "description": "Replay all historical transitions from inception"
+          },
+          {
+            "name": "max_events",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional maximum number of events to receive before closing stream",
+              "title": "Max Events"
+            },
+            "description": "Optional maximum number of events to receive before closing stream"
+          },
+          {
+            "name": "timeout",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional maximum duration in seconds to stream before closing",
+              "title": "Timeout"
+            },
+            "description": "Optional maximum duration in seconds to stream before closing"
+          },
+          {
+            "name": "Last-Event-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Last-Event-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Real-time stream of task lifecycle transition events.",
+            "content": {
+              "text/event-stream": {}
+            }
+          },
+          "404": {
+            "description": "Task not found."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tasks/{task_id}/evidence": {
+      "post": {
+        "tags": [
+          "Evidence"
+        ],
+        "summary": "Add Evidence",
+        "description": "Attach verified reproduction, test, or verification evidence to a task.",
+        "operationId": "add_evidence_api_v1_tasks__task_id__evidence_post",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvidenceCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Evidence"
+        ],
+        "summary": "List Task Evidence",
+        "description": "List all evidence artifacts recorded for a specific task.",
+        "operationId": "list_task_evidence_api_v1_tasks__task_id__evidence_get",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EvidenceResponse"
+                  },
+                  "title": "Response List Task Evidence Api V1 Tasks  Task Id  Evidence Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/evidence/{evidence_id}": {
+      "get": {
+        "tags": [
+          "Evidence"
+        ],
+        "summary": "Get Evidence",
+        "description": "Get a single evidence artifact by ID.",
+        "operationId": "get_evidence_api_v1_evidence__evidence_id__get",
+        "parameters": [
+          {
+            "name": "evidence_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Evidence Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tasks/{task_id}/transitions": {
+      "post": {
+        "tags": [
+          "Transitions"
+        ],
+        "summary": "Transition Task",
+        "description": "Execute a state transition for a task, verifying caller permissions and transition rules.\n\nAI agents can advance workflow states up to AWAITING_HUMAN_APPROVAL.\nDirect transitions to 'APPROVED' or 'COMPLETED' via /transitions are strictly blocked.",
+        "operationId": "transition_task_api_v1_tasks__task_id__transitions_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          },
+          {
+            "name": "x-caller-type",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caller-Type"
+            }
+          },
+          {
+            "name": "x-caller-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caller-Id"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransitionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransitionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tasks/{task_id}/approve": {
+      "post": {
+        "tags": [
+          "Approval"
+        ],
+        "summary": "Approve Task",
+        "description": "Human engineer approves proposed fix with verified Bearer token.\n\nTask must be in 'AWAITING_HUMAN_APPROVAL' status.\nStrictly forbidden for AI agents.\nReviewer attribution is server-derived from settings.HUMAN_OPERATOR_IDENTITY.\nClient-supplied payload.reviewer_id and X-Caller-ID are intentionally ignored.",
+        "operationId": "approve_task_api_v1_tasks__task_id__approve_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          },
+          {
+            "name": "x-caller-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caller-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApprovalRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tasks/{task_id}/reject": {
+      "post": {
+        "tags": [
+          "Approval"
+        ],
+        "summary": "Reject Task",
+        "description": "Human engineer rejects proposed fix with feedback.\n\nTask must be in 'AWAITING_HUMAN_APPROVAL' status.\nTask returns to FIX_PROPOSED for the fix agent to re-attempt.\nReviewer attribution is server-derived from settings.HUMAN_OPERATOR_IDENTITY.\nClient-supplied payload.reviewer_id and X-Caller-ID are intentionally ignored.",
+        "operationId": "reject_task_api_v1_tasks__task_id__reject_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          },
+          {
+            "name": "x-caller-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caller-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tasks/{task_id}/complete": {
+      "post": {
+        "tags": [
+          "Approval"
+        ],
+        "summary": "Complete Task",
+        "description": "Human engineer marks an already-approved task as COMPLETED.\n\nTask must be in 'APPROVED' status before it can be marked complete.\nStrictly requires authenticated human credentials.\nActor attribution is server-derived from settings.HUMAN_OPERATOR_IDENTITY.\nClient-supplied X-Caller-ID is intentionally ignored.",
+        "operationId": "complete_task_api_v1_tasks__task_id__complete_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          },
+          {
+            "name": "x-caller-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Caller-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health Check",
+        "description": "System health check endpoint.",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApprovalRecordResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "task_id": {
+            "type": "string",
+            "title": "Task Id"
+          },
+          "decision": {
+            "type": "string",
+            "title": "Decision"
+          },
+          "reviewer_id": {
+            "type": "string",
+            "title": "Reviewer Id"
+          },
+          "feedback": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feedback"
+          },
+          "decided_at": {
+            "type": "string",
+            "title": "Decided At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "task_id",
+          "decision",
+          "reviewer_id",
+          "decided_at"
+        ],
+        "title": "ApprovalRecordResponse"
+      },
+      "ApprovalRequest": {
+        "properties": {
+          "reviewer_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewer Id",
+            "description": "Client-supplied reviewer ID is untrusted and ignored. Server-derived HUMAN_OPERATOR_IDENTITY is always recorded."
+          },
+          "comments": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comments"
+          }
+        },
+        "type": "object",
+        "title": "ApprovalRequest"
+      },
+      "CallerType": {
+        "type": "string",
+        "enum": [
+          "human",
+          "agent"
+        ],
+        "title": "CallerType"
+      },
+      "EvidenceCreate": {
+        "properties": {
+          "stage": {
+            "type": "string",
+            "maxLength": 50,
+            "title": "Stage"
+          },
+          "command_executed": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Command Executed"
+          },
+          "exit_code": {
+            "type": "integer",
+            "title": "Exit Code"
+          },
+          "stdout": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stdout"
+          },
+          "stderr": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stderr"
+          },
+          "patch_diff": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Patch Diff"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata"
+          },
+          "is_mock": {
+            "type": "boolean",
+            "title": "Is Mock",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "stage",
+          "command_executed",
+          "exit_code"
+        ],
+        "title": "EvidenceCreate"
+      },
+      "EvidenceResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "task_id": {
+            "type": "string",
+            "title": "Task Id"
+          },
+          "stage": {
+            "type": "string",
+            "title": "Stage"
+          },
+          "command_executed": {
+            "type": "string",
+            "title": "Command Executed"
+          },
+          "exit_code": {
+            "type": "integer",
+            "title": "Exit Code"
+          },
+          "stdout": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stdout"
+          },
+          "stderr": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stderr"
+          },
+          "patch_diff": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Patch Diff"
+          },
+          "metadata_json": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata Json"
+          },
+          "is_mock": {
+            "type": "boolean",
+            "title": "Is Mock"
+          },
+          "recorded_at": {
+            "type": "string",
+            "title": "Recorded At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "task_id",
+          "stage",
+          "command_executed",
+          "exit_code",
+          "is_mock",
+          "recorded_at"
+        ],
+        "title": "EvidenceResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "RejectionRequest": {
+        "properties": {
+          "reviewer_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewer Id",
+            "description": "Client-supplied reviewer ID is untrusted and ignored. Server-derived HUMAN_OPERATOR_IDENTITY is always recorded."
+          },
+          "feedback": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Feedback"
+          },
+          "return_to": {
+            "$ref": "#/components/schemas/TaskStatus",
+            "default": "FIX_PROPOSED"
+          }
+        },
+        "type": "object",
+        "required": [
+          "feedback"
+        ],
+        "title": "RejectionRequest"
+      },
+      "TaskCreate": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Description"
+          },
+          "reported_by": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Reported By"
+          },
+          "input_source": {
+            "type": "string",
+            "maxLength": 50,
+            "title": "Input Source",
+            "default": "text"
+          },
+          "repository_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repository Url"
+          },
+          "branch_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "description",
+          "reported_by"
+        ],
+        "title": "TaskCreate"
+      },
+      "TaskResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "reported_by": {
+            "type": "string",
+            "title": "Reported By"
+          },
+          "input_source": {
+            "type": "string",
+            "title": "Input Source"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TaskStatus"
+          },
+          "repository_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repository Url"
+          },
+          "branch_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Name"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "description",
+          "reported_by",
+          "input_source",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "TaskResponse"
+      },
+      "TaskStatus": {
+        "type": "string",
+        "enum": [
+          "REPORTED",
+          "TRIAGED",
+          "REPRODUCING",
+          "REPRODUCED",
+          "FIX_PROPOSED",
+          "VERIFYING",
+          "AWAITING_HUMAN_APPROVAL",
+          "APPROVED",
+          "COMPLETED",
+          "TRIAGE_FAILED",
+          "REPRODUCTION_FAILED",
+          "VERIFICATION_FAILED",
+          "REJECTED",
+          "FAILED"
+        ],
+        "title": "TaskStatus"
+      },
+      "TransitionRequest": {
+        "properties": {
+          "target_status": {
+            "$ref": "#/components/schemas/TaskStatus"
+          },
+          "actor_type": {
+            "$ref": "#/components/schemas/CallerType"
+          },
+          "actor_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Actor Id"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "evidence_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "target_status",
+          "actor_type",
+          "actor_id"
+        ],
+        "title": "TransitionRequest"
+      },
+      "TransitionResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "task_id": {
+            "type": "string",
+            "title": "Task Id"
+          },
+          "from_status": {
+            "$ref": "#/components/schemas/TaskStatus"
+          },
+          "to_status": {
+            "$ref": "#/components/schemas/TaskStatus"
+          },
+          "actor_type": {
+            "$ref": "#/components/schemas/CallerType"
+          },
+          "actor_id": {
+            "type": "string",
+            "title": "Actor Id"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "evidence_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Id"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "task_id",
+          "from_status",
+          "to_status",
+          "actor_type",
+          "actor_id",
+          "created_at"
+        ],
+        "title": "TransitionResponse"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

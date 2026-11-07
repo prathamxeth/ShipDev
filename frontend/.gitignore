@@ -1,0 +1,19 @@
+# Next.js & Build Artifacts
+/.next/
+/out/
+*.tsbuildinfo
+next-env.d.ts
+
+# Dependencies
+/node_modules/
+/.pnpm-store/
+
+# Local environment files (NEVER commit real credentials)
+.env*.local
+.env
+!.env.example
+
+# Python & System
+__pycache__/
+*.egg-info/
+.DS_Store
