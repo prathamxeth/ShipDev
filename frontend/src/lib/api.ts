@@ -238,6 +238,56 @@ export async function createTask(payload: TaskCreatePayload): Promise<Task> {
   });
 }
 
+export interface AssistantChatResponse {
+  category: string;
+  reply_text: string;
+  task?: Task | null;
+  improvements?: string[] | null;
+  pipeline_executed: boolean;
+  patch_diff?: string | null;
+  test_evidence?: {
+    command: string;
+    exit_code: number;
+    summary: string;
+  } | null;
+  needs_approval: boolean;
+  stages?: { name: string; status: string }[] | null;
+}
+
+/**
+ * Send natural language message to Personal AI Assistant
+ */
+export async function sendAssistantChat(
+  message: string,
+  workspaceId: string = "ws_personal_default"
+): Promise<AssistantChatResponse> {
+  try {
+    return await request<AssistantChatResponse>(
+      `${API_BASE_URL}/workspaces/${encodeURIComponent(workspaceId)}/assistant`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Workspace-ID": workspaceId,
+        },
+        body: JSON.stringify({ message }),
+      }
+    );
+  } catch (backendErr) {
+    // Fallback to Next.js BFF proxy
+    const res = await fetch("/api/assistant/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message, workspaceId }),
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => null);
+      throw new Error(errData?.detail || errData?.error || "Failed to process assistant request");
+    }
+    return res.json();
+  }
+}
+
 /**
  * Execute authentic Switch agent execution pipeline for a task
  */

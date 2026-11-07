@@ -21,21 +21,20 @@ import {
   User,
   Zap,
 } from "lucide-react";
-import { createTask, executeTaskPipeline, approveTaskViaBFF, completeTaskViaBFF, rejectTaskViaBFF } from "@/lib/api";
+import {
+  sendAssistantChat,
+  approveTaskViaBFF,
+  completeTaskViaBFF,
+  rejectTaskViaBFF,
+} from "@/lib/api";
 import { Task } from "@/types";
-
-interface MessageAction {
-  label: string;
-  onClick: () => void;
-  variant?: "primary" | "secondary" | "danger" | "ghost";
-}
 
 interface Message {
   id: string;
   sender: "user" | "assistant";
   text: string;
   timestamp: string;
-  category?: "greeting" | "research" | "writing" | "planning" | "engineering";
+  category?: "greeting" | "research" | "writing" | "planning" | "engineering" | "analysis";
   taskId?: string;
   taskTitle?: string;
   taskStatus?: string;
@@ -58,7 +57,7 @@ export function PersonalAssistantView({
     {
       id: "msg_init",
       sender: "assistant",
-      text: "Hello! I am your ShipDev Personal AI Assistant, connected to your private workspace memory and the Switch multi-agent mesh.\n\nHow can I help you today? You can ask me to:\n• 🛠️ **Fix a bug or debug code** (e.g. *\"Fix calculate_discount bug in calculator.py\"*)\n• 🔍 **Research an architecture or library** (e.g. *\"Research SQLite WAL mode performance\"*)\n• 📝 **Draft documentation or runbooks** (e.g. *\"Document deployment runbook for v2 release\"*)\n• 🗺️ **Plan milestones** (e.g. *\"Plan migration roadmap for Kubernetes staging\"*)",
+      text: "Hello! I am your ShipDev Personal AI Assistant, connected to your private workspace memory and the Switch multi-agent pipeline.\n\nHow can I help you today? You can ask me to:\n• 🛠️ **Analyze Project & Fix Defects** (e.g. *\"Analyze the current project and identify three improvements. Create a task and execute it.\"*)\n• 🔍 **Research Architecture & Trade-offs** (e.g. *\"Research SQLite WAL mode performance\"*)\n• 📝 **Draft Documentation or Runbooks** (e.g. *\"Document deployment runbook for v2 release\"*)\n• 🗺️ **Plan Milestones & Roadmaps** (e.g. *\"Plan migration roadmap for Kubernetes staging\"*)",
       timestamp: "Just now",
       category: "greeting",
     },
@@ -72,64 +71,6 @@ export function PersonalAssistantView({
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isProcessing]);
-
-  // Intent classification
-  const classifyIntent = (
-    text: string
-  ): "greeting" | "research" | "writing" | "planning" | "engineering" => {
-    const lower = text.toLowerCase().trim();
-
-    // 1. Greetings & conversational inquiries
-    if (
-      /^(hi|hello|hey|good\s*(morning|evening|afternoon)|who\s*are\s*you|what\s*can\s*you\s*do|help)(\s|!|\?|$)/i.test(
-        lower
-      ) ||
-      lower === "hi" ||
-      lower === "hello" ||
-      lower === "hey"
-    ) {
-      return "greeting";
-    }
-
-    // 2. Coding, fixing, debugging
-    if (
-      /(fix|bug|error|exception|discount|calculator|patch|code|debug|failing|traceback|syntax|crash)/i.test(
-        lower
-      )
-    ) {
-      return "engineering";
-    }
-
-    // 3. Research, performance, benchmarks
-    if (
-      /(research|investigate|benchmark|compare|survey|explore|performance\s*of|how\s*does|alternatives)/i.test(
-        lower
-      )
-    ) {
-      return "research";
-    }
-
-    // 4. Writing, documentation, runbooks
-    if (
-      /(write|document|draft|readme|runbook|release\s*notes|changelog|docs|spec)/i.test(
-        lower
-      )
-    ) {
-      return "writing";
-    }
-
-    // 5. Planning, roadmaps, milestones
-    if (
-      /(plan|roadmap|milestone|sprint|breakdown|decompose|timeline|schedule)/i.test(
-        lower
-      )
-    ) {
-      return "planning";
-    }
-
-    // Default to research for open-ended inquiries
-    return "research";
-  };
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,203 +89,55 @@ export function PersonalAssistantView({
     setIsProcessing(true);
     setActionError(null);
 
-    const intent = classifyIntent(userPrompt);
+    try {
+      const resp = await sendAssistantChat(userPrompt, "ws_personal_default");
 
-    // =========================================================================
-    // 1. GREETING / CASUAL CONVERSATION
-    // =========================================================================
-    if (intent === "greeting") {
-      setTimeout(() => {
-        const reply: Message = {
-          id: `ast_${Date.now()}`,
-          sender: "assistant",
-          category: "greeting",
-          text: `Hello! I'm here and ready to help. As your **Personal AI Assistant**, I operate inside your private workspace (\`ws_personal_default\`) with full access to the Switch multi-agent pipeline.\n\nHere are some concrete things we can do right now:\n1. 🛠️ **Fix a Defect**: Say *"Can you fix the calculate_discount bug?"* and I will diagnose it, reproduce it in an isolated sandbox, synthesize the patch, verify with pytest, and ask for your approval.\n2. 🔍 **Deep Research**: Say *"Research SQLite WAL mode vs truncate"* to produce a structured benchmark and trade-off synthesis.\n3. 📝 **Technical Writing**: Say *"Document deployment runbook for v2 release"* to generate a complete, production-grade guide.\n4. 🗺️ **Sprint Planning**: Say *"Plan migration roadmap for Kubernetes staging"* to get a phased milestone breakdown.\n\nWhat would you like to start with?`,
-          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        };
-        setMessages((prev) => [...prev, reply]);
-        setIsProcessing(false);
-      }, 500);
-      return;
-    }
+      const reply: Message = {
+        id: `ast_${Date.now()}`,
+        sender: "assistant",
+        category: resp.category as any,
+        text: resp.reply_text,
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        taskId: resp.task?.id,
+        taskTitle: resp.task?.title,
+        taskStatus: resp.task?.status,
+        patchDiff: resp.patch_diff || undefined,
+        testEvidence: resp.test_evidence
+          ? {
+              command: resp.test_evidence.command,
+              exitCode: resp.test_evidence.exit_code,
+              summary: resp.test_evidence.summary,
+            }
+          : undefined,
+        needsApproval: resp.needs_approval,
+        stages: resp.stages
+          ? resp.stages.map((s) => ({ name: s.name, status: s.status as any }))
+          : undefined,
+      };
 
-    // =========================================================================
-    // 2. RESEARCH REQUEST
-    // =========================================================================
-    if (intent === "research") {
-      try {
-        const task = await createTask({
-          title: `Research: ${userPrompt.slice(0, 45)}`,
-          description: userPrompt,
-          reported_by: "personal-assistant:researcher",
-          input_source: "web_assistant",
-          workspace_id: "ws_personal_default",
-        });
-
-        if (onTaskCreated) onTaskCreated(task.id);
-
-        setTimeout(() => {
-          let reportContent = "";
-          if (userPrompt.toLowerCase().includes("wal") || userPrompt.toLowerCase().includes("sqlite")) {
-            reportContent = `### 🔍 Research Report: SQLite Write-Ahead Logging (WAL) Mode\n\n**Assigned Specialist:** Research Specialist (\`shipdev-researcher\`)\n**Task ID:** \`${task.id}\` • **Status:** COMPLETED\n\n#### 1. Architectural Overview\nIn traditional rollback journal mode, write transactions lock the entire database file, causing read contention. WAL inverses this concurrency relationship by appending transactions to a separate \`-wal\` log file.\n\n#### 2. Key Concurrency & Performance Characteristics\n• **Concurrency:** Readers never block writers, and writers never block readers. Multiple readers can execute simultaneously alongside an active writer.\n• **Disk I/O:** WAL executes sequential writes rather than randomized overwrites, yielding up to **3.8x faster write transactions** on SSDs.\n• **Shared Memory:** Uses an associated \`-shm\` index to provide fast index lookups for uncheckpointed WAL frames.\n\n#### 3. Trade-offs & Checkpointing\n• **Checkpoint Overhead:** Periodic checkpointing (\`PRAGMA wal_checkpoint(PASSIVE)\`) is required to flush WAL frames back to the main database file.\n• **Network Filesystems:** WAL requires shared memory primitives that fail on NFS or SMB network mounts.\n\n#### 4. Production Recommendation for ShipDev\nShipDev's local persistence uses \`PRAGMA journal_mode=WAL;\` with a default 1000-page autocheckpoint, ensuring low latency during high-frequency task state transitions.`;
-          } else {
-            reportContent = `### 🔍 Research Report: ${userPrompt}\n\n**Assigned Specialist:** Research Specialist (\`shipdev-researcher\`)\n**Task ID:** \`${task.id}\` • **Status:** COMPLETED\n\n#### 1. Summary Analysis\nConducted structured codebase and architectural survey for: *"${userPrompt}"*.\n\n#### 2. Key Findings & Trade-offs\n• **Core Paradigm:** Evaluated architecture against ShipDev fail-closed boundaries and multi-tenant workspace isolation requirements.\n• **Performance Impact:** Low latency overhead with sub-50ms execution times when decoupled from external networks.\n• **Security Assessment:** Complies with server-side identity attribution and zero-spoofing policy.\n\n#### 3. Recommendations\n1. Maintain isolated execution sandboxes for untrusted operations.\n2. Leverage unified event dispatchers for real-time state synchronization.\n3. Enforce cryptographic validation on incoming integration webhooks.`;
-          }
-
-          const reply: Message = {
-            id: `ast_${Date.now()}`,
-            sender: "assistant",
-            category: "research",
-            text: reportContent,
-            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-            taskId: task.id,
-            taskTitle: task.title,
-            taskStatus: "COMPLETED",
-            isCompleted: true,
-          };
-
-          setMessages((prev) => [...prev, reply]);
-          setIsProcessing(false);
-        }, 800);
-      } catch (err: any) {
-        setIsProcessing(false);
-        setActionError(err.message || "Failed to initiate research task.");
+      if (resp.needs_approval && resp.task?.id) {
+        setPendingApprovalTaskId(resp.task.id);
       }
-      return;
-    }
 
-    // =========================================================================
-    // 3. WRITING / DOCUMENTATION REQUEST
-    // =========================================================================
-    if (intent === "writing") {
-      try {
-        const task = await createTask({
-          title: `Document: ${userPrompt.slice(0, 45)}`,
-          description: userPrompt,
-          reported_by: "personal-assistant:writer",
-          input_source: "web_assistant",
-          workspace_id: "ws_personal_default",
-        });
+      setMessages((prev) => [...prev, reply]);
+      setIsProcessing(false);
 
-        if (onTaskCreated) onTaskCreated(task.id);
-
-        setTimeout(() => {
-          const docContent = `### 📝 Technical Document: Deployment Runbook & Release Guide\n\n**Assigned Specialist:** Documentation Specialist (\`shipdev-writer\`)\n**Task ID:** \`${task.id}\` • **Status:** COMPLETED\n\n---\n\n#### 1. Pre-Deployment Verification\n1. Verify full regression test suite passes cleanly:\n   \`\`\`bash\n   pytest backend/tests -v\n   npm test --prefix frontend\n   \`\`\`\n2. Confirm all 18 multi-tenant isolation invariants pass without warnings.\n3. Ensure database schema migrations are applied.\n\n#### 2. Deployment Execution Steps\n1. Deploy backend container to production cluster with \`ENVIRONMENT=production\`.\n2. Confirm \`GET /health\` responds with \`HTTP 200\` and status \`"ok"\`.\n3. Verify OpenAPI interactive documentation is reachable at \`/docs\`.\n4. Deploy Next.js frontend to Vercel and verify edge proxy routing.\n\n#### 3. Post-Deployment Smoke Tests\n• Create personal task and verify SQLite isolation boundary.\n• Trigger test Switch runner and verify clean sandbox teardown.\n• Audit \`/api/v1/platforms/health\` for webhook readiness.\n\n#### 4. Rollback Plan\nIf health checks fail within 5 minutes of cutover, trigger immediate rollback to previous image hash; SQLite WAL mode ensures transactional recovery without data corruption.`;
-
-          const reply: Message = {
-            id: `ast_${Date.now()}`,
-            sender: "assistant",
-            category: "writing",
-            text: docContent,
-            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-            taskId: task.id,
-            taskTitle: task.title,
-            taskStatus: "COMPLETED",
-            isCompleted: true,
-          };
-
-          setMessages((prev) => [...prev, reply]);
-          setIsProcessing(false);
-        }, 800);
-      } catch (err: any) {
-        setIsProcessing(false);
-        setActionError(err.message || "Failed to create documentation task.");
+      if (resp.task && onTaskCreated) {
+        onTaskCreated(resp.task.id);
       }
-      return;
-    }
+    } catch (err: any) {
+      setIsProcessing(false);
+      const errMsg = err.message || "Failed to communicate with backend assistant endpoint";
+      setActionError(errMsg);
 
-    // =========================================================================
-    // 4. PLANNING REQUEST
-    // =========================================================================
-    if (intent === "planning") {
-      try {
-        const task = await createTask({
-          title: `Plan: ${userPrompt.slice(0, 45)}`,
-          description: userPrompt,
-          reported_by: "personal-assistant:planner",
-          input_source: "web_assistant",
-          workspace_id: "ws_personal_default",
-        });
-
-        if (onTaskCreated) onTaskCreated(task.id);
-
-        setTimeout(() => {
-          const planContent = `### 🗺️ Milestone Execution Plan\n\n**Assigned Specialist:** Coordination Planner (\`shipdev-planner\`)\n**Task ID:** \`${task.id}\` • **Status:** COMPLETED\n\n---\n\n#### Phase 1: Environment & Secrets Foundation\n• **Deliverable:** Establish cluster VPC and inject secret credentials.\n• **Assigned Capability:** \`architecture_planning\`\n• **Dependencies:** None\n\n#### Phase 2: Mesh Deployment & Isolation Boundaries\n• **Deliverable:** Deploy Switch agent mesh and configure workspace isolation policies.\n• **Assigned Capability:** \`task_decomposition\`\n• **Dependencies:** Phase 1\n\n#### Phase 3: Ingress Webhooks & Platform Integration\n• **Deliverable:** Route incoming events from Slack, Teams, Discord, and Telegram.\n• **Assigned Capability:** \`api_spec_review\`\n• **Dependencies:** Phase 2\n\n#### Phase 4: Verification Sentinel & Automated Cutover\n• **Deliverable:** Execute end-to-end bug reproduction and patch verification suite.\n• **Assigned Capability:** \`sandbox_verification\`\n• **Dependencies:** Phase 3`;
-
-          const reply: Message = {
-            id: `ast_${Date.now()}`,
-            sender: "assistant",
-            category: "planning",
-            text: planContent,
-            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-            taskId: task.id,
-            taskTitle: task.title,
-            taskStatus: "COMPLETED",
-            isCompleted: true,
-          };
-
-          setMessages((prev) => [...prev, reply]);
-          setIsProcessing(false);
-        }, 800);
-      } catch (err: any) {
-        setIsProcessing(false);
-        setActionError(err.message || "Failed to create planning task.");
-      }
-      return;
-    }
-
-    // =========================================================================
-    // 5. CODING & DEBUGGING REQUEST (REAL SWITCH PIPELINE)
-    // =========================================================================
-    if (intent === "engineering") {
-      try {
-        // Step 1: Create real task in personal workspace
-        const task = await createTask({
-          title: userPrompt.length > 50 ? userPrompt.slice(0, 47) + "..." : userPrompt,
-          description: userPrompt,
-          reported_by: "personal-assistant:switch-runner",
-          input_source: "web_assistant",
-          workspace_id: "ws_personal_default",
-        });
-
-        if (onTaskCreated) onTaskCreated(task.id);
-
-        // Step 2: Trigger Switch Agent Execution Pipeline
-        const updatedTask = await executeTaskPipeline(task.id);
-
-        const patchDiff = `--- demo/buggy_app/calculator.py\n+++ demo/workspace/calculator.py\n@@ -21,3 +21,3 @@\n-    return price * (1 + discount)\n+    return price * (1 - discount)`;
-
-        const reply: Message = {
-          id: `ast_${Date.now()}`,
-          sender: "assistant",
-          category: "engineering",
-          text: `⚡ **Switch Multi-Agent Execution Complete!**\n\nI have triaged, reproduced, patched, and verified the defect for task **${task.title}** (Task ID: \`${task.id}\`).\n\n• **Diagnosis Assistant:** Pinpointed defect in \`calculator.py\` line 22.\n• **Automated Tester:** Reproduced defect in isolated sandbox (exit code \`1\`).\n• **Solution Assistant:** Synthesized minimal surgical patch.\n• **Quality Reviewer:** Verified 3/3 tests pass cleanly in clean room (exit code \`0\`).\n\n**Security Gate:** Execution has halted. As an authorized operator, please review the verified unified diff below and provide your approval decision:`,
-          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          taskId: task.id,
-          taskTitle: task.title,
-          taskStatus: updatedTask.status,
-          patchDiff: patchDiff,
-          testEvidence: {
-            command: "pytest demo/tests/test_calculator.py -v",
-            exitCode: 0,
-            summary: "demo/tests/test_calculator.py::test_calculate_discount_applies_correct_reduction PASSED [100%]\n1 passed in 0.04s",
-          },
-          needsApproval: true,
-          stages: [
-            { name: "Diagnosis & Root Cause", status: "done" },
-            { name: "Sandbox Reproduction (exit 1)", status: "done" },
-            { name: "Patch Synthesis", status: "done" },
-            { name: "Regression Verification (exit 0)", status: "done" },
-          ],
-        };
-
-        setPendingApprovalTaskId(task.id);
-        setMessages((prev) => [...prev, reply]);
-        setIsProcessing(false);
-      } catch (err: any) {
-        setIsProcessing(false);
-        setActionError(err.message || "Failed to execute Switch pipeline.");
-      }
+      // Append honest blocker / error message - never show misleading fallback!
+      const errorReply: Message = {
+        id: `ast_err_${Date.now()}`,
+        sender: "assistant",
+        text: `⚠️ **Execution Blocker:** Unable to complete your request.\n\n**Details:** ${errMsg}\n\nPlease check your workspace connection or backend service status.`,
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      };
+      setMessages((prev) => [...prev, errorReply]);
     }
   };
 
@@ -579,7 +372,7 @@ export function PersonalAssistantView({
         {isProcessing && (
           <div className="flex items-center gap-2.5 text-clay-muted text-xs italic pl-10 animate-in fade-in duration-200">
             <Sparkles className="w-3.5 h-3.5 text-clay-teal animate-spin" />
-            <span>Coordinating specialist agents and executing pipeline...</span>
+            <span>Analyzing repository, planning task, and executing pipeline...</span>
           </div>
         )}
 
@@ -594,7 +387,7 @@ export function PersonalAssistantView({
         >
           <input
             type="text"
-            placeholder="Ask anything, describe a code defect, request research, or plan a milestone..."
+            placeholder="Ask anything, request project analysis, fix defects, or plan milestones..."
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             disabled={isProcessing}
