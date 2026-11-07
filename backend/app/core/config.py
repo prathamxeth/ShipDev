@@ -19,6 +19,7 @@ class Settings(BaseModel):
     API_SECRET_KEY: str = os.getenv("API_SECRET_KEY", "dev-agent-secret-change-in-production")
     # Dedicated secret for human authorization (Strictly isolated from agents and frontend JS)
     HUMAN_APPROVAL_SECRET: str = os.getenv("HUMAN_APPROVAL_SECRET", "dev-human-secret-change-in-production")
+    SSE_HEARTBEAT_INTERVAL: float = float(os.getenv("SSE_HEARTBEAT_INTERVAL", "15.0"))
     PROJECT_NAME: str = "ShipDev Backend"
     VERSION: str = "0.1.0"
 

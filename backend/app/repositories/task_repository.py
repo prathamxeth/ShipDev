@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 import sqlite3
 
+from app.core.events import event_broadcaster
 from app.core.state_machine import (
     CallerType,
     InvalidStateTransitionError,
@@ -257,6 +258,20 @@ class TaskRepository:
                     ),
                 )
 
+        # Broadcast event to active SSE subscribers after commit
+        event_payload = {
+            "event_id": transition_id,
+            "task_id": task_id,
+            "from_status": current_status.value,
+            "to_status": target_status.value,
+            "actor_type": data.actor_type.value,
+            "actor_id": data.actor_id,
+            "reason": data.reason,
+            "evidence_id": data.evidence_id,
+            "timestamp": now,
+        }
+        event_broadcaster.publish(task_id, event_payload)
+
         return TransitionResponse(
             id=transition_id,
             task_id=task_id,
@@ -348,6 +363,42 @@ class TaskRepository:
         query = "SELECT * FROM task_transitions WHERE task_id = ? ORDER BY created_at ASC;"
         with get_connection(self.db_path) as conn:
             rows = conn.execute(query, (task_id,)).fetchall()
+            return [
+                TransitionResponse(
+                    id=row["id"],
+                    task_id=row["task_id"],
+                    from_status=TaskStatus(row["from_status"]),
+                    to_status=TaskStatus(row["to_status"]),
+                    actor_type=CallerType(row["actor_type"]),
+                    actor_id=row["actor_id"],
+                    reason=row["reason"],
+                    evidence_id=row["evidence_id"],
+                    created_at=row["created_at"],
+                )
+                for row in rows
+            ]
+
+    def get_transitions_after(
+        self, task_id: str, last_event_id: Optional[str] = None
+    ) -> List[TransitionResponse]:
+        """Retrieve chronological transitions recorded after last_event_id for replay."""
+        # Ensure task exists
+        self.get_task(task_id)
+
+        if last_event_id:
+            query = """
+            SELECT * FROM task_transitions
+            WHERE task_id = ?
+              AND rowid > (SELECT COALESCE(MAX(rowid), 0) FROM task_transitions WHERE id = ? AND task_id = ?)
+            ORDER BY rowid ASC;
+            """
+            params = (task_id, last_event_id, task_id)
+        else:
+            query = "SELECT * FROM task_transitions WHERE task_id = ? ORDER BY rowid ASC;"
+            params = (task_id,)
+
+        with get_connection(self.db_path) as conn:
+            rows = conn.execute(query, params).fetchall()
             return [
                 TransitionResponse(
                     id=row["id"],

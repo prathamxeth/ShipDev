@@ -239,6 +239,130 @@
         }
       }
     },
+    "/api/v1/tasks/{task_id}/events": {
+      "get": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Stream real-time task lifecycle events via SSE",
+        "description": "Stream real-time task lifecycle events via Server-Sent Events (SSE).\n\n- Emits real-time `task_transition` events whenever a state change commits.\n- Recovers missed events via `Last-Event-ID` header or `?last_event_id=` query param.\n- Sends periodic heartbeat pings (`: ping - <timestamp>`) to prevent timeouts.\n- Cleans up subscriptions gracefully on client disconnect.",
+        "operationId": "stream_task_events_api_v1_tasks__task_id__events_get",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          },
+          {
+            "name": "last_event_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Last Event Id"
+            }
+          },
+          {
+            "name": "replay_all",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Replay all historical transitions from inception",
+              "default": false,
+              "title": "Replay All"
+            },
+            "description": "Replay all historical transitions from inception"
+          },
+          {
+            "name": "max_events",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional maximum number of events to receive before closing stream",
+              "title": "Max Events"
+            },
+            "description": "Optional maximum number of events to receive before closing stream"
+          },
+          {
+            "name": "timeout",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional maximum duration in seconds to stream before closing",
+              "title": "Timeout"
+            },
+            "description": "Optional maximum duration in seconds to stream before closing"
+          },
+          {
+            "name": "Last-Event-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Last-Event-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Real-time stream of task lifecycle transition events.",
+            "content": {
+              "text/event-stream": {}
+            }
+          },
+          "404": {
+            "description": "Task not found."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/tasks/{task_id}/evidence": {
       "post": {
         "tags": [
