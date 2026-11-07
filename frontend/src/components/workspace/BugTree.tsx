@@ -28,6 +28,7 @@ import { Task, TaskStatus } from "@/types";
 import { resolveBugLocation, ResolvedBugLocation, WorkspaceFile } from "@/lib/workspaceFiles";
 import { ActivityTab } from "@/components/layout/LeftActivityBar";
 import { BugGraphCanvas } from "./BugGraphCanvas";
+import { UserRole } from "@/components/layout/TopNavigation";
 
 interface BugTreeProps {
   tasks: Task[];
@@ -43,6 +44,7 @@ interface BugTreeProps {
   isLoading: boolean;
   onNewBugClick: () => void;
   onRefreshClick?: () => void;
+  userRole?: UserRole;
 }
 
 interface TreeNode {
@@ -72,6 +74,7 @@ export function BugTree({
   isLoading,
   onNewBugClick,
   onRefreshClick,
+  userRole = "user",
 }: BugTreeProps) {
   const [viewMode, setViewMode] = useState<"tree" | "graph">("tree");
   const [isGraphEnlarged, setIsGraphEnlarged] = useState(false);
@@ -377,8 +380,8 @@ export function BugTree({
           <div className="h-9 px-3 flex items-center justify-between border-b border-clay-hairline bg-clay-canvas">
             <div className="flex items-center gap-2">
               <Bug className="w-3.5 h-3.5 text-clay-primary" />
-              <span className="font-semibold text-clay-ink tracking-wide uppercase text-[11px]">
-                Live Bug Tree
+              <span className="font-semibold text-clay-ink tracking-wide uppercase text-[11px] font-sans">
+                {userRole === "user" ? "Active Issues" : "Live Bug Tree"}
               </span>
               <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-clay-pill bg-clay-surface-card text-clay-muted border border-clay-hairline">
                 {tasks.length}
@@ -390,7 +393,7 @@ export function BugTree({
               <div className="flex items-center gap-0.5 bg-clay-surface-card p-0.5 rounded-clay-pill border border-clay-hairline">
                 <button
                   onClick={() => setViewMode("tree")}
-                  className={`px-2 py-0.5 rounded-clay-pill text-[10px] font-mono transition-colors cursor-pointer ${
+                  className={`px-2 py-0.5 rounded-clay-pill text-[10px] font-sans transition-colors cursor-pointer ${
                     viewMode === "tree"
                       ? "bg-white font-semibold text-clay-ink shadow-clay-soft"
                       : "text-clay-muted hover:text-clay-ink"
@@ -400,7 +403,7 @@ export function BugTree({
                 </button>
                 <button
                   onClick={() => setViewMode("graph")}
-                  className={`px-2 py-0.5 rounded-clay-pill text-[10px] font-mono transition-colors cursor-pointer ${
+                  className={`px-2 py-0.5 rounded-clay-pill text-[10px] font-sans transition-colors cursor-pointer ${
                     viewMode === "graph"
                       ? "bg-white font-semibold text-clay-primary shadow-clay-soft"
                       : "text-clay-muted hover:text-clay-ink"
@@ -428,7 +431,7 @@ export function BugTree({
 
               <button
                 onClick={onNewBugClick}
-                title="Report New Bug"
+                title={userRole === "user" ? "Report Issue" : "Report New Bug"}
                 className="p-1 rounded-clay-md text-clay-muted hover:text-clay-ink hover:bg-clay-surface-card transition-colors cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -449,6 +452,7 @@ export function BugTree({
                 onNavigateToLine={onNavigateToLine}
                 onSelectAgent={onSelectAgent}
                 compact={true}
+                userRole={userRole}
                 onToggleEnlarge={() => setIsGraphEnlarged(true)}
               />
             </div>
@@ -456,15 +460,16 @@ export function BugTree({
             <>
               {/* Search Input & Filter Chips */}
               <div className="p-2 border-b border-clay-hairline bg-clay-surface-soft">
-                <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white rounded-clay-md border border-clay-hairline focus-within:border-clay-primary shadow-clay-soft transition-colors">
+                <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white rounded-clay-md border border-clay-hairline shadow-clay-soft transition-colors">
                   <Search className="w-3.5 h-3.5 text-clay-muted shrink-0" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Filter bugs, files, lines..."
-                    aria-label="Filter bugs, files, and lines"
-                    className="w-full bg-transparent outline-none text-[11px] text-clay-ink placeholder-clay-muted font-mono"
+                    placeholder={userRole === "user" ? "Search issues..." : "Filter bugs, files, lines..."}
+                    aria-label="Filter issues and files"
+                    style={{ outline: "none", boxShadow: "none" }}
+                    className="w-full bg-transparent outline-none border-none ring-0 focus:outline-none focus:ring-0 text-[11px] text-clay-ink placeholder-clay-muted font-sans"
                   />
                   {searchQuery && (
                     <button
@@ -481,16 +486,16 @@ export function BugTree({
                   {(
                     [
                       { id: "all", label: "All" },
-                      { id: "active", label: "Active" },
-                      { id: "awaiting", label: "Gate" },
-                      { id: "resolved", label: "Resolved" },
+                      { id: "active", label: userRole === "user" ? "In Progress" : "Active" },
+                      { id: "awaiting", label: userRole === "user" ? "Needs Review" : "Gate" },
+                      { id: "resolved", label: userRole === "user" ? "Resolved" : "Resolved" },
                     ] as const
                   ).map((chip) => (
                     <button
                       key={chip.id}
                       onClick={() => setFilterMode(chip.id)}
                       aria-pressed={filterMode === chip.id}
-                      className={`px-2.5 py-0.5 rounded-clay-pill text-[10px] font-mono transition-colors cursor-pointer whitespace-nowrap ${
+                      className={`px-2.5 py-0.5 rounded-clay-pill text-[10px] font-sans transition-colors cursor-pointer whitespace-nowrap ${
                         filterMode === chip.id
                           ? "bg-clay-primary text-white font-medium shadow-clay-soft"
                           : "bg-clay-surface-card text-clay-muted hover:text-clay-ink hover:bg-clay-surface-strong border border-clay-hairline"
@@ -503,11 +508,11 @@ export function BugTree({
               </div>
 
               {/* Bug Tree Body */}
-              <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5 font-mono text-[11px]">
+              <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5 font-sans text-[11px]">
                 {isLoading && (
-                  <div className="p-4 text-center text-clay-muted font-mono text-xs flex items-center justify-center gap-2">
+                  <div className="p-4 text-center text-clay-muted font-sans text-xs flex items-center justify-center gap-2">
                     <RefreshCw className="w-3.5 h-3.5 animate-spin text-clay-primary" />
-                    <span>Loading bug tree...</span>
+                    <span>Loading issues...</span>
                   </div>
                 )}
                 {tree.children?.map((child) => renderTreeNode(child, 0))}
@@ -532,6 +537,7 @@ export function BugTree({
             onNavigateToLine={onNavigateToLine}
             onSelectAgent={onSelectAgent}
             compact={false}
+            userRole={userRole}
             onToggleEnlarge={() => setIsGraphEnlarged(true)}
           />
         </div>
@@ -725,7 +731,7 @@ export function BugTree({
               </span>
             </div>
             <span className="text-[10px] font-mono text-clay-primary font-medium">
-              feature/ayush-backend
+              main
             </span>
           </div>
 
@@ -735,7 +741,8 @@ export function BugTree({
               value={gitCommitMessage}
               onChange={(e) => setGitCommitMessage(e.target.value)}
               placeholder="Commit message (⌘Enter)..."
-              className="w-full px-2.5 py-1.5 rounded-clay-md bg-white border border-clay-hairline text-xs font-mono text-clay-ink placeholder-clay-muted outline-none focus:border-clay-primary shadow-clay-soft"
+              style={{ outline: "none", boxShadow: "none" }}
+              className="w-full px-2.5 py-1.5 rounded-clay-md bg-white border border-clay-hairline text-xs font-mono text-clay-ink placeholder-clay-muted outline-none focus:outline-none focus:ring-0 shadow-clay-soft"
             />
             <button
               onClick={() => {
@@ -844,6 +851,7 @@ export function BugTree({
           onNavigateToLine={onNavigateToLine}
           onSelectAgent={onSelectAgent}
           isEnlarged={true}
+          userRole={userRole}
           onToggleEnlarge={() => setIsGraphEnlarged(false)}
         />
       )}
@@ -996,15 +1004,23 @@ export function BugTree({
                     {task.title}
                   </div>
 
-                  {/* Symbol Target */}
-                  <div className="mt-1 flex items-center justify-between text-[10px] text-clay-muted font-mono">
-                    <span className="truncate text-clay-muted font-mono">
-                      @{location.symbolName}()
-                    </span>
-                    <span className="text-[9px] text-clay-muted">
-                      ID: {task.id.slice(-6)}
-                    </span>
-                  </div>
+                  {/* Symbol Target / Location */}
+                  {userRole === "user" ? (
+                    <div className="mt-1 flex items-center justify-between text-[10px] text-clay-muted font-sans">
+                      <span className="truncate text-clay-muted">
+                        {location.fileName} • Line {location.lineNumber}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="mt-1 flex items-center justify-between text-[10px] text-clay-muted font-mono">
+                      <span className="truncate text-clay-muted font-mono">
+                        @{location.symbolName}()
+                      </span>
+                      <span className="text-[9px] text-clay-muted">
+                        ID: {task.id.slice(-6)}
+                      </span>
+                    </div>
+                  )}
                 </div>
               );
             })}

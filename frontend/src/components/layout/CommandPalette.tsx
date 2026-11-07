@@ -296,7 +296,8 @@ export function CommandPalette({
             }}
             placeholder="Type a file name, bug description, or command..."
             aria-label="Command palette search query"
-            className="w-full bg-transparent outline-none text-clay-ink placeholder-clay-muted text-xs font-mono"
+            style={{ outline: "none", boxShadow: "none", border: "none" }}
+            className="w-full bg-transparent border-0 outline-none ring-0 focus:outline-none focus:ring-0 focus:border-0 text-clay-ink placeholder-clay-muted text-xs font-mono"
           />
           {query && (
             <button

@@ -16,7 +16,7 @@ export function NewBugModal({ isOpen, onClose, onTaskCreated }: NewBugModalProps
   const [description, setDescription] = useState("");
   const [reportedBy, setReportedBy] = useState("local-operator");
   const [inputSource, setInputSource] = useState<"text" | "wispr_flow">("text");
-  const [branchName, setBranchName] = useState("feature/ayush-backend");
+  const [branchName, setBranchName] = useState("main");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -139,7 +139,8 @@ export function NewBugModal({ isOpen, onClose, onTaskCreated }: NewBugModalProps
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Defect in calculate_discount adds markup instead of reduction"
-              className="bg-white border border-clay-hairline text-xs text-clay-ink placeholder-clay-muted rounded-clay-md px-3 py-2 focus:outline-none focus:border-clay-primary shadow-clay-soft transition-colors"
+              style={{ outline: "none", boxShadow: "none" }}
+              className="bg-clay-surface-soft border border-clay-hairline text-xs text-clay-ink placeholder-clay-muted rounded-clay-md px-3 py-2 outline-none focus:outline-none focus:ring-0 shadow-clay-soft transition-colors"
             />
           </div>
 
@@ -159,7 +160,8 @@ export function NewBugModal({ isOpen, onClose, onTaskCreated }: NewBugModalProps
                   ? "Transcribed voice recording: 'calculate_discount(100, 20) returned 120.0 instead of 80.0...'"
                   : "Detail the observed bug behavior, failed assertions, or reproduction steps..."
               }
-              className="bg-white border border-clay-hairline text-xs text-clay-ink placeholder-clay-muted rounded-clay-md p-3 focus:outline-none focus:border-clay-primary shadow-clay-soft transition-colors resize-none font-mono"
+              style={{ outline: "none", boxShadow: "none" }}
+              className="bg-clay-surface-soft border border-clay-hairline text-xs text-clay-ink placeholder-clay-muted rounded-clay-md p-3 outline-none focus:outline-none focus:ring-0 shadow-clay-soft transition-colors resize-none font-mono"
             />
           </div>
 
@@ -171,7 +173,8 @@ export function NewBugModal({ isOpen, onClose, onTaskCreated }: NewBugModalProps
                 type="text"
                 value={reportedBy}
                 onChange={(e) => setReportedBy(e.target.value)}
-                className="bg-white border border-clay-hairline text-xs text-clay-ink rounded-clay-md px-2.5 py-1.5 focus:outline-none focus:border-clay-primary shadow-clay-soft"
+                style={{ outline: "none", boxShadow: "none" }}
+                className="bg-clay-surface-soft border border-clay-hairline text-xs text-clay-ink rounded-clay-md px-2.5 py-1.5 outline-none focus:outline-none focus:ring-0 shadow-clay-soft"
               />
             </div>
 
@@ -181,7 +184,8 @@ export function NewBugModal({ isOpen, onClose, onTaskCreated }: NewBugModalProps
                 type="text"
                 value={branchName}
                 onChange={(e) => setBranchName(e.target.value)}
-                className="bg-white border border-clay-hairline text-xs text-clay-primary font-mono rounded-clay-md px-2.5 py-1.5 focus:outline-none focus:border-clay-primary shadow-clay-soft"
+                style={{ outline: "none", boxShadow: "none" }}
+                className="bg-clay-surface-soft border border-clay-hairline text-xs text-clay-ink font-mono rounded-clay-md px-2.5 py-1.5 outline-none focus:outline-none focus:ring-0 shadow-clay-soft"
               />
             </div>
           </div>

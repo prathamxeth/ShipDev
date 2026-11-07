@@ -10,11 +10,17 @@ import {
   Search,
   Settings,
   SplitSquareVertical,
+  User,
+  Code2,
 } from "lucide-react";
 import { checkBackendHealth } from "@/lib/api";
 import { BackendHealth } from "@/types";
 
+export type UserRole = "user" | "dev";
+
 interface TopNavigationProps {
+  userRole?: UserRole;
+  onToggleUserRole?: (role: UserRole) => void;
   onNewBugClick: () => void;
   onRefreshClick: () => void;
   onOpenCommandPalette: () => void;
@@ -28,6 +34,8 @@ interface TopNavigationProps {
 }
 
 export function TopNavigation({
+  userRole = "user",
+  onToggleUserRole,
   onNewBugClick,
   onRefreshClick,
   onOpenCommandPalette,
@@ -72,33 +80,46 @@ export function TopNavigation({
             ShipDev
           </span>
           <span className="text-[10px] text-clay-muted bg-clay-surface-card border border-clay-hairline px-1.5 py-0.5 rounded-clay-pill font-mono hidden sm:inline">
-            IDE
+            {userRole === "user" ? "Studio" : "IDE"}
           </span>
         </div>
 
         {/* Current Project / Repo */}
         <div className="flex items-center gap-1.5 text-clay-muted truncate">
           <span className="text-clay-body-strong font-medium">demo-calculator</span>
-          <span className="text-clay-hairline">/</span>
-          <span className="text-clay-muted truncate hidden md:inline">ShipDev</span>
+          {userRole === "dev" && (
+            <>
+              <span className="text-clay-hairline">/</span>
+              <span className="text-clay-muted truncate hidden md:inline">ShipDev</span>
+            </>
+          )}
         </div>
 
-        {/* Git Branch & Change Status */}
-        <div className="flex items-center gap-2 pl-2 border-l border-clay-hairline text-[11px]">
-          <button
-            onClick={handleCopyBranch}
-            title="Click to copy branch name"
-            aria-label="Copy branch name feature/ayush-backend"
-            className="flex items-center gap-1 text-clay-body hover:text-clay-ink px-2 py-0.5 rounded-clay-md hover:bg-clay-surface-soft transition-colors cursor-pointer font-mono"
-          >
-            <GitBranch className="w-3.5 h-3.5 text-clay-teal" />
-            <span className="truncate max-w-28">feature/ayush-backend</span>
-            {copiedBranch && <Check className="w-3 h-3 text-clay-success" />}
-          </button>
-          <span className="text-[10px] text-clay-ink bg-clay-surface-card px-1.5 py-0.5 rounded-clay-pill border border-clay-hairline font-mono font-medium">
-            1 modified
-          </span>
-        </div>
+        {/* Mode-Specific Status / Git Branch */}
+        {userRole === "user" ? (
+          <div className="flex items-center gap-1.5 pl-2 border-l border-clay-hairline">
+            <span className="flex items-center gap-1 px-2 py-0.5 rounded-clay-pill bg-clay-mint/20 text-[#136149] font-medium text-[11px] border border-clay-mint/40">
+              <span className="w-1.5 h-1.5 rounded-full bg-clay-success" />
+              <span>Synced</span>
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 pl-2 border-l border-clay-hairline text-[11px]">
+            <button
+              onClick={handleCopyBranch}
+              title="Click to copy branch name"
+              aria-label="Copy branch name main"
+              className="flex items-center gap-1 text-clay-body hover:text-clay-ink px-2 py-0.5 rounded-clay-md hover:bg-clay-surface-soft transition-colors cursor-pointer font-mono"
+            >
+              <GitBranch className="w-3.5 h-3.5 text-clay-teal" />
+              <span className="truncate max-w-28">main</span>
+              {copiedBranch && <Check className="w-3 h-3 text-clay-success" />}
+            </button>
+            <span className="text-[10px] text-clay-ink bg-clay-surface-card px-1.5 py-0.5 rounded-clay-pill border border-clay-hairline font-mono font-medium">
+              1 modified
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Center: Command Palette Trigger (Cmd+K) */}
@@ -110,7 +131,9 @@ export function TopNavigation({
         >
           <div className="flex items-center gap-2">
             <Search className="w-3.5 h-3.5 text-clay-muted" />
-            <span>Search files, bugs, or commands...</span>
+            <span>
+              {userRole === "user" ? "Search issues, files, or actions..." : "Search files, bugs, or commands..."}
+            </span>
           </div>
           <kbd className="px-1.5 py-0.5 rounded-clay-xs bg-clay-surface-card border border-clay-hairline text-[10px] text-clay-body font-mono">
             ⌘K
@@ -118,8 +141,38 @@ export function TopNavigation({
         </button>
       </div>
 
-      {/* Right: Switch Status, Actions & Preferences */}
+      {/* Right: User / Dev Mode Switcher, Status, Actions */}
       <div className="flex items-center gap-2">
+        {/* User Mode vs Developer Mode Toggle */}
+        {onToggleUserRole && (
+          <div className="flex items-center bg-clay-surface-card p-0.5 rounded-clay-pill border border-clay-hairline shadow-xs">
+            <button
+              onClick={() => onToggleUserRole("user")}
+              title="Clean User View (no technical jargon)"
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-clay-pill text-[11px] font-medium transition-all cursor-pointer ${
+                userRole === "user"
+                  ? "bg-white text-clay-ink font-semibold shadow-clay-soft"
+                  : "text-clay-muted hover:text-clay-ink"
+              }`}
+            >
+              <User className="w-3 h-3 text-clay-primary" />
+              <span>User</span>
+            </button>
+            <button
+              onClick={() => onToggleUserRole("dev")}
+              title="Detailed Developer Mode (UUIDs, diffs, stack traces)"
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-clay-pill text-[11px] font-mono transition-all cursor-pointer ${
+                userRole === "dev"
+                  ? "bg-white text-clay-primary font-semibold shadow-clay-soft"
+                  : "text-clay-muted hover:text-clay-ink"
+              }`}
+            >
+              <Code2 className="w-3 h-3 text-clay-teal" />
+              <span>Dev</span>
+            </button>
+          </div>
+        )}
+
         {/* Switch Agent Connection Pill */}
         <button
           onClick={() => onOpenAgentDetail?.("shipdev-triager")}
@@ -127,27 +180,31 @@ export function TopNavigation({
           className="flex items-center gap-1.5 px-2.5 py-1 rounded-clay-pill bg-clay-surface-soft hover:bg-clay-surface-card border border-clay-hairline text-[11px] font-mono shadow-xs cursor-pointer transition-colors"
         >
           <span className="w-1.5 h-1.5 rounded-full bg-clay-success" />
-          <span className="text-clay-muted hidden lg:inline">Switch:</span>
+          <span className="text-clay-muted hidden lg:inline">
+            {userRole === "user" ? "AI Engine:" : "Switch:"}
+          </span>
           <span className="text-clay-ink font-semibold">Live</span>
         </button>
 
-        {/* Backend Health indicator */}
-        <div
-          title={health?.ok ? "FastAPI backend healthy" : "FastAPI backend check"}
-          className="flex items-center gap-1 text-[11px] text-clay-muted font-mono"
-        >
-          <span
-            className={`w-1.5 h-1.5 rounded-full ${
-              health?.ok ? "bg-clay-success" : "bg-clay-warning"
-            }`}
-          />
-          <span className="hidden xl:inline text-clay-muted">API</span>
-        </div>
+        {/* Backend Health indicator (in Dev Mode) */}
+        {userRole === "dev" && (
+          <div
+            title={health?.ok ? "FastAPI backend healthy" : "FastAPI backend check"}
+            className="flex items-center gap-1 text-[11px] text-clay-muted font-mono"
+          >
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${
+                health?.ok ? "bg-clay-success" : "bg-clay-warning"
+              }`}
+            />
+            <span className="hidden xl:inline text-clay-muted">API</span>
+          </div>
+        )}
 
-        {/* Diff View Toggle Button */}
+        {/* Diff View / Review Changes Toggle Button */}
         <button
           onClick={() => onToggleDiffMode(!isDiffMode)}
-          aria-label={isDiffMode ? "Exit side-by-side diff mode" : "Enter side-by-side diff mode"}
+          aria-label={isDiffMode ? "Exit change preview" : "Preview proposed changes"}
           className={`flex items-center gap-1 px-3 py-1.5 rounded-clay-md text-xs font-medium border transition-colors cursor-pointer ${
             isDiffMode
               ? "bg-clay-peach/30 border-clay-peach text-clay-ink shadow-xs"
@@ -155,14 +212,16 @@ export function TopNavigation({
           }`}
         >
           <SplitSquareVertical className="w-3.5 h-3.5 text-clay-teal" />
-          <span className="hidden sm:inline">{isDiffMode ? "Exit Diff" : "Diff View"}</span>
+          <span className="hidden sm:inline">
+            {isDiffMode ? "Exit Preview" : userRole === "user" ? "Review Changes" : "Diff View"}
+          </span>
         </button>
 
         {/* Refresh Button */}
         <button
           onClick={onRefreshClick}
-          title="Refresh task queue and evidence"
-          aria-label="Refresh task queue and evidence"
+          title="Refresh task queue"
+          aria-label="Refresh task queue"
           className="h-8 w-8 flex items-center justify-center text-clay-muted hover:text-clay-ink rounded-clay-md hover:bg-clay-surface-soft border border-transparent hover:border-clay-hairline transition-colors cursor-pointer"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-clay-teal" : ""}`} />
@@ -171,11 +230,13 @@ export function TopNavigation({
         {/* New Bug Button */}
         <button
           onClick={onNewBugClick}
-          aria-label="Report new issue to AI engineering pipeline"
+          aria-label="Report new issue"
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-clay-md bg-clay-primary hover:bg-clay-primary-active text-white text-xs font-semibold transition-colors cursor-pointer shadow-clay-soft"
         >
           <Plus className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Report Issue</span>
+          <span className="hidden sm:inline">
+            {userRole === "user" ? "Report Issue" : "+ New Defect"}
+          </span>
         </button>
 
         {/* About Button */}

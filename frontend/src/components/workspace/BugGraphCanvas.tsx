@@ -19,12 +19,11 @@ import {
   ShieldCheck,
   CheckCircle2,
   AlertCircle,
-  Clock,
   Sparkles,
-  GitBranch,
 } from "lucide-react";
 import { Task, TaskStatus } from "@/types";
 import { WorkspaceFile, resolveBugLocation } from "@/lib/workspaceFiles";
+import { UserRole } from "@/components/layout/TopNavigation";
 
 export type GraphNodeType = "folder" | "file" | "function" | "bug" | "agent";
 
@@ -66,6 +65,7 @@ interface BugGraphCanvasProps {
   isEnlarged?: boolean;
   onToggleEnlarge?: () => void;
   compact?: boolean;
+  userRole?: UserRole;
 }
 
 export function BugGraphCanvas({
@@ -80,12 +80,13 @@ export function BugGraphCanvas({
   isEnlarged = false,
   onToggleEnlarge,
   compact = false,
+  userRole = "user",
 }: BugGraphCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Transform / Pan / Zoom state
-  const [zoom, setZoom] = useState(compact ? 0.75 : 0.95);
-  const [pan, setPan] = useState({ x: compact ? 30 : 60, y: compact ? 40 : 50 });
+  const [zoom, setZoom] = useState(compact ? 0.72 : 0.88);
+  const [pan, setPan] = useState({ x: compact ? 25 : 50, y: 25 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
@@ -113,22 +114,50 @@ export function BugGraphCanvas({
     // LEVEL 0: Root Repository Workspace
     rawNodes.push({
       id: "folder_root",
-      label: "ShipDev",
-      sublabel: "workspace root",
+      label: userRole === "user" ? "ShipDev App" : "ShipDev",
+      sublabel: userRole === "user" ? "Project Root" : "workspace root",
       type: "folder",
       path: "/",
-      x: 380,
-      y: 60,
+      x: 360,
+      y: 35,
       level: 0,
       collapsed: Boolean(collapsedFolders["folder_root"]),
     });
 
     // LEVEL 1: Subdirectories
     const folders = [
-      { id: "folder_demo", label: "demo", path: "demo", parentId: "folder_root", x: 180, y: 170 },
-      { id: "folder_buggy", label: "buggy_app", path: "demo/buggy_app", parentId: "folder_demo", x: 180, y: 280 },
-      { id: "folder_tests", label: "tests", path: "demo/tests", parentId: "folder_demo", x: 420, y: 280 },
-      { id: "folder_scripts", label: "scripts", path: "scripts", parentId: "folder_root", x: 640, y: 170 },
+      {
+        id: "folder_demo",
+        label: userRole === "user" ? "Calculator App" : "demo",
+        path: "demo",
+        parentId: "folder_root",
+        x: 160,
+        y: 135,
+      },
+      {
+        id: "folder_buggy",
+        label: userRole === "user" ? "App Code" : "buggy_app",
+        path: "demo/buggy_app",
+        parentId: "folder_demo",
+        x: 160,
+        y: 235,
+      },
+      {
+        id: "folder_tests",
+        label: userRole === "user" ? "Test Suite" : "tests",
+        path: "demo/tests",
+        parentId: "folder_demo",
+        x: 390,
+        y: 235,
+      },
+      {
+        id: "folder_scripts",
+        label: userRole === "user" ? "Bridge Scripts" : "scripts",
+        path: "scripts",
+        parentId: "folder_root",
+        x: 620,
+        y: 135,
+      },
     ];
 
     folders.forEach((f) => {
@@ -153,10 +182,42 @@ export function BugGraphCanvas({
 
     // LEVEL 2: Domain Files
     const files = [
-      { id: "file_calculator", label: "calculator.py", path: "demo/buggy_app/calculator.py", fileName: "calculator.py", folderId: "folder_buggy", x: 100, y: 400 },
-      { id: "file_utils", label: "utils.py", path: "demo/buggy_app/utils.py", fileName: "utils.py", folderId: "folder_buggy", x: 260, y: 400 },
-      { id: "file_test_calc", label: "test_calculator.py", path: "demo/tests/test_calculator.py", fileName: "test_calculator.py", folderId: "folder_tests", x: 440, y: 400 },
-      { id: "file_bridge", label: "switch_bridge.py", path: "scripts/switch_bridge.py", fileName: "switch_bridge.py", folderId: "folder_scripts", x: 640, y: 400 },
+      {
+        id: "file_calculator",
+        label: "calculator.py",
+        path: "demo/buggy_app/calculator.py",
+        fileName: "calculator.py",
+        folderId: "folder_buggy",
+        x: 80,
+        y: 345,
+      },
+      {
+        id: "file_utils",
+        label: "utils.py",
+        path: "demo/buggy_app/utils.py",
+        fileName: "utils.py",
+        folderId: "folder_buggy",
+        x: 240,
+        y: 345,
+      },
+      {
+        id: "file_test_calc",
+        label: "test_calculator.py",
+        path: "demo/tests/test_calculator.py",
+        fileName: "test_calculator.py",
+        folderId: "folder_tests",
+        x: 420,
+        y: 345,
+      },
+      {
+        id: "file_bridge",
+        label: "switch_bridge.py",
+        path: "scripts/switch_bridge.py",
+        fileName: "switch_bridge.py",
+        folderId: "folder_scripts",
+        x: 620,
+        y: 345,
+      },
     ];
 
     files.forEach((file) => {
@@ -181,12 +242,56 @@ export function BugGraphCanvas({
 
     // LEVEL 3: Subfile Functions & AST Symbols
     const functions = [
-      { id: "fn_divide", label: "divide(a, b)", sublabel: "Line 22", fileName: "calculator.py", lineNumber: 22, fileId: "file_calculator", x: 60, y: 530 },
-      { id: "fn_add", label: "add(a, b)", sublabel: "Line 6", fileName: "calculator.py", lineNumber: 6, fileId: "file_calculator", x: 160, y: 530 },
-      { id: "fn_eval", label: "evaluate(expr)", sublabel: "Line 38", fileName: "calculator.py", lineNumber: 38, fileId: "file_calculator", x: 240, y: 530 },
-      { id: "fn_safe_eval", label: "safe_eval(expr)", sublabel: "Line 5", fileName: "utils.py", lineNumber: 5, fileId: "file_utils", x: 340, y: 530 },
-      { id: "fn_test_div", label: "test_divide_zero()", sublabel: "Line 14", fileName: "test_calculator.py", lineNumber: 14, fileId: "file_test_calc", x: 440, y: 530 },
-      { id: "fn_claim", label: "claim_task()", sublabel: "Line 108", fileName: "switch_bridge.py", lineNumber: 108, fileId: "file_bridge", x: 620, y: 530 },
+      {
+        id: "fn_divide",
+        label: userRole === "user" ? "discount_calc()" : "divide(a, b)",
+        sublabel: "Line 22",
+        fileName: "calculator.py",
+        lineNumber: 22,
+        fileId: "file_calculator",
+        x: 60,
+        y: 460,
+      },
+      {
+        id: "fn_add",
+        label: userRole === "user" ? "add_numbers()" : "add(a, b)",
+        sublabel: "Line 6",
+        fileName: "calculator.py",
+        lineNumber: 6,
+        fileId: "file_calculator",
+        x: 160,
+        y: 460,
+      },
+      {
+        id: "fn_eval",
+        label: userRole === "user" ? "eval_expr()" : "evaluate(expr)",
+        sublabel: "Line 38",
+        fileName: "calculator.py",
+        lineNumber: 38,
+        fileId: "file_calculator",
+        x: 250,
+        y: 460,
+      },
+      {
+        id: "fn_test_div",
+        label: userRole === "user" ? "test_discount()" : "test_calculate_discount()",
+        sublabel: "Line 14",
+        fileName: "test_calculator.py",
+        lineNumber: 14,
+        fileId: "file_test_calc",
+        x: 430,
+        y: 460,
+      },
+      {
+        id: "fn_claim",
+        label: userRole === "user" ? "relay_worker()" : "claim_task()",
+        sublabel: "Line 108",
+        fileName: "switch_bridge.py",
+        lineNumber: 108,
+        fileId: "file_bridge",
+        x: 620,
+        y: 460,
+      },
     ];
 
     functions.forEach((fn) => {
@@ -223,12 +328,12 @@ export function BugGraphCanvas({
     tasks.forEach((task, index) => {
       const loc = resolveBugLocation(task);
       const bugNodeId = `bug_${task.id}`;
-      const xOffset = 60 + index * 140;
+      const xOffset = 60 + index * 180;
 
       rawNodes.push({
         id: bugNodeId,
-        label: task.title,
-        sublabel: `Status: ${task.status}`,
+        label: userRole === "user" ? "Active Issue" : task.title,
+        sublabel: userRole === "user" ? "Needs Review" : `Status: ${task.status}`,
         type: "bug",
         task,
         status: task.status,
@@ -236,7 +341,7 @@ export function BugGraphCanvas({
         fileName: loc.fileName,
         lineNumber: loc.lineNumber,
         x: xOffset,
-        y: 670,
+        y: 575,
         level: 4,
       });
 
@@ -255,21 +360,21 @@ export function BugGraphCanvas({
     // LEVEL 5: Switch Agents Orchestrators
     rawNodes.push({
       id: "agent_triager",
-      label: "shipdev-triager",
-      sublabel: "Root Cause Diagnostician",
+      label: userRole === "user" ? "Diagnosis Assistant" : "shipdev-triager",
+      sublabel: userRole === "user" ? "Pinpoints defect" : "Root Cause Diagnostician",
       type: "agent",
-      x: 320,
-      y: 790,
+      x: 300,
+      y: 690,
       level: 5,
     });
 
     rawNodes.push({
       id: "agent_verifier",
-      label: "shipdev-verifier",
-      sublabel: "Independent Validation Oracle",
+      label: userRole === "user" ? "Quality Reviewer" : "shipdev-verifier",
+      sublabel: userRole === "user" ? "Validates fix" : "Independent Validation Oracle",
       type: "agent",
-      x: 540,
-      y: 790,
+      x: 520,
+      y: 690,
       level: 5,
     });
 
@@ -295,130 +400,135 @@ export function BugGraphCanvas({
     }
 
     return { nodes: rawNodes, edges: rawEdges };
-  }, [tasks, selectedTaskId, collapsedFolders]);
+  }, [tasks, selectedTaskId, collapsedFolders, userRole]);
 
-  // Node Map for edge path coordinate lookups
+  // Node Map for fast edge and lookup resolution
   const nodeMap = useMemo(() => {
     const map = new Map<string, GraphNode>();
     nodes.forEach((n) => map.set(n.id, n));
     return map;
   }, [nodes]);
 
-  // Filtering & Search
+  // Filtering nodes by query & category chip
   const filteredNodes = useMemo(() => {
-    return nodes.filter((node) => {
-      if (activeFilter !== "all" && node.type !== activeFilter) return false;
-      if (searchQuery.trim().length > 0) {
-        const q = searchQuery.toLowerCase();
-        return (
-          node.label.toLowerCase().includes(q) ||
-          (node.sublabel && node.sublabel.toLowerCase().includes(q)) ||
-          (node.fileName && node.fileName.toLowerCase().includes(q))
-        );
+    return nodes.filter((n) => {
+      // Category filter
+      if (activeFilter !== "all" && n.type !== activeFilter) {
+        return false;
       }
-      return true;
+      // Search query filter
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase();
+      return (
+        n.label.toLowerCase().includes(q) ||
+        (n.sublabel && n.sublabel.toLowerCase().includes(q)) ||
+        (n.fileName && n.fileName.toLowerCase().includes(q)) ||
+        (n.type.toLowerCase().includes(q))
+      );
     });
   }, [nodes, activeFilter, searchQuery]);
 
-  const filteredNodeIds = useMemo(() => new Set(filteredNodes.map((n) => n.id)), [filteredNodes]);
+  const filteredNodeIds = useMemo(() => {
+    return new Set(filteredNodes.map((n) => n.id));
+  }, [filteredNodes]);
 
-  // Mouse pan & drag handlers
-  const handleMouseDown = (e: React.MouseEvent) => {
+  // Interactive Pan Handlers
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest(".graph-node-interactive")) return;
     setIsDragging(true);
     setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
-  };
+  }, [pan]);
 
-  const handleMouseMove = (e: React.MouseEvent) => {
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!isDragging) return;
     setPan({
       x: e.clientX - dragStart.x,
       y: e.clientY - dragStart.y,
     });
-  };
+  }, [isDragging, dragStart]);
 
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
     setIsDragging(false);
-  };
+  }, []);
 
-  const handleWheel = (e: React.WheelEvent) => {
+  const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
     const zoomFactor = e.deltaY < 0 ? 1.08 : 0.92;
-    setZoom((prev) => Math.min(2.2, Math.max(0.35, prev * zoomFactor)));
-  };
+    setZoom((prevZoom) => {
+      const nextZoom = prevZoom * zoomFactor;
+      return Math.min(Math.max(nextZoom, 0.35), 2.2);
+    });
+  }, []);
 
   const resetView = () => {
-    setZoom(compact ? 0.75 : 0.95);
-    setPan({ x: compact ? 30 : 60, y: compact ? 40 : 50 });
+    setZoom(compact ? 0.72 : 0.88);
+    setPan({ x: compact ? 25 : 50, y: 25 });
   };
 
-  // Node Click Dispatcher
+  // Node Click Handlers
   const handleNodeClick = (node: GraphNode) => {
     setSelectedNodeId(node.id);
 
-    if (node.type === "bug" && node.task) {
-      onSelectBug(node.task, node.fileName || "calculator.py", node.lineNumber || 22);
+    if (node.type === "folder") {
+      toggleFolderCollapse(node.id);
     } else if (node.type === "file" && node.fileName) {
       onSelectFile(node.fileName);
     } else if (node.type === "function" && node.fileName && node.lineNumber) {
-      onSelectFile(node.fileName);
       onNavigateToLine(node.fileName, node.lineNumber);
-    } else if (node.type === "folder") {
-      toggleFolderCollapse(node.id);
+    } else if (node.type === "bug" && node.task) {
+      const loc = resolveBugLocation(node.task);
+      onSelectBug(node.task, loc.fileName, loc.lineNumber);
     } else if (node.type === "agent" && onSelectAgent) {
-      if (node.id === "agent_triager") onSelectAgent("shipdev-triager");
-      if (node.id === "agent_verifier") onSelectAgent("shipdev-verifier");
+      if (node.id === "agent_triager") {
+        onSelectAgent("shipdev-triager");
+      } else if (node.id === "agent_verifier") {
+        onSelectAgent("shipdev-verifier");
+      }
     }
   };
 
-  // Colors per Clay Design System + Nexus IDE Reference
+  // Palette styling based on node type
   const getNodeColor = (node: GraphNode) => {
     const isSelected =
       selectedNodeId === node.id ||
-      (node.type === "bug" && node.task?.id === selectedTaskId) ||
-      (node.type === "file" && node.fileName === activeFileName);
+      (node.type === "bug" && node.task?.id === selectedTaskId);
 
     switch (node.type) {
       case "folder":
         return {
-          bg: isSelected ? "bg-clay-surface-strong" : "bg-white",
-          border: isSelected ? "border-clay-ink" : "border-clay-hairline",
-          text: "text-clay-ink",
-          iconColor: "text-amber-500",
-          glow: isSelected ? "shadow-[0_0_12px_rgba(245,78,0,0.2)]" : "",
+          bg: "bg-clay-ochre/15 hover:bg-clay-ochre/25",
+          border: isSelected ? "border-clay-ochre ring-2 ring-clay-ochre/30" : "border-clay-ochre/30",
+          iconColor: "text-clay-ochre-ink",
+          glow: isSelected ? "shadow-clay-card" : "",
         };
       case "file":
         return {
-          bg: isSelected ? "bg-clay-lavender/25" : "bg-white",
-          border: isSelected ? "border-clay-primary" : "border-clay-hairline",
-          text: "text-clay-ink",
-          iconColor: "text-blue-500",
-          glow: isSelected ? "shadow-[0_0_12px_rgba(245,78,0,0.3)]" : "",
+          bg: "bg-clay-teal/10 hover:bg-clay-teal/20",
+          border: isSelected ? "border-clay-teal ring-2 ring-clay-teal/30" : "border-clay-teal/30",
+          iconColor: "text-clay-teal",
+          glow: isSelected ? "shadow-clay-card" : "",
         };
       case "function":
         return {
-          bg: isSelected ? "bg-clay-peach/30" : "bg-white",
-          border: isSelected ? "border-clay-peach-ink" : "border-clay-hairline",
-          text: "text-clay-ink",
-          iconColor: "text-clay-primary",
-          glow: isSelected ? "shadow-[0_0_10px_rgba(245,78,0,0.25)]" : "",
+          bg: "bg-clay-lavender/20 hover:bg-clay-lavender/30",
+          border: isSelected ? "border-clay-lavender-ink ring-2 ring-clay-lavender/40" : "border-clay-lavender/40",
+          iconColor: "text-clay-lavender-ink",
+          glow: isSelected ? "shadow-clay-card" : "",
         };
       case "bug":
-        const isAwaiting = node.status === "AWAITING_HUMAN_APPROVAL";
         return {
-          bg: isSelected ? "bg-red-500/15" : isAwaiting ? "bg-amber-500/15" : "bg-white",
-          border: isSelected ? "border-red-500" : isAwaiting ? "border-amber-500" : "border-red-400",
-          text: "text-clay-ink",
-          iconColor: isAwaiting ? "text-amber-500" : "text-red-500",
-          glow: isSelected ? "shadow-[0_0_14px_rgba(239,68,68,0.35)]" : "",
+          bg: "bg-clay-pink/20 hover:bg-clay-pink/30",
+          border: isSelected ? "border-clay-pink-ink ring-2 ring-clay-pink/40" : "border-clay-pink/40",
+          iconColor: "text-clay-pink-ink",
+          glow: isSelected ? "shadow-clay-card" : "",
         };
       case "agent":
+      default:
         return {
-          bg: isSelected ? "bg-clay-mint/30" : "bg-white",
-          border: isSelected ? "border-[#136149]" : "border-clay-mint/60",
-          text: "text-[#136149]",
+          bg: "bg-clay-mint/20 hover:bg-clay-mint/30",
+          border: isSelected ? "border-[#136149] ring-2 ring-clay-mint/40" : "border-clay-mint/40",
           iconColor: "text-[#136149]",
-          glow: isSelected ? "shadow-[0_0_12px_rgba(19,97,73,0.3)]" : "",
+          glow: isSelected ? "shadow-clay-card" : "",
         };
     }
   };
@@ -433,83 +543,107 @@ export function BugGraphCanvas({
       }`}
     >
       {/* Container Card when Enlarged */}
-      <div className={`relative w-full h-full flex flex-col rounded-clay-lg overflow-hidden border border-clay-hairline bg-clay-surface-soft ${
-        isEnlarged ? "shadow-2xl bg-white" : ""
-      }`}>
-        {/* GRAPH HEADER TOOLBAR */}
-        <div className="h-10 px-3 border-b border-clay-hairline bg-white flex items-center justify-between shrink-0 z-10 gap-2">
-          {/* Title & Stats */}
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="flex items-center gap-1.5 font-mono text-[11px] font-semibold text-clay-ink">
-              <span className="w-2 h-2 rounded-full bg-clay-primary animate-pulse" />
-              <span>Live Bug Graph</span>
+      <div
+        className={`relative w-full h-full flex flex-col rounded-clay-lg overflow-hidden border border-clay-hairline bg-clay-surface-soft ${
+          isEnlarged ? "shadow-2xl bg-white" : ""
+        }`}
+      >
+        {/* GRAPH HEADER TOOLBAR - 2 NON-WRAPPING CLEAN TIERS */}
+        <div className="border-b border-clay-hairline bg-white flex flex-col shrink-0 z-10 shadow-xs">
+          {/* Tier 1: Title, Node Counter & Pan/Zoom Controls */}
+          <div className="h-9 px-3 flex items-center justify-between border-b border-clay-hairline/60">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-2 h-2 rounded-full bg-clay-primary animate-pulse shrink-0" />
+              <span className="font-semibold text-clay-ink text-xs font-sans truncate">
+                {userRole === "user" ? "System Architecture Map" : "Live Bug Tree Graph"}
+              </span>
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-clay-pill bg-clay-surface-card border border-clay-hairline text-clay-muted shrink-0">
+                {filteredNodes.length} nodes • {edges.length} links
+              </span>
             </div>
-            <span className="text-clay-muted text-[10px] hidden sm:inline">
-              ({filteredNodes.length} nodes, {edges.length} edges)
-            </span>
-          </div>
 
-          {/* Search Input */}
-          <div className="relative flex-1 max-w-44">
-            <Search className="w-3 h-3 text-clay-muted absolute left-2 top-2.5 pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Search graph..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-7 pl-6 pr-2 rounded-clay-xs bg-clay-surface-soft border border-clay-hairline text-[11px] text-clay-ink placeholder:text-clay-muted focus:outline-none focus:ring-1 focus:ring-clay-primary"
-            />
-          </div>
-
-          {/* Filter Pills */}
-          <div className="hidden md:flex items-center gap-1">
-            {(["all", "folder", "file", "function", "bug", "agent"] as const).map((filter) => (
+            <div className="flex items-center gap-1 text-clay-muted shrink-0">
               <button
-                key={filter}
-                onClick={() => setActiveFilter(filter)}
-                className={`px-2 py-0.5 rounded-clay-pill text-[10px] font-mono transition-colors cursor-pointer ${
-                  activeFilter === filter
-                    ? "bg-clay-ink text-white font-semibold"
-                    : "bg-clay-surface-card hover:bg-clay-surface-strong text-clay-muted border border-clay-hairline"
-                }`}
+                onClick={() => setZoom((z) => Math.min(2.2, z * 1.15))}
+                className="p-1 rounded-clay-xs hover:bg-clay-surface-card hover:text-clay-ink transition-colors cursor-pointer"
+                title="Zoom In"
               >
-                {filter}
+                <ZoomIn className="w-3.5 h-3.5" />
               </button>
-            ))}
+              <button
+                onClick={() => setZoom((z) => Math.max(0.35, z * 0.85))}
+                className="p-1 rounded-clay-xs hover:bg-clay-surface-card hover:text-clay-ink transition-colors cursor-pointer"
+                title="Zoom Out"
+              >
+                <ZoomOut className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={resetView}
+                className="p-1 rounded-clay-xs hover:bg-clay-surface-card hover:text-clay-ink transition-colors cursor-pointer"
+                title="Reset View"
+              >
+                <RotateCw className="w-3.5 h-3.5" />
+              </button>
+              {onToggleEnlarge && (
+                <button
+                  onClick={onToggleEnlarge}
+                  className="p-1 rounded-clay-xs hover:bg-clay-surface-card hover:text-clay-primary transition-colors cursor-pointer ml-1"
+                  title={isEnlarged ? "Close Fullscreen" : "Enlarge Graph"}
+                >
+                  {isEnlarged ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Pan & Zoom Controls */}
-          <div className="flex items-center gap-1 text-clay-muted">
-            <button
-              onClick={() => setZoom((z) => Math.min(2.2, z * 1.15))}
-              className="p-1 rounded-clay-xs hover:bg-clay-surface-card hover:text-clay-ink transition-colors cursor-pointer"
-              title="Zoom In"
-            >
-              <ZoomIn className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => setZoom((z) => Math.max(0.35, z * 0.85))}
-              className="p-1 rounded-clay-xs hover:bg-clay-surface-card hover:text-clay-ink transition-colors cursor-pointer"
-              title="Zoom Out"
-            >
-              <ZoomOut className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={resetView}
-              className="p-1 rounded-clay-xs hover:bg-clay-surface-card hover:text-clay-ink transition-colors cursor-pointer"
-              title="Reset View"
-            >
-              <RotateCw className="w-3.5 h-3.5" />
-            </button>
-            {onToggleEnlarge && (
-              <button
-                onClick={onToggleEnlarge}
-                className="p-1 rounded-clay-xs hover:bg-clay-surface-card hover:text-clay-primary transition-colors cursor-pointer ml-1"
-                title={isEnlarged ? "Close Fullscreen" : "Enlarge Graph"}
-              >
-                {isEnlarged ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-              </button>
-            )}
+          {/* Tier 2: Search Input & Category Filter Chips */}
+          <div className="h-9 px-3 flex items-center justify-between gap-2 overflow-x-auto scrollbar-none bg-clay-canvas/60">
+            {/* Search Input */}
+            <div className="relative w-44 shrink-0">
+              <Search className="w-3 h-3 text-clay-muted absolute left-2 top-2 pointer-events-none" />
+              <input
+                type="text"
+                placeholder={userRole === "user" ? "Search map..." : "Filter nodes..."}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{ outline: "none", boxShadow: "none" }}
+                className="w-full h-7 pl-6 pr-2 rounded-clay-md bg-white border border-clay-hairline text-[11px] text-clay-ink placeholder:text-clay-muted outline-none focus:outline-none focus:ring-0 shadow-xs"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-1.5 top-1.5 text-clay-muted hover:text-clay-ink"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+
+            {/* Filter Pills */}
+            <div className="flex items-center gap-1 shrink-0 overflow-x-auto scrollbar-none">
+              {(
+                [
+                  { id: "all", label: "All" },
+                  { id: "folder", label: userRole === "user" ? "Folders" : "folder" },
+                  { id: "file", label: userRole === "user" ? "Files" : "file" },
+                  { id: "function", label: userRole === "user" ? "Logic" : "function" },
+                  { id: "bug", label: userRole === "user" ? "Issues" : "bug" },
+                  { id: "agent", label: userRole === "user" ? "Assistants" : "agent" },
+                ] as const
+              ).map((chip) => (
+                <button
+                  key={chip.id}
+                  onClick={() => setActiveFilter(chip.id)}
+                  className={`px-2 py-0.5 rounded-clay-pill text-[10px] font-sans transition-colors cursor-pointer whitespace-nowrap ${
+                    activeFilter === chip.id
+                      ? "bg-clay-primary text-white font-semibold shadow-xs"
+                      : "bg-white hover:bg-clay-surface-strong text-clay-muted border border-clay-hairline"
+                  }`}
+                >
+                  {chip.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -541,7 +675,7 @@ export function BugGraphCanvas({
             {/* SVG Connecting Edges */}
             <svg
               className="absolute overflow-visible pointer-events-none"
-              style={{ width: 1200, height: 1100 }}
+              style={{ width: 1400, height: 1000 }}
             >
               <defs>
                 <marker
@@ -585,12 +719,12 @@ export function BugGraphCanvas({
                 if (!source || !target) return null;
                 if (!filteredNodeIds.has(source.id) || !filteredNodeIds.has(target.id)) return null;
 
-                // Bezier Curve connecting nodes
+                // Bezier Curve connecting nodes cleanly
                 const dx = target.x - source.x;
                 const dy = target.y - source.y;
                 const midY = source.y + dy * 0.5;
 
-                const pathData = `M ${source.x + 60} ${source.y + 24} C ${source.x + 60} ${midY}, ${target.x + 60} ${midY}, ${target.x + 60} ${target.y}`;
+                const pathData = `M ${source.x + 84} ${source.y + 26} C ${source.x + 84} ${midY}, ${target.x + 84} ${midY}, ${target.x + 84} ${target.y}`;
                 const isRed = edge.color?.includes("ef4444") || edge.color?.includes("f87171");
                 const isGreen = edge.color?.includes("10b981");
 
@@ -605,9 +739,9 @@ export function BugGraphCanvas({
                       className={edge.animated ? "animate-pulse" : ""}
                       markerEnd={isRed ? "url(#edge-arrow-red)" : isGreen ? "url(#edge-arrow-green)" : "url(#edge-arrow)"}
                     />
-                    {edge.label && (
+                    {edge.label && userRole === "dev" && (
                       <text
-                        x={(source.x + target.x) / 2 + 60}
+                        x={(source.x + target.x) / 2 + 84}
                         y={midY}
                         fill="#64748b"
                         fontSize="9"
@@ -623,7 +757,7 @@ export function BugGraphCanvas({
               })}
             </svg>
 
-            {/* DOM Nodes */}
+            {/* DOM NODES - UNIFORM WIDTH, HEIGHT, AND 4-DIRECTION PADDING */}
             {filteredNodes.map((node) => {
               const colors = getNodeColor(node);
               const isHovered = hoveredNodeId === node.id;
@@ -653,34 +787,35 @@ export function BugGraphCanvas({
                   }}
                   onMouseEnter={() => setHoveredNodeId(node.id)}
                   onMouseLeave={() => setHoveredNodeId(null)}
-                  className={`graph-node-interactive absolute rounded-clay-lg border p-2 flex items-center gap-2 cursor-pointer transition-all duration-150 ${
+                  className={`graph-node-interactive absolute rounded-clay-lg border p-2.5 flex items-center gap-2 cursor-pointer transition-all duration-150 ${
                     colors.bg
                   } ${colors.border} ${colors.glow} ${
-                    isSelected ? "ring-2 ring-clay-primary scale-105 z-20" : "hover:scale-102 z-10"
+                    isSelected ? "ring-2 ring-clay-primary scale-105 z-20 shadow-clay-card" : "hover:scale-102 z-10"
                   }`}
                   style={{
                     left: `${node.x}px`,
                     top: `${node.y}px`,
-                    width: node.type === "bug" ? "170px" : "150px",
+                    width: "168px",
+                    height: "52px",
                   }}
                 >
-                  <div className={`p-1 rounded-clay-xs bg-clay-surface-card shrink-0 ${colors.iconColor}`}>
-                    <NodeIcon className="w-4 h-4" />
+                  <div className={`w-7 h-7 rounded-clay-md bg-white flex items-center justify-center shrink-0 shadow-xs ${colors.iconColor}`}>
+                    <NodeIcon className="w-3.5 h-3.5" />
                   </div>
 
-                  <div className="flex flex-col min-w-0 flex-1">
+                  <div className="flex flex-col min-w-0 flex-1 justify-center">
                     <div className="flex items-center justify-between gap-1">
-                      <span className="text-[11px] font-mono font-semibold text-clay-ink truncate">
+                      <span className="text-[11px] font-sans font-semibold text-clay-ink truncate">
                         {node.label}
                       </span>
                       {node.type === "folder" && (
-                        <span className="text-[9px] text-clay-muted font-mono">
+                        <span className="text-[9px] text-clay-muted font-mono shrink-0">
                           {node.collapsed ? "+" : "−"}
                         </span>
                       )}
                     </div>
                     {node.sublabel && (
-                      <span className="text-[9px] font-mono text-clay-muted truncate">
+                      <span className="text-[9px] text-clay-muted truncate">
                         {node.sublabel}
                       </span>
                     )}
@@ -698,29 +833,29 @@ export function BugGraphCanvas({
                   <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded-clay-xs bg-clay-surface-card border border-clay-hairline font-semibold text-clay-primary">
                     {selectedNode.type}
                   </span>
-                  <span className="text-xs font-mono font-bold text-clay-ink truncate">
+                  <span className="text-xs font-sans font-bold text-clay-ink truncate">
                     {selectedNode.label}
                   </span>
                 </div>
                 <button
                   onClick={() => setSelectedNodeId(null)}
-                  className="p-1 rounded-clay-xs hover:bg-clay-surface-card text-clay-muted hover:text-clay-ink"
+                  className="p-1 rounded-clay-xs hover:bg-clay-surface-card text-clay-muted hover:text-clay-ink cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
 
-              <div className="text-[11px] font-mono text-clay-body flex flex-col gap-1">
+              <div className="text-[11px] text-clay-body flex flex-col gap-1 font-sans">
                 {selectedNode.path && (
                   <div className="flex items-center justify-between">
                     <span className="text-clay-muted">Path:</span>
-                    <span className="truncate max-w-40 text-clay-ink">{selectedNode.path}</span>
+                    <span className="truncate max-w-40 text-clay-ink font-mono text-[10px]">{selectedNode.path}</span>
                   </div>
                 )}
                 {selectedNode.fileName && (
                   <div className="flex items-center justify-between">
                     <span className="text-clay-muted">File:</span>
-                    <span className="text-clay-ink">{selectedNode.fileName}</span>
+                    <span className="text-clay-ink font-mono text-[10px]">{selectedNode.fileName}</span>
                   </div>
                 )}
                 {selectedNode.lineNumber && (
@@ -732,25 +867,41 @@ export function BugGraphCanvas({
                 {selectedNode.status && (
                   <div className="flex items-center justify-between">
                     <span className="text-clay-muted">Status:</span>
-                    <span className="font-semibold text-clay-ink">{selectedNode.status}</span>
+                    <span className="text-clay-ink font-medium">{selectedNode.status}</span>
                   </div>
                 )}
               </div>
 
-              {/* Action Buttons */}
-              <div className="pt-2 border-t border-clay-hairline flex items-center justify-end gap-2">
-                {selectedNode.fileName && (
+              {/* Action Button inside Inspector */}
+              <div className="pt-2 border-t border-clay-hairline flex items-center justify-end">
+                {selectedNode.type === "file" && selectedNode.fileName && (
+                  <button
+                    onClick={() => onSelectFile(selectedNode.fileName!)}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-clay-md bg-clay-primary text-white text-[11px] font-medium hover:bg-clay-primary-active transition-colors cursor-pointer"
+                  >
+                    <span>Open File</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </button>
+                )}
+                {selectedNode.type === "function" && selectedNode.fileName && selectedNode.lineNumber && (
+                  <button
+                    onClick={() => onNavigateToLine(selectedNode.fileName!, selectedNode.lineNumber!)}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-clay-md bg-clay-primary text-white text-[11px] font-medium hover:bg-clay-primary-active transition-colors cursor-pointer"
+                  >
+                    <span>Jump to Line {selectedNode.lineNumber}</span>
+                    <ChevronRight className="w-3 h-3" />
+                  </button>
+                )}
+                {selectedNode.type === "bug" && selectedNode.task && (
                   <button
                     onClick={() => {
-                      onSelectFile(selectedNode.fileName!);
-                      if (selectedNode.lineNumber) {
-                        onNavigateToLine(selectedNode.fileName!, selectedNode.lineNumber);
-                      }
+                      const loc = resolveBugLocation(selectedNode.task!);
+                      onSelectBug(selectedNode.task!, loc.fileName, loc.lineNumber);
                     }}
-                    className="px-2.5 py-1 rounded-clay-sm bg-clay-ink text-white font-mono text-[10px] font-semibold hover:bg-neutral-800 transition-colors flex items-center gap-1 cursor-pointer"
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-clay-md bg-clay-pink text-white text-[11px] font-medium hover:bg-clay-pink-ink transition-colors cursor-pointer"
                   >
-                    <span>Open in Editor</span>
-                    <ExternalLink className="w-3 h-3" />
+                    <span>Inspect Bug</span>
+                    <ChevronRight className="w-3 h-3" />
                   </button>
                 )}
                 {selectedNode.type === "agent" && onSelectAgent && (
@@ -759,34 +910,15 @@ export function BugGraphCanvas({
                       if (selectedNode.id === "agent_triager") onSelectAgent("shipdev-triager");
                       if (selectedNode.id === "agent_verifier") onSelectAgent("shipdev-verifier");
                     }}
-                    className="px-2.5 py-1 rounded-clay-sm bg-[#136149] text-white font-mono text-[10px] font-semibold hover:bg-[#0f4d3a] transition-colors flex items-center gap-1 cursor-pointer"
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-clay-md bg-[#136149] text-white text-[11px] font-medium hover:bg-[#0f4e3b] transition-colors cursor-pointer"
                   >
-                    <span>Inspect Agent Profile</span>
-                    <ChevronRight className="w-3 h-3" />
+                    <span>Inspect Assistant</span>
+                    <ExternalLink className="w-3 h-3" />
                   </button>
                 )}
               </div>
             </div>
           )}
-
-          {/* Canvas Bottom Legend */}
-          <div className="absolute bottom-3 right-3 px-2 py-1 rounded-clay-sm bg-white/90 backdrop-blur-xs border border-clay-hairline text-[10px] font-mono text-clay-muted flex items-center gap-3 shadow-clay-soft pointer-events-none">
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-amber-500" /> Folder
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-blue-500" /> File
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-clay-primary" /> Function
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-red-500" /> Bug
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-[#136149]" /> Agent
-            </span>
-          </div>
         </div>
       </div>
     </div>

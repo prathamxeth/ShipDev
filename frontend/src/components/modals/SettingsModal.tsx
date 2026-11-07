@@ -74,7 +74,8 @@ export function SettingsModal({
               type="text"
               value={controllerUrl}
               onChange={(e) => setControllerUrl(e.target.value)}
-              className="w-full px-2.5 py-1.5 rounded-clay-md bg-white border border-clay-hairline text-clay-ink focus:border-clay-primary outline-none text-xs shadow-clay-soft"
+              style={{ outline: "none", boxShadow: "none" }}
+              className="w-full px-2.5 py-1.5 rounded-clay-md bg-clay-surface-soft border border-clay-hairline text-clay-ink outline-none focus:outline-none focus:ring-0 text-xs shadow-clay-soft"
             />
           </div>
 
@@ -86,7 +87,8 @@ export function SettingsModal({
               type="text"
               value={roomId}
               onChange={(e) => setRoomId(e.target.value)}
-              className="w-full px-2.5 py-1.5 rounded-clay-md bg-white border border-clay-hairline text-clay-ink focus:border-clay-primary outline-none text-xs shadow-clay-soft"
+              style={{ outline: "none", boxShadow: "none" }}
+              className="w-full px-2.5 py-1.5 rounded-clay-md bg-clay-surface-soft border border-clay-hairline text-clay-ink outline-none focus:outline-none focus:ring-0 text-xs shadow-clay-soft"
             />
           </div>
 
@@ -98,7 +100,8 @@ export function SettingsModal({
               type="number"
               value={sandboxTimeout}
               onChange={(e) => setSandboxTimeout(e.target.value)}
-              className="w-full px-2.5 py-1.5 rounded-clay-md bg-white border border-clay-hairline text-clay-ink focus:border-clay-primary outline-none text-xs shadow-clay-soft"
+              style={{ outline: "none", boxShadow: "none" }}
+              className="w-full px-2.5 py-1.5 rounded-clay-md bg-clay-surface-soft border border-clay-hairline text-clay-ink outline-none focus:outline-none focus:ring-0 text-xs shadow-clay-soft"
             />
           </div>
 

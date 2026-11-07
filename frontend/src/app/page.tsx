@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { TopNavigation } from "@/components/layout/TopNavigation";
+import { TopNavigation, UserRole } from "@/components/layout/TopNavigation";
 import { LeftActivityBar, ActivityTab } from "@/components/layout/LeftActivityBar";
 import { BugTree } from "@/components/workspace/BugTree";
 import { CodeEditor } from "@/components/workspace/CodeEditor";
@@ -83,6 +83,9 @@ export default function ShipDevIDE() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [selectedAgentModal, setSelectedAgentModal] = useState<AgentIdentifier | null>(null);
+
+  // User Mode vs Developer Mode Toggle (User View is default for clean, non-technical experience)
+  const [userRole, setUserRole] = useState<UserRole>("user");
 
   // Show Toast Helper
   const showToast = useCallback((msg: string) => {
@@ -408,6 +411,8 @@ export default function ShipDevIDE() {
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-clay-canvas text-clay-ink font-sans select-none">
       {/* Top Bar Navigation */}
       <TopNavigation
+        userRole={userRole}
+        onToggleUserRole={setUserRole}
         onNewBugClick={() => setIsNewBugModalOpen(true)}
         onRefreshClick={handleRefresh}
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
@@ -441,7 +446,13 @@ export default function ShipDevIDE() {
 
         {/* Left Sidebar: Live Bug Tree / Explorer / Search / Git / Agents */}
         {isSidebarOpen && (
-          <div className="w-64 lg:w-72 shrink-0 h-full border-r border-clay-hairline">
+          <div
+            className={`${
+              activeActivityTab === "graph"
+                ? "w-[560px] lg:w-[700px] xl:w-[820px]"
+                : "w-64 lg:w-72"
+            } shrink-0 h-full border-r border-clay-hairline transition-all duration-200`}
+          >
             <BugTree
               tasks={tasks}
               selectedTaskId={selectedTaskId}
@@ -456,6 +467,7 @@ export default function ShipDevIDE() {
               isLoading={isLoadingTasks}
               onNewBugClick={() => setIsNewBugModalOpen(true)}
               onRefreshClick={handleRefresh}
+              userRole={userRole}
             />
           </div>
         )}
@@ -511,6 +523,7 @@ export default function ShipDevIDE() {
             loadTaskDetails(updatedTask.id);
           }}
           onToggleDiffMode={() => setIsDiffMode(true)}
+          userRole={userRole}
         />
       </div>
 
@@ -519,7 +532,7 @@ export default function ShipDevIDE() {
         <div className="flex items-center gap-3 min-w-0">
           <div className="flex items-center gap-1.5 text-clay-ink">
             <span className="w-1.5 h-1.5 rounded-full bg-clay-primary" />
-            <span className="font-semibold text-clay-ink">ShipDev</span>
+            <span className="font-semibold text-clay-ink font-sans">ShipDev</span>
           </div>
           <span className="text-clay-hairline">•</span>
           <div className="flex items-center gap-1 text-clay-success font-medium">
@@ -528,7 +541,9 @@ export default function ShipDevIDE() {
           </div>
           <span className="text-clay-hairline">•</span>
           <span className="text-clay-muted">
-            {tasks.length} {tasks.length === 1 ? "bug tracked" : "bugs tracked"}
+            {userRole === "user"
+              ? `${tasks.length} ${tasks.length === 1 ? "issue monitored" : "issues monitored"}`
+              : `${tasks.length} ${tasks.length === 1 ? "bug tracked" : "bugs tracked"}`}
           </span>
         </div>
 
@@ -540,7 +555,7 @@ export default function ShipDevIDE() {
             Ln {cursorPosition.lineNumber}, Col {cursorPosition.column}
           </span>
           <span className="text-clay-primary font-semibold hidden md:inline">
-            Switch Supervised
+            {userRole === "user" ? "Autonomous Quality Active" : "Switch Supervised"}
           </span>
         </div>
       </div>
