@@ -12,6 +12,7 @@ import {
   CompanionSummaryResponse,
   Evidence,
   EvidenceCreate,
+  PlatformConnectionInfo,
   PlatformHealthItem,
   PlatformMapping,
   PlatformType,
@@ -400,4 +401,49 @@ export async function getWorkspaceSharingAudit(workspaceId: string): Promise<Wor
 export async function getCompanionSummary(workspaceId?: string): Promise<CompanionSummaryResponse> {
   const targetWs = workspaceId || currentActiveWorkspaceId;
   return request<CompanionSummaryResponse>(`${API_BASE_URL}/workspaces/${encodeURIComponent(targetWs)}/companion-summary`);
+}
+
+/**
+ * Get user-friendly, non-technical platform connection info
+ */
+export async function getPlatformConnections(workspaceId?: string): Promise<PlatformConnectionInfo[]> {
+  const targetWs = workspaceId || currentActiveWorkspaceId;
+  return request<PlatformConnectionInfo[]>(`${API_BASE_URL}/platforms/connections`, {
+    headers: { "X-Workspace-ID": targetWs },
+  });
+}
+
+/**
+ * Connect a platform integration effortlessly
+ */
+export async function connectPlatform(
+  platform: PlatformType,
+  payload?: { account_name?: string; target_name?: string },
+  workspaceId?: string
+): Promise<PlatformConnectionInfo> {
+  const targetWs = workspaceId || currentActiveWorkspaceId;
+  return request<PlatformConnectionInfo>(`${API_BASE_URL}/platforms/${platform}/connect`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Workspace-ID": targetWs,
+    },
+    body: JSON.stringify(payload || {}),
+  });
+}
+
+/**
+ * Disconnect a platform integration
+ */
+export async function disconnectPlatform(
+  platform: PlatformType,
+  workspaceId?: string
+): Promise<PlatformConnectionInfo> {
+  const targetWs = workspaceId || currentActiveWorkspaceId;
+  return request<PlatformConnectionInfo>(`${API_BASE_URL}/platforms/${platform}/disconnect`, {
+    method: "POST",
+    headers: {
+      "X-Workspace-ID": targetWs,
+    },
+  });
 }

@@ -155,6 +155,21 @@ CREATE TABLE IF NOT EXISTS workspace_sharing_audit (
 
 CREATE INDEX IF NOT EXISTS idx_sharing_source ON workspace_sharing_audit(source_workspace_id);
 CREATE INDEX IF NOT EXISTS idx_sharing_target ON workspace_sharing_audit(target_workspace_id);
+
+CREATE TABLE IF NOT EXISTS platform_connections (
+    id TEXT PRIMARY KEY,
+    workspace_id TEXT NOT NULL,
+    platform TEXT NOT NULL,
+    connected INTEGER NOT NULL DEFAULT 0,
+    account_name TEXT,
+    target_name TEXT,
+    connected_at TEXT,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY(workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+    UNIQUE(workspace_id, platform)
+);
+
+CREATE INDEX IF NOT EXISTS idx_plat_conn_ws ON platform_connections(workspace_id, platform);
 """
 
 

@@ -117,3 +117,19 @@ class PlatformHealth(BaseModel):
     status: str  # "healthy" | "unconfigured" | "error"
     details: Dict[str, Any] = Field(default_factory=dict)
 
+
+class PlatformConnectionInfo(BaseModel):
+    """User-friendly, non-technical platform connection state."""
+    platform: PlatformType
+    name: str
+    connected: bool
+    status_label: str
+    account_name: Optional[str] = None
+    target_name: Optional[str] = None
+    short_description: str
+    connect_url: str
+    chat_url: Optional[str] = None
+    admin_approval_required: bool = False
+    admin_guidance: Optional[str] = None
+    connected_at: Optional[str] = None
+

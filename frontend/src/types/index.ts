@@ -212,6 +212,21 @@ export interface SharePreviewResponse {
   warning: string;
 }
 
+export interface PlatformConnectionInfo {
+  platform: PlatformType;
+  name: string;
+  connected: boolean;
+  status_label: string;
+  account_name?: string | null;
+  target_name?: string | null;
+  short_description: string;
+  connect_url: string;
+  chat_url?: string | null;
+  admin_approval_required: boolean;
+  admin_guidance?: string | null;
+  connected_at?: string | null;
+}
+
 export interface CompanionSummaryResponse {
   workspace_id: string;
   workspace_name: string;

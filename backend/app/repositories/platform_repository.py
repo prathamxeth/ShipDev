@@ -271,3 +271,58 @@ class PlatformRepository:
                 )
                 for row in cursor.fetchall()
             ]
+
+    # =========================================================================
+    # 4. User-Friendly Platform Connections
+    # =========================================================================
+    def get_connection(self, workspace_id: str, platform: PlatformType) -> Optional[Dict[str, Any]]:
+        """Get connection record for a platform in a workspace."""
+        plat_val = platform.value if isinstance(platform, PlatformType) else platform
+        with get_connection(self.db_path) as conn:
+            cursor = conn.execute(
+                "SELECT * FROM platform_connections WHERE workspace_id = ? AND platform = ?",
+                (workspace_id, plat_val),
+            )
+            row = cursor.fetchone()
+            if not row:
+                return None
+            return dict(row)
+
+    def set_connection(
+        self,
+        workspace_id: str,
+        platform: PlatformType,
+        connected: bool,
+        account_name: Optional[str] = None,
+        target_name: Optional[str] = None,
+    ) -> None:
+        """Create or update platform connection state."""
+        conn_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        plat_val = platform.value if isinstance(platform, PlatformType) else platform
+
+        with get_connection(self.db_path) as conn:
+            with conn:
+                conn.execute(
+                    """
+                    INSERT INTO platform_connections (
+                        id, workspace_id, platform, connected, account_name, target_name, connected_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(workspace_id, platform) DO UPDATE SET
+                        connected = excluded.connected,
+                        account_name = excluded.account_name,
+                        target_name = excluded.target_name,
+                        connected_at = CASE WHEN excluded.connected = 1 THEN excluded.connected_at ELSE platform_connections.connected_at END,
+                        updated_at = excluded.updated_at
+                    """,
+                    (
+                        conn_id,
+                        workspace_id,
+                        plat_val,
+                        1 if connected else 0,
+                        account_name,
+                        target_name,
+                        now if connected else None,
+                        now,
+                    ),
+                )
