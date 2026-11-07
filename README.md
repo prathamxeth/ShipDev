@@ -10,12 +10,13 @@ Built for the **WeMakeDevs Flip the Switch Hackathon 2026** — delivering the *
 
 [![Backend Live](https://img.shields.io/badge/Render_API-Live_Production-00b894?style=for-the-badge&logo=render&logoColor=white)](https://shipdev.onrender.com)
 [![OpenAPI Docs](https://img.shields.io/badge/OpenAPI_Docs-Interactive_Swagger-0984e3?style=for-the-badge&logo=fastapi&logoColor=white)](https://shipdev.onrender.com/docs)
+[![API Health](https://img.shields.io/badge/Health_Check-200_OK-22c55e?style=for-the-badge&logo=statuspal&logoColor=white)](https://shipdev.onrender.com/health)
 [![GitHub Stars](https://img.shields.io/github/stars/prathamxeth/ShipDev?style=for-the-badge&color=2563eb)](https://github.com/prathamxeth/ShipDev)
 [![License](https://img.shields.io/badge/License-MIT-16a34a?style=for-the-badge)](LICENSE)
 
 <br/>
 
-[![Switch](https://img.shields.io/badge/Agent_Orchestrator-Switch_AI_(Agent_Controller_:53640)-f54e00.svg)](https://switch.ai)
+[![Switch](https://img.shields.io/badge/Agent_Mesh-Switch_AI_(Agent_Controller_:53640)-f54e00.svg)](https://switch.ai)
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI_+_SQLite_State_Machine-059669.svg)](backend)
 [![Next.js 14](https://img.shields.io/badge/Frontend-Next.js_14_+_Monaco_+_Clay-000000.svg)](frontend)
 [![Pytest](https://img.shields.io/badge/Test_Suite-116%2F116_Passing-22c55e.svg)](backend/tests)
@@ -25,10 +26,11 @@ Built for the **WeMakeDevs Flip the Switch Hackathon 2026** — delivering the *
 
 ```text
  ┌────────────────────────────────────────────────────────────────────────┐
- │  🎬 3-MINUTE INTERACTIVE WORKFLOW DEMO                                 │
- │  Autonomous triage, sandbox reproduction, independent verification,    │
- │  and cryptographically enforced human sign-off:                        │
+ │  🎬 3-MINUTE INTERACTIVE LIVE WORKFLOW                                 │
+ │  Watch autonomous triage, clean-room reproduction, independent         │
+ │  verification, and cryptographically enforced human sign-off:          │
  │  👉 Live Production API: https://shipdev.onrender.com                  │
+ │  👉 Interactive Swagger Docs: https://shipdev.onrender.com/docs        │
  └────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -40,7 +42,7 @@ Built for the **WeMakeDevs Flip the Switch Hackathon 2026** — delivering the *
 
 Standard AI coding assistants (terminal CLIs, chat windows, copilot autocompletes) operate as solitary, uncoordinated agents in developer terminals. 
 
-While isolated agents can generate snippets, **enterprise software engineering requires multi-agent team collaboration with strict human governance**:
+While isolated agents can generate code snippets, **enterprise software engineering requires multi-agent team collaboration with strict human governance**:
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
@@ -65,80 +67,174 @@ While isolated agents can generate snippets, **enterprise software engineering r
 
 ---
 
-## ⚡ The ShipDev Solution: Multi-Agent Collaboration + Human Gate
+## ⚡ The ShipDev Solution: Collaborative Multi-Agent Architecture
 
 ShipDev transitions isolated agents into collaborative engineering teammates connected through **Switch Incident Rooms** and governed by an **Immutable Human Approval Gate**:
 
-```text
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                      SHIPDEV DUAL-AGENT ARCHITECTURE                         │
-└──────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    subgraph UI["🖥️ SHIPDEV CLAY STUDIO IDE"]
+        USER["👨‍💻 Engineer"] -->|"1. Reports Bug"| INTAKE["🎫 Task Ingestion"]
+        INTAKE -->|"Task Created"| TASK_DB[("📦 SQLite State Store")]
+        DIFF_VIEW["🔍 Monaco Diff Editor"] -->|"8. Human Approves / Rejects"| HUMAN_GATE{"🛡️ Human Approval Gate"}
+    end
 
-  1. BUG REPORT ➔ [ Switch Agent Controller :53640 ]
-                          │
-                          ▼ (Dispatches Incident)
-  2. TRIAGE      ➔ [ shipdev-triager (bd717264) ]
-                          │ • Parses stack trace & maps AST defect
-                          ▼ • Clones isolated subprocess scratch workspace
-  3. REPRODUCE   ➔ [ pytest reproduction harness ] ➔ Confirms failure (Exit 1)
-                          │
-                          ▼ (Synthesizes minimal unified diff)
-  4. CANDIDATE   ➔ [ Patch Synthesis ]
-                          │
-                          ▼ (Hands off to independent oracle)
-  5. VERIFY      ➔ [ shipdev-verifier (7dc5d295) ] ◄── INDEPENDENT ORACLE
-                          │ • Applies diff in pristine clean sandbox
-                          ▼ • Runs full regression suite ➔ Asserts zero regressions (Exit 0)
-  6. EVIDENCE    ➔ [ Cryptographic Verification Token Emitted ]
-                          │
-                          ▼
-  ════════════════════════════════════════════════════════════════════════════════
-  7. IMMUTABLE HUMAN APPROVAL GATE (AWAITING_HUMAN_APPROVAL)
-     Agents are strictly forbidden from approving or merging code!
-     Engineer reviews Monaco side-by-side diff ➔ [ APPROVE ] or [ REJECT ]
-  ════════════════════════════════════════════════════════════════════════════════
-                          │
-                          ▼ (Human Approved)
-  8. PRODUCTION  ➔ [ Merged to main with audit trail ]
+    subgraph SwitchControl["🤖 SWITCH AGENT CONTROLLER (:53640)"]
+        BRIDGE["⚡ scripts/switch_bridge.py"] -->|"Claims Task"| TASK_DB
+        BRIDGE -->|"Dispatches Room"| ROOM["🏢 Incident Room (#shipdev-war-room)"]
+        ROOM -->|"Assigns Task"| TRIAGER["🕵️ shipdev-triager (bd717264)"]
+        ROOM -->|"Assigns Audit"| VERIFIER["🛡️ shipdev-verifier (7dc5d295)"]
+    end
+
+    subgraph Sandbox["🧪 ISOLATED SUBPROCESS SANDBOX"]
+        TRIAGER -->|"2. Clones Clean Scratch"| WORKSPACE1["📁 Scratch Workspace A"]
+        WORKSPACE1 -->|"3. Runs Repro pytest"| REPRO_RUN["💥 Confirmed Failure (Exit 1)"]
+        REPRO_RUN -->|"4. Synthesizes Patch"| PATCH["📝 Unified Git Diff"]
+        
+        PATCH -->|"5. Dispatches to Oracle"| VERIFIER
+        VERIFIER -->|"6. Applies Patch"| WORKSPACE2["📁 Clean Sandbox B"]
+        WORKSPACE2 -->|"7. Runs Full Regression"| TEST_RUN["✅ All Tests Pass (Exit 0)"]
+    end
+
+    TEST_RUN -->|"Signed Evidence"| HUMAN_GATE
+    HUMAN_GATE -->|"✅ Approved"| MERGE["🚀 Production Commit to Main"]
+    HUMAN_GATE -->|"❌ Rejected"| TRIAGER
+
+    classDef clayPrimary fill:#fef3c7,stroke:#f54e00,stroke-width:2px,color:#7c2d12;
+    classDef clayMint fill:#d1fae5,stroke:#10b981,stroke-width:2px,color:#064e3b;
+    classDef clayLavender fill:#ede9fe,stroke:#8b5cf6,stroke-width:2px,color:#4c1d95;
+    classDef clayDark fill:#1e293b,stroke:#64748b,stroke-width:2px,color:#f8fafc;
+    
+    class USER,INTAKE,DIFF_VIEW,HUMAN_GATE clayPrimary;
+    class BRIDGE,ROOM,TRIAGER,VERIFIER clayLavender;
+    class WORKSPACE1,REPRO_RUN,WORKSPACE2,TEST_RUN,PATCH clayMint;
+    class TASK_DB,MERGE clayDark;
 ```
 
 ---
 
 ## 🗺️ Live Topological Bug Graph
 
-ShipDev renders an interactive, live topological graph visualization connecting folders, files, subfile AST functions, active bug defects, and Switch agent oracles:
+ShipDev replaces flat file lists with an **interactive topological graph** that arranges your codebase into 5 interconnected layers:
 
-```text
-┌────────────────────────────────────────────────────────────────────────┐
-│                   LIVE TOPOLOGICAL BUG GRAPH                           │
-└────────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph LR
+    subgraph L0["📁 ROOT WORKSPACE"]
+        ROOT["ShipDev"]
+    end
 
-  [ 📁 ShipDev (Root) ]
-        │
-        ├─► [ 📂 demo/buggy_app ]
-        │         │
-        │         ├─► [ 📄 calculator.py ]
-        │         │         │
-        │         │         ├─► [ ⚡ divide(a, b) ] ◄── Ln 22 (Defect Target)
-        │         │         │         ▲
-        │         │         │         │ (affects)
-        │         │         │   [ 🐛 ZeroDivisionError ] ◄── Status: REPORTED
-        │         │         │         ▲
-        │         │         │         ├─► [ 🤖 shipdev-triager ] (Diagnoses & Repro)
-        │         │         │         └─► [ 🤖 shipdev-verifier ] (Validates Clean-Room)
-        │         │         │
-        │         │         └─► [ ⚡ evaluate(expr) ]
-        │         │
-        │         └─► [ 📄 utils.py ] ──► [ ⚡ safe_eval() ]
-        │
-        ├─► [ 📂 demo/tests ] ──► [ 📄 test_calculator.py ] ──► [ ⚡ test_divide_zero() ]
-        │
-        └─► [ 📂 scripts ] ────► [ 📄 switch_bridge.py ] ────► [ ⚡ SwitchClient ]
+    subgraph L1["📂 DIRECTORIES"]
+        DEMO["demo/"]
+        BUGGY["demo/buggy_app/"]
+        TESTS["demo/tests/"]
+        SCRIPTS["scripts/"]
+    end
+
+    subgraph L2["📄 SOURCE FILES"]
+        CALC["calculator.py"]
+        UTILS["utils.py"]
+        TEST_CALC["test_calculator.py"]
+        BRIDGE_PY["switch_bridge.py"]
+    end
+
+    subgraph L3["⚡ AST SYMBOLS & FUNCTIONS"]
+        DIVIDE["divide(a, b) [Ln 22]"]
+        ADD["add(a, b) [Ln 6]"]
+        SAFE_EVAL["safe_eval() [Ln 5]"]
+        TEST_DIV["test_divide_zero() [Ln 14]"]
+    end
+
+    subgraph L4["🐛 ACTIVE BUG DEFECTS"]
+        BUG1["ZeroDivisionError<br/>Status: REPORTED<br/>Severity: HIGH"]
+    end
+
+    subgraph L5["🤖 SWITCH AGENT ORACLES"]
+        AGENT_T["shipdev-triager<br/>(Root Cause & Repro)"]
+        AGENT_V["shipdev-verifier<br/>(Regression Oracle)"]
+    end
+
+    ROOT --> DEMO
+    ROOT --> SCRIPTS
+    DEMO --> BUGGY
+    DEMO --> TESTS
+    
+    BUGGY --> CALC
+    BUGGY --> UTILS
+    TESTS --> TEST_CALC
+    SCRIPTS --> BRIDGE_PY
+
+    CALC --> DIVIDE
+    CALC --> ADD
+    UTILS --> SAFE_EVAL
+    TEST_CALC --> TEST_DIV
+
+    TEST_DIV -.->|"validates"| DIVIDE
+    BUG1 ==>|"affects target"| DIVIDE
+    
+    AGENT_T ==>|"triages & reproduces"| BUG1
+    AGENT_V ==>|"verifies patch"| BUG1
+
+    classDef l0 fill:#f8fafc,stroke:#334155,stroke-width:2px,color:#0f172a;
+    classDef l1 fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#78350f;
+    classDef l2 fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1e3a8a;
+    classDef l3 fill:#ffedd5,stroke:#ea580c,stroke-width:2px,color:#7c2d12;
+    classDef l4 fill:#fee2e2,stroke:#dc2626,stroke-width:2px,color:#7f1d1d;
+    classDef l5 fill:#d1fae5,stroke:#059669,stroke-width:2px,color:#064e3b;
+
+    class ROOT l0;
+    class DEMO,BUGGY,TESTS,SCRIPTS l1;
+    class CALC,UTILS,TEST_CALC,BRIDGE_PY l2;
+    class DIVIDE,ADD,SAFE_EVAL,TEST_DIV l3;
+    class BUG1 l4;
+    class AGENT_T,AGENT_V l5;
 ```
 
-* **Fully Clickable**: Click any file to open in Monaco Editor; click any function or bug to jump directly to the target line.
-* **Expandable Canvas**: Click the **Graph** toggle in the sidebar or hit **Enlarge** (`Maximize2`) for full-screen pan & zoom exploration.
-* **Agent Profile Inspector**: Click on any Switch agent (`shipdev-triager` / `verifier`) to inspect its role, system prompt, tool capabilities, and safety invariants.
+### Interactive Graph Capabilities:
+* **Fully Clickable**: Click any file to open in Monaco Editor; click any function or bug to jump directly to the target line in code.
+* **Pan & Zoom**: Smooth mouse dragging, wheel zoom, zoom controls, and fit-to-screen reset.
+* **Enlarge / Expand Modal**: Click the `Maximize2` button to expand the canvas into a full-screen interactive inspection view.
+* **Live Search & Filter**: Real-time search highlighting and layer filters (`All`, `Folder`, `File`, `Function`, `Bug`, `Agent`).
+* **Switch Agent Profile Inspector**: Click any agent node or card to open its full profile modal detailing UUID, prompt guidelines, and sandbox telemetry.
+
+---
+
+## 🔁 Real-Time Multi-Agent Sequence Flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Engineer as 👨‍💻 Engineer
+    participant Frontend as 🖥️ Next.js 14 IDE
+    participant Backend as ⚡ FastAPI Backend
+    participant Bridge as 🌉 Switch Bridge
+    participant Triager as 🕵️ shipdev-triager
+    participant Verifier as 🛡️ shipdev-verifier
+
+    Engineer->>Frontend: Submit Bug ("ZeroDivisionError in divide()")
+    Frontend->>Backend: POST /api/v1/tasks (status: REPORTED)
+    Backend-->>Frontend: SSE Stream (task_created event)
+    
+    Bridge->>Backend: Poll /tasks?status=REPORTED
+    Backend-->>Bridge: Claim Task & Issue Claim Token
+    
+    Bridge->>Triager: Dispatch Incident (Task UUID + Stack Trace)
+    Note over Triager: Clones sandbox & runs pytest<br/>Confirms failure (Exit Code 1)
+    Triager->>Backend: POST /api/v1/evidence (reproduction stage)
+    Triager->>Bridge: Candidate Patch Diff Generated
+    
+    Bridge->>Verifier: Dispatch Verification (Diff + Task UUID)
+    Note over Verifier: Applies diff in clean sandbox<br/>Runs full suite (Exit Code 0)
+    Verifier->>Backend: POST /api/v1/evidence (verification stage)
+    
+    Backend->>Backend: Transition ➔ AWAITING_HUMAN_APPROVAL
+    Backend-->>Frontend: SSE Stream (task_updated: AWAITING_HUMAN_APPROVAL)
+    
+    Note over Frontend: Pipeline Halts! Agents cannot auto-approve.
+    Engineer->>Frontend: Inspect Monaco Split-Diff & Click [APPROVE]
+    Frontend->>Backend: POST /api/gate/approve (Bearer Token + Same-Origin)
+    Backend->>Backend: Transition ➔ APPROVED ➔ COMPLETED
+    Backend-->>Frontend: SSE Stream (task_completed)
+```
 
 ---
 
@@ -158,9 +254,72 @@ Docker / VM Containers    : ~600MB [██████████████�
 ShipDev Subprocess Scratch: <1MB   [▏]  ◄── Instant clean workspace cloning (<50ms)
 
 TEST SUITE RIGOR (Automated Test Count)
-Backend State Machine     : 116 tests passed (1.79s)
+Backend State Machine     : 116 tests passed in 1.73s (pytest)
 Frontend Security Audit   : 14 tests passed (CSRF, same-origin, anti-spoofing)
 ```
+
+---
+
+## 🔍 Interactive Verification & Audit Deep Dives
+
+<details>
+<summary><b>🧪 1. View 116 Backend Automated Tests (State Machine, Persistence & Security)</b></summary>
+
+```text
+backend/tests/test_api.py ...................................            [ 30%]
+backend/tests/test_demo_pipeline.py ........                             [ 37%]
+backend/tests/test_harden.py ..............................              [ 62%]
+backend/tests/test_health.py ..                                          [ 64%]
+backend/tests/test_persistence.py .......                                [ 70%]
+backend/tests/test_phase3_security.py .................                  [ 85%]
+backend/tests/test_sse.py ........                                       [ 92%]
+backend/tests/test_state_machine.py .........                            [100%]
+
+============================= 116 passed in 1.73s ==============================
+```
+</details>
+
+<details>
+<summary><b>🛡️ 2. View 14 Frontend Security Audit Gates</b></summary>
+
+```text
+▶ ShipDev Security Boundary & Human Gate Audit Tests
+  ▶ 1. Same-Origin & CSRF Defense
+    ✔ should reject state-changing requests with missing Origin header (HTTP 403)
+    ✔ should reject cross-origin requests from untrusted origins (HTTP 403)
+    ✔ should reject requests where Sec-Fetch-Site indicates cross-site invocation (HTTP 403)
+    ✔ should accept valid same-origin requests from canonical port 3000
+    ✔ should accept valid 127.0.0.1:3000 development origin
+  ▶ 2. Task ID Validation & Anti-Traversal
+    ✔ should accept valid alphanumeric and underscore task IDs
+    ✔ should reject path traversal attempts and special characters
+  ▶ 3. Reviewer Identity Anti-Spoofing
+    ✔ should derive operator identity server-side and prevent client spoofing
+    ✔ should fall back to safe default 'local-operator' when unconfigured
+  ▶ 4. Fail-Closed Secret Verification
+    ✔ should fail closed and never fall back to default credentials when secret is missing
+    ✔ should fail closed when secret is empty whitespace
+  ▶ 5. State Lifecycle Transition Invariants
+    ✔ should enforce that approval is only valid from AWAITING_HUMAN_APPROVAL
+    ✔ should enforce that completion is only valid from APPROVED
+    ✔ should require non-empty feedback when rejecting a proposed fix
+
+✔ 14 passing (305ms)
+```
+</details>
+
+<details>
+<summary><b>🤖 3. View Switch Agent Roles & Prompt Specifications</b></summary>
+
+* **`shipdev-triager` (UUID: `bd717264-f0ac-4651-a4da-3746ec71fa28`)**:
+  * Role: Incident Analysis, AST mapping, and clean-room reproduction runner.
+  * System Prompt: Defined in `switch/instructions/triager.md`.
+  * Invariant: Never generates synthetic evidence; confirms genuine pytest failure (Exit Code 1) before synthesizing a diff.
+* **`shipdev-verifier` (UUID: `7dc5d295-a3c3-4168-a233-2dc9514b6ca9`)**:
+  * Role: Independent verification and regression oracle.
+  * System Prompt: Defined in `switch/instructions/verifier.md`.
+  * Invariant: Never trusts the triager's reported test outcome; applies the patch independently in a clean scratch sandbox and asserts Exit Code 0.
+</details>
 
 ---
 
@@ -168,35 +327,37 @@ Frontend Security Audit   : 14 tests passed (CSRF, same-origin, anti-spoofing)
 
 ShipDev directly tackles the hackathon's core challenge by transforming isolated terminal AI tools into active, collaborative team members:
 
-1. **Deep Switch Integration**: Uses the authentic Switch Agent Controller (`http://127.0.0.1:53640`), Incident Room IDs, and dedicated instructions (`switch/instructions/triager.md` and `verifier.md`).
-2. **Real Enterprise Business Utility**: Solves automated bug triaging, test reproduction, and patch verification—the #1 bottleneck in enterprise software teams.
-3. **Safety & Compliance**: Full audit trail with immutable reviewer identities, constant-time bearer secrets, and replay protection.
+1. **Deep Switch Integration**: Uses the authentic Switch Agent Controller (`http://127.0.0.1:53640`), Incident Room IDs (`dbde0dcf-8adf-48f9-9d16`), and dedicated agent instructions.
+2. **Real Enterprise Business Utility**: Solves automated bug triaging, test reproduction, and patch verification—the #1 bottleneck in enterprise engineering teams.
+3. **Safety & Governance**: Cryptographically enforced human approval boundary with server-side caller attribution and fail-closed security.
 
 ---
 
-## 🚀 3-Minute Quickstart
+## 🚀 Quickstart
 
-### 1. Start the Live Backend (or use Cloud Render)
+### Option A: Use the Live Production Backend
+The backend is already running live in production on Render:
+* **API Endpoint**: `https://shipdev.onrender.com/api/v1`
+* **Swagger Docs**: `https://shipdev.onrender.com/docs`
+* **Health Check**: `https://shipdev.onrender.com/health`
+
+### Option B: Run Locally
+
 ```bash
+# 1. Start the FastAPI Engine
 cd backend
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn app.main:app --port 8000
-```
-*Or connect to the live cloud backend: `https://shipdev.onrender.com/api/v1`*
 
-### 2. Start the Clay Studio IDE
-```bash
-cd frontend
+# 2. Start the Clay Studio IDE
+cd ../frontend
 npm install
 npm run dev
-```
-*Open `http://localhost:3000` to access the IDE.*
 
-### 3. Connect Local Switch Bridge
-```bash
+# 3. Connect Local Switch Bridge
 python3 scripts/switch_bridge.py \
-  --api-base https://shipdev.onrender.com/api/v1 \
+  --api-base http://127.0.0.1:8000/api/v1 \
   --agent-secret <API_SECRET_KEY>
 ```
 
