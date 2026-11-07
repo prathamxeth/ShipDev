@@ -12,22 +12,32 @@ const config: Config = {
       colors: {
         oled: {
           black: "#000000",
-          base: "#08080a",
-          panel: "#0f0f13",
-          surface: "#141418",
-          elevated: "#1a1a20",
-          hover: "#22222a",
-          border: "#1f2028",
-          "border-subtle": "#16171d",
-          "border-focus": "#383a48",
+          base: "#050505",
+          panel: "#080808",
+          surface: "#0e0e0e",
+          elevated: "#121212",
+          hover: "#181818",
+          border: "#1e1e1e",
+          "border-subtle": "#161616",
+          "border-focus": "#262626",
+          hairline: "#262626",
+        },
+        cursor: {
+          orange: "#f54e00",
+          "orange-hover": "#ff6a26",
+          "orange-active": "#d04200",
+          ink: "#26251e",
+          body: "#5a5852",
+          muted: "#807d72",
         },
         brand: {
-          primary: "#3b82f6",
-          accent: "#6366f1",
+          primary: "#f54e00",
+          accent: "#f54e00",
           success: "#10b981",
           warning: "#f59e0b",
           danger: "#f43f5e",
-          purple: "#8b5cf6",
+          purple: "#a855f7",
+          blue: "#3b82f6",
         },
       },
       fontFamily: {
@@ -35,7 +45,7 @@ const config: Config = {
         mono: ["var(--font-geist-mono)", "ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "monospace"],
       },
       boxShadow: {
-        "oled-glow": "0 0 20px -5px rgba(59, 130, 246, 0.15)",
+        "oled-glow": "0 0 20px -5px rgba(245, 78, 0, 0.15)",
         "card-subtle": "0 1px 2px 0 rgba(0, 0, 0, 0.5)",
       },
     },
@@ -44,4 +54,3 @@ const config: Config = {
 };
 
 export default config;
-

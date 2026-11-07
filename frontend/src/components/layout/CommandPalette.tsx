@@ -1,55 +1,48 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import {
   AlertCircle,
-  ArrowRight,
-  Boxes,
+  Bug,
   Check,
   CheckCircle2,
-  Clock,
-  Code2,
-  Copy,
-  ExternalLink,
-  Eye,
-  EyeOff,
-  Filter,
-  Flame,
+  FileCode,
   GitBranch,
-  Layers,
-  PanelLeftClose,
-  PanelLeftOpen,
-  PanelRightClose,
-  PanelRightOpen,
+  Info,
+  Lock,
   Plus,
   RefreshCw,
   Search,
-  Sparkles,
-  Terminal,
+  Settings,
+  SplitSquareVertical,
   X,
 } from "lucide-react";
 import { Task } from "@/types";
-import { StatusPill } from "@/components/ui/StatusPill";
+import { resolveBugLocation } from "@/lib/workspaceFiles";
 
 interface CommandPaletteProps {
   isOpen: boolean;
   onClose: () => void;
   tasks: Task[];
   onSelectTask: (taskId: string) => void;
+  onSelectFile: (fileName: string) => void;
+  onNavigateToLine: (fileName: string, lineNumber: number) => void;
   onNewBugClick: () => void;
   onRefreshClick: () => void;
-  onToggleSidebar: () => void;
-  onToggleInspector: () => void;
-  isSidebarOpen: boolean;
-  isInspectorOpen: boolean;
-  onFilterChange: (filter: "all" | "active" | "awaiting" | "closed") => void;
+  onToggleDiffMode: () => void;
+  onOpenSettings: () => void;
+  onOpenAbout: () => void;
+  isDiffMode: boolean;
 }
 
-interface CommandAction {
+interface PaletteItem {
   id: string;
-  category: "Actions" | "Filters" | "View";
-  label: string;
+  category: "Files" | "Bugs" | "Actions" | "Preferences";
+  title: string;
+  subtitle?: string;
   icon: React.ReactNode;
+  badge?: string;
+  badgeColor?: string;
   shortcut?: string;
   perform: () => void;
 }
@@ -59,20 +52,21 @@ export function CommandPalette({
   onClose,
   tasks,
   onSelectTask,
+  onSelectFile,
+  onNavigateToLine,
   onNewBugClick,
   onRefreshClick,
-  onToggleSidebar,
-  onToggleInspector,
-  isSidebarOpen,
-  isInspectorOpen,
-  onFilterChange,
+  onToggleDiffMode,
+  onOpenSettings,
+  onOpenAbout,
+  isDiffMode,
 }: CommandPaletteProps) {
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [copied, setCopied] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
-  // Focus input when palette opens
+  // Focus input on open
   useEffect(() => {
     if (isOpen) {
       setQuery("");
@@ -81,149 +75,212 @@ export function CommandPalette({
     }
   }, [isOpen]);
 
-  // Command actions
-  const actions: CommandAction[] = [
-    {
-      id: "action-new-bug",
-      category: "Actions",
-      label: "New Bug Report",
-      icon: <Plus className="w-3.5 h-3.5 text-blue-400" />,
-      shortcut: "N",
-      perform: () => {
-        onNewBugClick();
-        onClose();
-      },
-    },
-    {
-      id: "action-refresh",
-      category: "Actions",
-      label: "Refresh Backend Data",
-      icon: <RefreshCw className="w-3.5 h-3.5 text-emerald-400" />,
-      shortcut: "R",
-      perform: () => {
-        onRefreshClick();
-        onClose();
-      },
-    },
-    {
-      id: "action-copy-branch",
-      category: "Actions",
-      label: "Copy Target Branch Name (feature/pratham-frontend)",
-      icon: copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-zinc-400" />,
-      perform: () => {
-        navigator.clipboard.writeText("feature/pratham-frontend");
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      },
-    },
-    {
-      id: "filter-awaiting",
-      category: "Filters",
-      label: "Filter: Awaiting Human Approval",
-      icon: <Clock className="w-3.5 h-3.5 text-amber-400" />,
-      perform: () => {
-        onFilterChange("awaiting");
-        onClose();
-      },
-    },
-    {
-      id: "filter-active",
-      category: "Filters",
-      label: "Filter: Active Tasks",
-      icon: <Sparkles className="w-3.5 h-3.5 text-blue-400" />,
-      perform: () => {
-        onFilterChange("active");
-        onClose();
-      },
-    },
-    {
-      id: "filter-all",
-      category: "Filters",
-      label: "Filter: All Tasks",
-      icon: <Layers className="w-3.5 h-3.5 text-zinc-400" />,
-      perform: () => {
-        onFilterChange("all");
-        onClose();
-      },
-    },
-    {
-      id: "view-sidebar",
-      category: "View",
-      label: isSidebarOpen ? "Collapse Left Task Queue Sidebar" : "Expand Left Task Queue Sidebar",
-      icon: isSidebarOpen ? <PanelLeftClose className="w-3.5 h-3.5 text-zinc-400" /> : <PanelLeftOpen className="w-3.5 h-3.5 text-zinc-400" />,
-      shortcut: "⌘B",
-      perform: () => {
-        onToggleSidebar();
-        onClose();
-      },
-    },
-    {
-      id: "view-inspector",
-      category: "View",
-      label: isInspectorOpen ? "Collapse Right Contextual Inspector" : "Expand Right Contextual Inspector",
-      icon: isInspectorOpen ? <PanelRightClose className="w-3.5 h-3.5 text-zinc-400" /> : <PanelRightOpen className="w-3.5 h-3.5 text-zinc-400" />,
-      shortcut: "⌘I",
-      perform: () => {
-        onToggleInspector();
-        onClose();
-      },
-    },
-  ];
-
-  // Filter actions and tasks based on search query
-  const filteredActions = actions.filter((act) =>
-    act.label.toLowerCase().includes(query.toLowerCase())
-  );
-
-  const filteredTasks = tasks.filter(
-    (t) =>
-      t.title.toLowerCase().includes(query.toLowerCase()) ||
-      t.id.toLowerCase().includes(query.toLowerCase()) ||
-      t.reported_by.toLowerCase().includes(query.toLowerCase())
-  );
-
-  const totalItems = filteredActions.length + filteredTasks.length;
-
-  // Keyboard navigation inside palette
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setSelectedIndex((prev) => (prev + 1) % (totalItems || 1));
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setSelectedIndex((prev) => (prev - 1 + (totalItems || 1)) % (totalItems || 1));
-    } else if (e.key === "Enter") {
-      e.preventDefault();
-      if (selectedIndex < filteredActions.length) {
-        filteredActions[selectedIndex]?.perform();
-      } else {
-        const taskIdx = selectedIndex - filteredActions.length;
-        const task = filteredTasks[taskIdx];
-        if (task) {
-          onSelectTask(task.id);
+  // Master command dictionary
+  const allItems: PaletteItem[] = useMemo(() => {
+    const items: PaletteItem[] = [
+      // 1. Files
+      {
+        id: "file-calc",
+        category: "Files",
+        title: "calculator.py",
+        subtitle: "demo/buggy_app/calculator.py • calculate_discount()",
+        icon: <FileCode className="w-4 h-4 text-[#f54e00]" />,
+        badge: "Target",
+        badgeColor: "bg-[#181818] text-[#f54e00] border-[#2c2c2c]",
+        shortcut: "⌘1",
+        perform: () => {
+          onSelectFile("calculator.py");
           onClose();
+        },
+      },
+      {
+        id: "file-test-calc",
+        category: "Files",
+        title: "test_calculator.py",
+        subtitle: "demo/tests/test_calculator.py • test_calculate_discount",
+        icon: <FileCode className="w-4 h-4 text-rose-400" />,
+        badge: "Test",
+        badgeColor: "bg-rose-950/60 text-rose-300 border-rose-800/40",
+        shortcut: "⌘2",
+        perform: () => {
+          onSelectFile("test_calculator.py");
+          onClose();
+        },
+      },
+      {
+        id: "file-switch-bridge",
+        category: "Files",
+        title: "switch_bridge.py",
+        subtitle: "scripts/switch_bridge.py • SwitchClient relay",
+        icon: <FileCode className="w-4 h-4 text-purple-400" />,
+        badge: "Bridge",
+        shortcut: "⌘3",
+        perform: () => {
+          onSelectFile("switch_bridge.py");
+          onClose();
+        },
+      },
+      {
+        id: "file-state-machine",
+        category: "Files",
+        title: "state_machine.py",
+        subtitle: "backend/app/core/state_machine.py • Human Gate Rules",
+        icon: <FileCode className="w-4 h-4 text-emerald-400" />,
+        badge: "Security",
+        shortcut: "⌘4",
+        perform: () => {
+          onSelectFile("state_machine.py");
+          onClose();
+        },
+      },
+
+      // 2. Actions
+      {
+        id: "action-diff",
+        category: "Actions",
+        title: isDiffMode ? "Exit Diff View" : "Toggle Diff View",
+        subtitle: "Compare original source vs proposed Switch fix",
+        icon: <SplitSquareVertical className="w-4 h-4 text-[#f54e00]" />,
+        shortcut: "⌘D",
+        perform: () => {
+          onToggleDiffMode();
+          onClose();
+        },
+      },
+      {
+        id: "action-new-bug",
+        category: "Actions",
+        title: "Report New Bug",
+        subtitle: "Submit bug report to Switch triage pipeline",
+        icon: <Plus className="w-4 h-4 text-emerald-400" />,
+        shortcut: "⌘N",
+        perform: () => {
+          onNewBugClick();
+          onClose();
+        },
+      },
+      {
+        id: "action-refresh",
+        category: "Actions",
+        title: "Refresh Tasks & Evidence",
+        subtitle: "Poll latest state transitions from FastAPI backend",
+        icon: <RefreshCw className="w-4 h-4 text-blue-400" />,
+        shortcut: "⌘R",
+        perform: () => {
+          onRefreshClick();
+          onClose();
+        },
+      },
+
+      // 3. Preferences
+      {
+        id: "pref-settings",
+        category: "Preferences",
+        title: "Open Settings",
+        subtitle: "Configure Switch Controller, room ID and timeouts",
+        icon: <Settings className="w-4 h-4 text-neutral-400" />,
+        shortcut: "⌘,",
+        perform: () => {
+          onOpenSettings();
+          onClose();
+        },
+      },
+      {
+        id: "pref-about",
+        category: "Preferences",
+        title: "About ShipDev",
+        subtitle: "Architecture, Switch runtime, and gate verification",
+        icon: <Info className="w-4 h-4 text-[#f54e00]" />,
+        perform: () => {
+          onOpenAbout();
+          onClose();
+        },
+      },
+    ];
+
+    // 4. Dynamic Bugs from tasks
+    tasks.forEach((t) => {
+      const loc = resolveBugLocation(t);
+      items.push({
+        id: `bug-${t.id}`,
+        category: "Bugs",
+        title: t.title,
+        subtitle: `${loc.fileName}:${loc.lineNumber} • Status: ${t.status}`,
+        icon: <Bug className="w-4 h-4 text-rose-400" />,
+        badge: loc.severity,
+        badgeColor:
+          loc.severity === "Critical"
+            ? "bg-rose-950/70 text-rose-300 border-rose-800"
+            : "bg-amber-950/70 text-amber-300 border-amber-800",
+        perform: () => {
+          onSelectTask(t.id);
+          onNavigateToLine(loc.fileName, loc.lineNumber);
+          onClose();
+        },
+      });
+    });
+
+    return items;
+  }, [
+    tasks,
+    isDiffMode,
+    onSelectFile,
+    onToggleDiffMode,
+    onNewBugClick,
+    onRefreshClick,
+    onOpenSettings,
+    onOpenAbout,
+    onSelectTask,
+    onNavigateToLine,
+    onClose,
+  ]);
+
+  // Filter items
+  const filteredItems = useMemo(() => {
+    if (!query.trim()) return allItems;
+    const q = query.toLowerCase();
+    return allItems.filter(
+      (item) =>
+        item.title.toLowerCase().includes(q) ||
+        (item.subtitle && item.subtitle.toLowerCase().includes(q)) ||
+        item.category.toLowerCase().includes(q)
+    );
+  }, [allItems, query]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev < filteredItems.length - 1 ? prev + 1 : 0));
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : filteredItems.length - 1));
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        if (filteredItems[selectedIndex]) {
+          filteredItems[selectedIndex].perform();
         }
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
       }
-    } else if (e.key === "Escape") {
-      e.preventDefault();
-      onClose();
-    }
-  };
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, filteredItems, selectedIndex, onClose]);
 
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-20 p-4 bg-black/80 backdrop-blur-sm select-none"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-xl rounded-xl bg-oled-panel border border-oled-border shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-100"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Search header */}
-        <div className="h-12 px-3 border-b border-oled-border flex items-center gap-2.5 bg-oled-base">
-          <Search className="w-4 h-4 text-zinc-400 shrink-0" />
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-24 p-4 bg-black/80 backdrop-blur-sm select-none animate-in fade-in duration-100">
+      <div className="w-full max-w-xl rounded-xl bg-[#0c0c0c] border border-[#262626] shadow-2xl flex flex-col overflow-hidden text-xs font-mono">
+        {/* Search Input Bar */}
+        <div className="h-12 px-4 border-b border-[#1e1e1e] flex items-center gap-3 bg-[#080808]">
+          <Search className="w-4 h-4 text-[#f54e00] shrink-0" />
           <input
             ref={inputRef}
             type="text"
@@ -232,112 +289,91 @@ export function CommandPalette({
               setQuery(e.target.value);
               setSelectedIndex(0);
             }}
-            onKeyDown={handleKeyDown}
-            placeholder="Search commands, tasks, filters... (Esc to exit)"
-            className="flex-1 bg-transparent text-xs text-slate-100 placeholder-zinc-500 focus:outline-none font-sans"
+            placeholder="Type a file name, bug description, or command..."
+            className="w-full bg-transparent outline-none text-white placeholder-neutral-500 text-xs font-mono"
           />
-          <kbd className="text-[10px] font-mono bg-zinc-900 text-zinc-400 px-1.5 py-0.5 rounded border border-zinc-800">
-            ESC
+          {query && (
+            <button
+              onClick={() => setQuery("")}
+              className="text-neutral-500 hover:text-white p-1 rounded cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+          <kbd className="px-1.5 py-0.5 rounded bg-[#181818] border border-[#2a2a2a] text-[10px] text-neutral-400">
+            Esc
           </kbd>
         </div>
 
-        {/* Results Container */}
-        <div className="max-h-80 overflow-y-auto p-1.5 flex flex-col gap-1 select-text">
-          {totalItems === 0 && (
-            <div className="p-6 text-center text-zinc-500 text-xs">
-              No matching commands or engineering tasks found.
+        {/* Results List */}
+        <div ref={listRef} className="max-h-80 overflow-y-auto p-1.5 space-y-0.5">
+          {filteredItems.length === 0 ? (
+            <div className="p-6 text-center text-neutral-500 text-xs">
+              No matching files, bugs, or actions found for &quot;{query}&quot;
             </div>
-          )}
+          ) : (
+            filteredItems.map((item, idx) => {
+              const isSelected = idx === selectedIndex;
 
-          {/* Actions Section */}
-          {filteredActions.length > 0 && (
-            <div className="flex flex-col gap-0.5">
-              <div className="px-2 py-1 text-[10px] font-semibold font-mono text-zinc-500 uppercase tracking-wider">
-                Commands & Shortcuts
-              </div>
-
-              {filteredActions.map((action, idx) => {
-                const isSelected = idx === selectedIndex;
-                return (
-                  <button
-                    key={action.id}
-                    onClick={action.perform}
-                    onMouseEnter={() => setSelectedIndex(idx)}
-                    className={`w-full text-left px-2.5 py-1.5 rounded flex items-center justify-between text-xs transition-colors ${
-                      isSelected
-                        ? "bg-zinc-800 text-slate-100"
-                        : "text-zinc-300 hover:bg-zinc-900"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      {action.icon}
-                      <span>{action.label}</span>
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => item.perform()}
+                  onMouseEnter={() => setSelectedIndex(idx)}
+                  className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors ${
+                    isSelected
+                      ? "bg-[#181818] border border-[#2e2e2e] text-white"
+                      : "text-neutral-300 hover:bg-[#121212] border border-transparent"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 truncate">
+                    <span className="shrink-0">{item.icon}</span>
+                    <div className="flex flex-col truncate">
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="font-medium text-white truncate">
+                          {item.title}
+                        </span>
+                        {item.badge && (
+                          <span
+                            className={`text-[9px] px-1.5 py-0.2 rounded border font-mono ${
+                              item.badgeColor || "bg-[#1f1f1f] text-neutral-400 border-[#2f2f2f]"
+                            }`}
+                          >
+                            {item.badge}
+                          </span>
+                        )}
+                      </div>
+                      {item.subtitle && (
+                        <span className="text-[10px] text-neutral-500 truncate font-sans">
+                          {item.subtitle}
+                        </span>
+                      )}
                     </div>
-                    {action.shortcut && (
-                      <kbd className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-zinc-900 text-zinc-400 border border-zinc-800">
-                        {action.shortcut}
-                      </kbd>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+                  </div>
 
-          {/* Tasks Section */}
-          {filteredTasks.length > 0 && (
-            <div className="flex flex-col gap-0.5 mt-2 pt-2 border-t border-oled-border">
-              <div className="px-2 py-1 text-[10px] font-semibold font-mono text-zinc-500 uppercase tracking-wider">
-                Engineering Tasks ({filteredTasks.length})
-              </div>
-
-              {filteredTasks.map((task, idx) => {
-                const itemIndex = filteredActions.length + idx;
-                const isSelected = itemIndex === selectedIndex;
-
-                return (
-                  <button
-                    key={task.id}
-                    onClick={() => {
-                      onSelectTask(task.id);
-                      onClose();
-                    }}
-                    onMouseEnter={() => setSelectedIndex(itemIndex)}
-                    className={`w-full text-left px-2.5 py-2 rounded flex items-center justify-between text-xs transition-colors gap-3 ${
-                      isSelected
-                        ? "bg-zinc-800 text-slate-100"
-                        : "text-zinc-300 hover:bg-zinc-900"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Code2 className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                      <span className="truncate">{task.title}</span>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <StatusPill status={task.status} size="sm" />
-                      <span className="font-mono text-[10px] text-zinc-500">
-                        {task.id.slice(0, 8)}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+                  {item.shortcut && (
+                    <span className="text-[10px] text-neutral-500 font-mono px-1.5 py-0.2 rounded bg-[#161616] border border-[#242424] shrink-0 ml-2">
+                      {item.shortcut}
+                    </span>
+                  )}
+                </div>
+              );
+            })
           )}
         </div>
 
-        {/* Footer shortcuts hint */}
-        <div className="h-8 px-3 border-t border-oled-border bg-oled-base flex items-center justify-between text-[10px] font-mono text-zinc-500 select-none">
-          <div className="flex items-center gap-3">
-            <span>↑↓ to navigate</span>
-            <span>↵ to select</span>
-            <span>esc to close</span>
+        {/* Footer */}
+        <div className="h-7 px-3 border-t border-[#1e1e1e] bg-[#060606] flex items-center justify-between text-[10px] text-neutral-500">
+          <div className="flex items-center gap-2">
+            <span>↑↓ Navigate</span>
+            <span>•</span>
+            <span>↵ Select</span>
+            <span>•</span>
+            <span>Esc Close</span>
           </div>
-          <span>ShipDev Command Palette</span>
+          <span className="text-[#f54e00]">ShipDev Palette</span>
         </div>
       </div>
     </div>
   );
 }
-

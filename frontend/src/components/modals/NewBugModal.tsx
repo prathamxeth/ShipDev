@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { AlertCircle, FileText, Mic, X } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { AlertCircle, Bug, Check, Mic, Plus, X } from "lucide-react";
 import { createTask } from "@/lib/api";
 import { Task } from "@/types";
 
@@ -15,9 +14,9 @@ interface NewBugModalProps {
 export function NewBugModal({ isOpen, onClose, onTaskCreated }: NewBugModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [reportedBy, setReportedBy] = useState("pratham");
+  const [reportedBy, setReportedBy] = useState("local-operator");
   const [inputSource, setInputSource] = useState<"text" | "wispr_flow">("text");
-  const [branchName, setBranchName] = useState("feature/pratham-frontend");
+  const [branchName, setBranchName] = useState("feature/ayush-backend");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,7 +25,7 @@ export function NewBugModal({ isOpen, onClose, onTaskCreated }: NewBugModalProps
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !description.trim()) {
-      setError("Please provide both a title and description for the bug report.");
+      setError("Please provide both a title and description for the defect report.");
       return;
     }
 
@@ -44,35 +43,29 @@ export function NewBugModal({ isOpen, onClose, onTaskCreated }: NewBugModalProps
 
       onTaskCreated(newTask);
       onClose();
-      // Reset form
       setTitle("");
       setDescription("");
     } catch (err: any) {
-      setError(
-        err.message ||
-          "Failed to submit bug report. Ensure backend is running at http://localhost:8000."
-      );
+      setError(err.message || "Failed to submit defect report to backend.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm select-none">
-      <div className="w-full max-w-lg rounded-lg bg-oled-panel border border-oled-border shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm select-none animate-in fade-in duration-100">
+      <div className="w-full max-w-lg rounded-xl bg-[#0c0c0c] border border-[#262626] shadow-2xl flex flex-col overflow-hidden text-xs font-mono">
         {/* Modal Header */}
-        <div className="p-4 border-b border-oled-border flex items-center justify-between">
+        <div className="h-11 px-4 border-b border-[#1e1e1e] flex items-center justify-between bg-[#080808]">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400">
-              <FileText className="w-3.5 h-3.5" />
-            </div>
-            <h2 className="text-sm font-semibold text-slate-100">
-              Submit Bug Report to AI Pipeline
+            <Bug className="w-4 h-4 text-[#f54e00]" />
+            <h2 className="text-xs font-semibold text-white uppercase tracking-wider font-mono">
+              Report Issue to AI Pipeline
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="text-zinc-500 hover:text-zinc-300 p-1 rounded hover:bg-zinc-800 transition-colors"
+            className="text-neutral-500 hover:text-white p-1 rounded hover:bg-[#1a1a1a] transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -87,17 +80,17 @@ export function NewBugModal({ isOpen, onClose, onTaskCreated }: NewBugModalProps
             </div>
           )}
 
-          {/* Input Source Selector (Text vs Wispr Flow) */}
+          {/* Input Method Selector */}
           <div className="flex items-center justify-between text-xs">
-            <span className="text-zinc-400 font-medium">Input Method</span>
-            <div className="flex items-center gap-1 p-0.5 bg-oled-base border border-oled-border rounded">
+            <span className="text-neutral-400 font-medium">Input Method</span>
+            <div className="flex items-center gap-1 p-0.5 bg-[#141414] border border-[#222222] rounded-lg">
               <button
                 type="button"
                 onClick={() => setInputSource("text")}
-                className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${
+                className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer ${
                   inputSource === "text"
-                    ? "bg-zinc-800 text-slate-100"
-                    : "text-zinc-400 hover:text-zinc-200"
+                    ? "bg-[#1f1f1f] text-white border border-[#333333]"
+                    : "text-neutral-400 hover:text-white"
                 }`}
               >
                 Standard Text
@@ -105,10 +98,10 @@ export function NewBugModal({ isOpen, onClose, onTaskCreated }: NewBugModalProps
               <button
                 type="button"
                 onClick={() => setInputSource("wispr_flow")}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer ${
                   inputSource === "wispr_flow"
                     ? "bg-purple-950/70 text-purple-200 border border-purple-800/60"
-                    : "text-zinc-400 hover:text-zinc-200"
+                    : "text-neutral-400 hover:text-white"
                 }`}
               >
                 <Mic className="w-3 h-3 text-purple-400" />
@@ -119,23 +112,23 @@ export function NewBugModal({ isOpen, onClose, onTaskCreated }: NewBugModalProps
 
           {/* Title input */}
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-zinc-300">
-              Bug Title <span className="text-rose-400">*</span>
+            <label className="text-[11px] font-medium text-neutral-300">
+              Defect Title <span className="text-rose-400">*</span>
             </label>
             <input
               type="text"
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Authentication token expired on page refresh"
-              className="bg-oled-base border border-oled-border text-xs text-slate-100 placeholder-zinc-500 rounded px-3 py-2 focus:outline-none focus:border-blue-500 transition-colors"
+              placeholder="e.g. Defect in calculate_discount adds markup instead of reduction"
+              className="bg-[#121212] border border-[#262626] text-xs text-white placeholder-neutral-500 rounded-lg px-3 py-2 focus:outline-none focus:border-[#f54e00] transition-colors"
             />
           </div>
 
           {/* Description input */}
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-zinc-300">
-              {inputSource === "wispr_flow" ? "Voice Transcription" : "Bug Description"}{" "}
+            <label className="text-[11px] font-medium text-neutral-300">
+              {inputSource === "wispr_flow" ? "Voice Transcription" : "Defect Description"}{" "}
               <span className="text-rose-400">*</span>
             </label>
             <textarea
@@ -145,59 +138,57 @@ export function NewBugModal({ isOpen, onClose, onTaskCreated }: NewBugModalProps
               onChange={(e) => setDescription(e.target.value)}
               placeholder={
                 inputSource === "wispr_flow"
-                  ? "Transcribed voice recording: 'When the user navigates after 15 minutes, the JWT payload returns 401 instead of triggering a refresh cycle...'"
-                  : "Describe observed behavior, reproduction steps, or paste error stack traces..."
+                  ? "Transcribed voice recording: 'calculate_discount(100, 20) returned 120.0 instead of 80.0...'"
+                  : "Detail the observed bug behavior, failed assertions, or reproduction steps..."
               }
-              className="bg-oled-base border border-oled-border text-xs text-slate-100 placeholder-zinc-500 rounded p-3 focus:outline-none focus:border-blue-500 transition-colors resize-none font-mono"
+              className="bg-[#121212] border border-[#262626] text-xs text-white placeholder-neutral-500 rounded-lg p-3 focus:outline-none focus:border-[#f54e00] transition-colors resize-none font-mono"
             />
           </div>
 
           {/* Reporter & Branch info */}
           <div className="grid grid-cols-2 gap-3 text-xs">
             <div className="flex flex-col gap-1">
-              <label className="text-zinc-400">Reporter</label>
+              <label className="text-neutral-400 text-[11px]">Reporter</label>
               <input
                 type="text"
                 value={reportedBy}
                 onChange={(e) => setReportedBy(e.target.value)}
-                className="bg-oled-base border border-oled-border text-xs text-zinc-300 rounded px-2.5 py-1.5 focus:outline-none focus:border-zinc-700"
+                className="bg-[#121212] border border-[#262626] text-xs text-neutral-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#f54e00]"
               />
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-zinc-400">Target Branch</label>
+              <label className="text-neutral-400 text-[11px]">Target Branch</label>
               <input
                 type="text"
                 value={branchName}
                 onChange={(e) => setBranchName(e.target.value)}
-                className="bg-oled-base border border-oled-border text-xs text-blue-300 font-mono rounded px-2.5 py-1.5 focus:outline-none focus:border-zinc-700"
+                className="bg-[#121212] border border-[#262626] text-xs text-[#e5c07b] font-mono rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#f54e00]"
               />
             </div>
           </div>
 
           {/* Modal Actions */}
-          <div className="pt-3 border-t border-oled-border flex items-center justify-end gap-2">
-            <Button
+          <div className="pt-3 border-t border-[#1e1e1e] flex items-center justify-end gap-2">
+            <button
               type="button"
-              variant="ghost"
-              size="sm"
               onClick={onClose}
               disabled={isSubmitting}
+              className="px-3.5 py-1.5 rounded-lg border border-[#262626] text-neutral-400 hover:text-white transition-colors cursor-pointer"
             >
               Cancel
-            </Button>
-            <Button
+            </button>
+            <button
               type="submit"
-              variant="primary"
-              size="sm"
-              isLoading={isSubmitting}
+              disabled={isSubmitting}
+              className="px-4 py-1.5 rounded-lg bg-[#f54e00] hover:bg-[#ff6a26] text-white font-medium transition-colors cursor-pointer flex items-center gap-1.5"
             >
-              Submit Task to Switch
-            </Button>
+              <Plus className="w-3.5 h-3.5" />
+              <span>{isSubmitting ? "Submitting..." : "Submit to Pipeline"}</span>
+            </button>
           </div>
         </form>
       </div>
     </div>
   );
 }
-

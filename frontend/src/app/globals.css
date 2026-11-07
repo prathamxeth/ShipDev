@@ -3,11 +3,32 @@
 @tailwind utilities;
 
 :root {
-  --background: #08080a;
+  --background: #000000;
   --foreground: #fafafa;
+  --color-primary: #f54e00;
+  --color-primary-active: #d04200;
+  --color-accent: #f54e00;
+  --color-timeline-thinking: #dfa88f;
+  --color-timeline-grep: #9fc9a2;
+  --color-timeline-read: #9fbbe0;
+  --color-timeline-edit: #c0a8dd;
+  --color-timeline-done: #c08532;
 }
 
-/* Custom dark OLED scrollbars */
+html, body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #000000;
+  color: #fafafa;
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom dark OLED scrollbars matching Nexus IDE */
 ::-webkit-scrollbar {
   width: 5px;
   height: 5px;
@@ -18,22 +39,51 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #27272a;
-  border-radius: 3px;
+  background: #242424;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46;
+  background: #383838;
 }
 
 /* Base selection styling */
 ::selection {
-  background-color: rgba(59, 130, 246, 0.3);
-  color: #93c5fd;
+  background-color: rgba(245, 78, 0, 0.25);
+  color: #ffffff;
 }
 
-/* Code block / monospace font tuning */
-code, pre, kbd {
+:focus-visible {
+  outline: 1.5px solid rgba(245, 78, 0, 0.5);
+  outline-offset: 1px;
+}
+
+* {
+  caret-color: #888888;
+}
+
+/* Monospace fonts */
+code, pre, kbd, samp, .font-mono {
   font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
+/* Borderless soft inline code badge matching Cursor / Nexus IDE */
+.inline-code-token {
+  background: rgba(255, 255, 255, 0.065);
+  color: #e5c07b;
+  padding: 0.12rem 0.35rem;
+  margin: 0 0.12rem;
+  border-radius: 4px;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 11px;
+  font-weight: 400;
+  border: none !important;
+  display: inline-block;
+}
+
+/* Specific layout transitions for resizing panels */
+.smooth-panel-transition {
+  transition: width 240ms cubic-bezier(0.16, 1, 0.3, 1), 
+              height 240ms cubic-bezier(0.16, 1, 0.3, 1), 
+              opacity 180ms ease;
+}
