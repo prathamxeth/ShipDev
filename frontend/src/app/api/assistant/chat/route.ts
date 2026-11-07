@@ -32,7 +32,11 @@ export async function POST(req: NextRequest) {
 
     if (!backendRes.ok) {
       return NextResponse.json(
-        data || { detail: `Backend returned HTTP ${backendRes.status}` },
+        data || {
+          detail: `Backend returned HTTP ${backendRes.status}`,
+          target: targetUrl,
+          backend_base: backendBase,
+        },
         { status: backendRes.status }
       );
     }
