@@ -16,7 +16,7 @@ from app.core.state_machine import (
     UnauthorizedTransitionError,
 )
 from app.db.session import init_db
-from app.repositories.task_repository import TaskNotFoundError
+from app.repositories.task_repository import TaskImmutableError, TaskNotFoundError
 
 
 @asynccontextmanager
@@ -61,6 +61,14 @@ async def task_not_found_handler(request: Request, exc: TaskNotFoundError):
     return JSONResponse(
         status_code=status.HTTP_404_NOT_FOUND,
         content={"error": "Not Found", "detail": str(exc)},
+    )
+
+
+@app.exception_handler(TaskImmutableError)
+async def task_immutable_handler(request: Request, exc: TaskImmutableError):
+    return JSONResponse(
+        status_code=status.HTTP_409_CONFLICT,
+        content={"error": "Conflict", "detail": str(exc)},
     )
 
 

@@ -95,20 +95,44 @@ def test_missing_production_secrets_cannot_activate_defaults():
 
 
 def test_placeholder_production_credentials_are_rejected():
-    """Verify development placeholder secrets are strictly rejected in production."""
-    with pytest.raises(ValueError, match="cannot use known development placeholder"):
-        Settings(
-            ENVIRONMENT="production",
-            API_SECRET_KEY="dev-agent-secret-change-in-production",
-            HUMAN_APPROVAL_SECRET="valid-production-secret-12345",
-        )
+    """Verify development placeholder secrets (and case/whitespace variants) are strictly rejected in production."""
+    variants = [
+        "dev-agent-secret-change-in-production",
+        "dev-human-secret-change-in-production",
+        " CHANGE-ME ",
+        " Change-Me ",
+        " PASSWORD ",
+        "  DEV-INSECURE-LOCAL-AGENT-KEY  ",
+    ]
+    for variant in variants:
+        with pytest.raises(ValueError, match="cannot use known development placeholder"):
+            Settings(
+                ENVIRONMENT="production",
+                API_SECRET_KEY=variant,
+                HUMAN_APPROVAL_SECRET="valid-production-secret-12345",
+            )
 
-    with pytest.raises(ValueError, match="cannot use known development placeholder"):
-        Settings(
-            ENVIRONMENT="production",
-            API_SECRET_KEY="valid-production-agent-key-12345",
-            HUMAN_APPROVAL_SECRET="dev-human-secret-change-in-production",
-        )
+        with pytest.raises(ValueError, match="cannot use known development placeholder"):
+            Settings(
+                ENVIRONMENT="production",
+                API_SECRET_KEY="valid-production-agent-key-12345",
+                HUMAN_APPROVAL_SECRET=variant,
+            )
+
+
+def test_dev_and_test_settings_never_fall_back_to_insecure_defaults():
+    """Verify development and test environments never provide fallback credentials for agent or human secrets."""
+    s_dev = Settings(ENVIRONMENT="development", API_SECRET_KEY=None, HUMAN_APPROVAL_SECRET=None)
+    assert s_dev.API_SECRET_KEY is None
+    assert s_dev.HUMAN_APPROVAL_SECRET is None
+
+    s_dev_ws = Settings(ENVIRONMENT="development", API_SECRET_KEY="   ", HUMAN_APPROVAL_SECRET="   ")
+    assert s_dev_ws.API_SECRET_KEY is None
+    assert s_dev_ws.HUMAN_APPROVAL_SECRET is None
+
+    s_test = Settings(ENVIRONMENT="test", API_SECRET_KEY=None, HUMAN_APPROVAL_SECRET=None)
+    assert s_test.API_SECRET_KEY is None
+    assert s_test.HUMAN_APPROVAL_SECRET is None
 
 
 # ---------------------------------------------------------------------------
@@ -116,7 +140,7 @@ def test_placeholder_production_credentials_are_rejected():
 # ---------------------------------------------------------------------------
 @pytest.mark.asyncio
 async def test_x_caller_id_cannot_establish_verified_identity(harden_client, harden_repo):
-    """Verify X-Caller-ID is untrusted and recorded strictly as an unverified demo proxy claim."""
+    """Verify X-Caller-ID is untrusted and approval strictly records server-derived HUMAN_OPERATOR_IDENTITY."""
     task = harden_repo.create_task(TaskCreate(title="Spoof Test", description="Desc", reported_by="user"))
     _advance_to_awaiting_approval(harden_repo, task.id)
 
@@ -132,18 +156,18 @@ async def test_x_caller_id_cannot_establish_verified_identity(harden_client, har
     assert len(appr_records) == 1
     # Identity must NOT be trusted as 'elon_musk'
     assert appr_records[0].reviewer_id != "elon_musk"
-    assert appr_records[0].reviewer_id == f"{DEMO_HUMAN_IDENTITY_PREFIX}:claimed-elon_musk"
+    assert appr_records[0].reviewer_id == settings.HUMAN_OPERATOR_IDENTITY
 
     # Inspect transition record
     transitions = harden_repo.get_transitions_for_task(task.id)
     approved_tr = [t for t in transitions if t.to_status == TaskStatus.APPROVED][0]
     assert approved_tr.actor_id != "elon_musk"
-    assert approved_tr.actor_id == f"{DEMO_HUMAN_IDENTITY_PREFIX}:claimed-elon_musk"
+    assert approved_tr.actor_id == settings.HUMAN_OPERATOR_IDENTITY
 
 
 @pytest.mark.asyncio
 async def test_payload_reviewer_id_cannot_override_authenticated_identity(harden_client, harden_repo):
-    """Verify payload.reviewer_id is rejected and cannot override authenticated identity."""
+    """Verify payload.reviewer_id is rejected and cannot override server-derived HUMAN_OPERATOR_IDENTITY."""
     task = harden_repo.create_task(TaskCreate(title="Payload Spoof", description="Desc", reported_by="user"))
     _advance_to_awaiting_approval(harden_repo, task.id)
 
@@ -158,7 +182,12 @@ async def test_payload_reviewer_id_cannot_override_authenticated_identity(harden
     assert len(appr_records) == 1
     # Payload reviewer_id was rejected as identity source
     assert appr_records[0].reviewer_id != "spoofed_admin"
-    assert appr_records[0].reviewer_id == DEMO_HUMAN_IDENTITY_PREFIX
+    assert appr_records[0].reviewer_id == settings.HUMAN_OPERATOR_IDENTITY
+
+    transitions = harden_repo.get_transitions_for_task(task.id)
+    approved_tr = [t for t in transitions if t.to_status == TaskStatus.APPROVED][0]
+    assert approved_tr.actor_id != "spoofed_admin"
+    assert approved_tr.actor_id == settings.HUMAN_OPERATOR_IDENTITY
 
 
 # ---------------------------------------------------------------------------
@@ -218,6 +247,209 @@ async def test_machine_credentials_cannot_approve_tasks(harden_client, harden_re
     )
     assert resp.status_code == 403
     assert "agent api credentials cannot authorize human approval" in resp.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_machine_credentials_cannot_reject_or_complete_tasks(harden_client, harden_repo):
+    """Verify agent API credentials cannot authorize task rejection or completion."""
+    task = harden_repo.create_task(TaskCreate(title="Machine Rejection", description="Desc", reported_by="user"))
+    _advance_to_awaiting_approval(harden_repo, task.id)
+
+    # 1. Machine credentials cannot reject
+    rej_resp = await harden_client.post(
+        f"/api/v1/tasks/{task.id}/reject",
+        headers=VALID_AGENT_HEADER,
+        json={"feedback": "Agent attempting rejection"},
+    )
+    assert rej_resp.status_code == 403
+    assert "agent api credentials cannot authorize human approval" in rej_resp.json()["detail"].lower()
+
+    # Approve properly with human credentials
+    await harden_client.post(
+        f"/api/v1/tasks/{task.id}/approve",
+        headers=VALID_HUMAN_HEADER,
+        json={"comments": "Human approved"},
+    )
+
+    # 2. Machine credentials cannot complete
+    comp_resp = await harden_client.post(
+        f"/api/v1/tasks/{task.id}/complete",
+        headers=VALID_AGENT_HEADER,
+    )
+    assert comp_resp.status_code == 403
+    assert "agent api credentials cannot authorize human approval" in comp_resp.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_rejection_and_completion_record_server_operator_identity(harden_client, harden_repo):
+    """Verify rejection and completion persistently record server-derived HUMAN_OPERATOR_IDENTITY."""
+    # 1. Test Rejection
+    task1 = harden_repo.create_task(TaskCreate(title="Rejection Audit", description="Desc", reported_by="user"))
+    _advance_to_awaiting_approval(harden_repo, task1.id)
+
+    rej_resp = await harden_client.post(
+        f"/api/v1/tasks/{task1.id}/reject",
+        headers={**VALID_HUMAN_HEADER, "X-Caller-ID": "spoofed_hacker"},
+        json={"reviewer_id": "forged_reviewer", "feedback": "Memory leak detected", "return_to": "FIX_PROPOSED"},
+    )
+    assert rej_resp.status_code == 200
+    assert rej_resp.json()["status"] == "FIX_PROPOSED"
+
+    appr_records = harden_repo.get_approval_records_for_task(task1.id)
+    assert len(appr_records) == 1
+    assert appr_records[0].reviewer_id == settings.HUMAN_OPERATOR_IDENTITY
+    assert appr_records[0].reviewer_id != "forged_reviewer"
+    assert appr_records[0].reviewer_id != "spoofed_hacker"
+
+    rej_tr = [t for t in harden_repo.get_transitions_for_task(task1.id) if t.to_status == TaskStatus.REJECTED][0]
+    assert rej_tr.actor_id == settings.HUMAN_OPERATOR_IDENTITY
+
+    # 2. Test Completion
+    task2 = harden_repo.create_task(TaskCreate(title="Completion Audit", description="Desc", reported_by="user"))
+    _advance_to_awaiting_approval(harden_repo, task2.id)
+
+    await harden_client.post(
+        f"/api/v1/tasks/{task2.id}/approve",
+        headers=VALID_HUMAN_HEADER,
+        json={"comments": "Approved"},
+    )
+
+    comp_resp = await harden_client.post(
+        f"/api/v1/tasks/{task2.id}/complete",
+        headers={**VALID_HUMAN_HEADER, "X-Caller-ID": "spoofed_completer"},
+    )
+    assert comp_resp.status_code == 200
+    assert comp_resp.json()["status"] == "COMPLETED"
+
+    comp_tr = [t for t in harden_repo.get_transitions_for_task(task2.id) if t.to_status == TaskStatus.COMPLETED][0]
+    assert comp_tr.actor_id == settings.HUMAN_OPERATOR_IDENTITY
+    assert comp_tr.actor_id != "spoofed_completer"
+
+
+@pytest.mark.asyncio
+async def test_custom_server_operator_identity_honored(harden_client, harden_repo, monkeypatch):
+    """Verify modifying HUMAN_OPERATOR_IDENTITY configuration is strictly honored in audit records."""
+    task = harden_repo.create_task(TaskCreate(title="Custom Op", description="Desc", reported_by="user"))
+    _advance_to_awaiting_approval(harden_repo, task.id)
+
+    custom_operator = "sec-lead-ayush"
+    monkeypatch.setattr(settings, "HUMAN_OPERATOR_IDENTITY", custom_operator)
+
+    resp = await harden_client.post(
+        f"/api/v1/tasks/{task.id}/approve",
+        headers={**VALID_HUMAN_HEADER, "X-Caller-ID": "ignored_id"},
+        json={"reviewer_id": "ignored_body", "comments": "Custom operator approval"},
+    )
+    assert resp.status_code == 200
+
+    appr_records = harden_repo.get_approval_records_for_task(task.id)
+    assert len(appr_records) == 1
+    assert appr_records[0].reviewer_id == custom_operator
+
+    transitions = harden_repo.get_transitions_for_task(task.id)
+    appr_tr = [t for t in transitions if t.to_status == TaskStatus.APPROVED][0]
+    assert appr_tr.actor_id == custom_operator
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("empty_secret", [None, "", "   "])
+async def test_harden_missing_secret_fails_closed_across_all_endpoints(harden_client, harden_repo, monkeypatch, empty_secret):
+    """Verify all human-gated endpoints fail closed with 500 when HUMAN_APPROVAL_SECRET is empty/whitespace."""
+    task = harden_repo.create_task(TaskCreate(title="Fail Closed", description="Desc", reported_by="user"))
+    _advance_to_awaiting_approval(harden_repo, task.id)
+
+    monkeypatch.setattr(settings, "HUMAN_APPROVAL_SECRET", empty_secret)
+    token_headers = {"Authorization": "Bearer some-token"}
+
+    # Approve
+    r_appr = await harden_client.post(f"/api/v1/tasks/{task.id}/approve", headers=token_headers, json={"comments": "test"})
+    assert r_appr.status_code == 500
+    assert "human_approval_secret is unconfigured" in r_appr.json()["detail"].lower()
+
+    # Reject
+    r_rej = await harden_client.post(f"/api/v1/tasks/{task.id}/reject", headers=token_headers, json={"feedback": "test"})
+    assert r_rej.status_code == 500
+    assert "human_approval_secret is unconfigured" in r_rej.json()["detail"].lower()
+
+    # Complete
+    r_comp = await harden_client.post(f"/api/v1/tasks/{task.id}/complete", headers=token_headers)
+    assert r_comp.status_code == 500
+    assert "human_approval_secret is unconfigured" in r_comp.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "placeholder",
+    [
+        "dev-human-secret-change-in-production",
+        "dev-insecure-local-human-key",
+        " CHANGE-ME ",
+        " Change-Me ",
+        " PASSWORD ",
+        " DEV-INSECURE-LOCAL-AGENT-KEY ",
+    ],
+)
+async def test_harden_placeholder_secrets_rejected_across_all_endpoints(harden_client, harden_repo, placeholder):
+    """Verify all human-gated and agent endpoints reject development placeholder secrets with 403 Forbidden."""
+    task = harden_repo.create_task(TaskCreate(title="Placeholder Block", description="Desc", reported_by="user"))
+    _advance_to_awaiting_approval(harden_repo, task.id)
+
+    token_headers = {"Authorization": f"Bearer {placeholder}"}
+
+    # Approve (Human)
+    r_appr = await harden_client.post(f"/api/v1/tasks/{task.id}/approve", headers=token_headers, json={"comments": "test"})
+    assert r_appr.status_code == 403
+
+    # Reject (Human)
+    r_rej = await harden_client.post(f"/api/v1/tasks/{task.id}/reject", headers=token_headers, json={"feedback": "test"})
+    assert r_rej.status_code == 403
+
+    # Complete (Human)
+    r_comp = await harden_client.post(f"/api/v1/tasks/{task.id}/complete", headers=token_headers)
+    assert r_comp.status_code == 403
+
+    # Transitions (Agent) with Bearer token
+    r_trans_bearer = await harden_client.post(
+        f"/api/v1/tasks/{task.id}/transitions",
+        headers=token_headers,
+        json={"target_status": "TRIAGED", "actor_type": "agent", "actor_id": "a1"},
+    )
+    assert r_trans_bearer.status_code == 403
+
+    # Transitions (Agent) with X-API-Key header
+    r_trans_key = await harden_client.post(
+        f"/api/v1/tasks/{task.id}/transitions",
+        headers={"X-API-Key": placeholder},
+        json={"target_status": "TRIAGED", "actor_type": "agent", "actor_id": "a1"},
+    )
+    assert r_trans_key.status_code == 403
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("empty_secret", [None, "", "   "])
+async def test_missing_agent_secret_fails_closed_across_agent_endpoints(harden_client, harden_repo, monkeypatch, empty_secret):
+    """Verify agent endpoints fail closed with 500 when API_SECRET_KEY is unset or whitespace."""
+    task = harden_repo.create_task(TaskCreate(title="Agent Fail Closed", description="Desc", reported_by="user"))
+
+    monkeypatch.setattr(settings, "API_SECRET_KEY", empty_secret)
+
+    # 1. Using Bearer token
+    r_bearer = await harden_client.post(
+        f"/api/v1/tasks/{task.id}/transitions",
+        headers={"Authorization": "Bearer any-token"},
+        json={"target_status": "TRIAGED", "actor_type": "agent", "actor_id": "a1"},
+    )
+    assert r_bearer.status_code == 500
+    assert "api_secret_key is unconfigured" in r_bearer.json()["detail"].lower()
+
+    # 2. Using X-API-Key header
+    r_key = await harden_client.post(
+        f"/api/v1/tasks/{task.id}/transitions",
+        headers={"X-API-Key": "any-key"},
+        json={"target_status": "TRIAGED", "actor_type": "agent", "actor_id": "a1"},
+    )
+    assert r_key.status_code == 500
+    assert "api_secret_key is unconfigured" in r_key.json()["detail"].lower()
 
 
 # ---------------------------------------------------------------------------

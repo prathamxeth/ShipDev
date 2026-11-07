@@ -616,7 +616,7 @@
           "Approval"
         ],
         "summary": "Approve Task",
-        "description": "Human engineer approves proposed fix with verified Bearer token.\n\nTask must be in 'AWAITING_HUMAN_APPROVAL' status.\nStrictly forbidden for AI agents.",
+        "description": "Human engineer approves proposed fix with verified Bearer token.\n\nTask must be in 'AWAITING_HUMAN_APPROVAL' status.\nStrictly forbidden for AI agents.\nReviewer attribution is server-derived from settings.HUMAN_OPERATOR_IDENTITY.\nClient-supplied payload.reviewer_id and X-Caller-ID are intentionally ignored.",
         "operationId": "approve_task_api_v1_tasks__task_id__approve_post",
         "security": [
           {
@@ -690,7 +690,7 @@
           "Approval"
         ],
         "summary": "Reject Task",
-        "description": "Human engineer rejects proposed fix with feedback.\n\nTask must be in 'AWAITING_HUMAN_APPROVAL' status.\nTask returns to FIX_PROPOSED for the fix agent to re-attempt.",
+        "description": "Human engineer rejects proposed fix with feedback.\n\nTask must be in 'AWAITING_HUMAN_APPROVAL' status.\nTask returns to FIX_PROPOSED for the fix agent to re-attempt.\nReviewer attribution is server-derived from settings.HUMAN_OPERATOR_IDENTITY.\nClient-supplied payload.reviewer_id and X-Caller-ID are intentionally ignored.",
         "operationId": "reject_task_api_v1_tasks__task_id__reject_post",
         "security": [
           {
@@ -764,7 +764,7 @@
           "Approval"
         ],
         "summary": "Complete Task",
-        "description": "Human engineer marks an already-approved task as COMPLETED.\n\nTask must be in 'APPROVED' status before it can be marked complete.\nStrictly requires authenticated human credentials.",
+        "description": "Human engineer marks an already-approved task as COMPLETED.\n\nTask must be in 'APPROVED' status before it can be marked complete.\nStrictly requires authenticated human credentials.\nActor attribution is server-derived from settings.HUMAN_OPERATOR_IDENTITY.\nClient-supplied X-Caller-ID is intentionally ignored.",
         "operationId": "complete_task_api_v1_tasks__task_id__complete_post",
         "security": [
           {
@@ -892,9 +892,16 @@
       "ApprovalRequest": {
         "properties": {
           "reviewer_id": {
-            "type": "string",
-            "minLength": 1,
-            "title": "Reviewer Id"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewer Id",
+            "description": "Client-supplied reviewer ID is untrusted and ignored. Server-derived HUMAN_OPERATOR_IDENTITY is always recorded."
           },
           "comments": {
             "anyOf": [
@@ -909,9 +916,6 @@
           }
         },
         "type": "object",
-        "required": [
-          "reviewer_id"
-        ],
         "title": "ApprovalRequest"
       },
       "CallerType": {
@@ -1100,9 +1104,16 @@
       "RejectionRequest": {
         "properties": {
           "reviewer_id": {
-            "type": "string",
-            "minLength": 1,
-            "title": "Reviewer Id"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewer Id",
+            "description": "Client-supplied reviewer ID is untrusted and ignored. Server-derived HUMAN_OPERATOR_IDENTITY is always recorded."
           },
           "feedback": {
             "type": "string",
@@ -1116,7 +1127,6 @@
         },
         "type": "object",
         "required": [
-          "reviewer_id",
           "feedback"
         ],
         "title": "RejectionRequest"

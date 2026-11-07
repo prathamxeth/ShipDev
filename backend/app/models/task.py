@@ -74,12 +74,18 @@ class TransitionResponse(BaseModel):
 
 
 class ApprovalRequest(BaseModel):
-    reviewer_id: str = Field(..., min_length=1)
+    reviewer_id: Optional[str] = Field(
+        default=None,
+        description="Client-supplied reviewer ID is untrusted and ignored. Server-derived HUMAN_OPERATOR_IDENTITY is always recorded.",
+    )
     comments: Optional[str] = None
 
 
 class RejectionRequest(BaseModel):
-    reviewer_id: str = Field(..., min_length=1)
+    reviewer_id: Optional[str] = Field(
+        default=None,
+        description="Client-supplied reviewer ID is untrusted and ignored. Server-derived HUMAN_OPERATOR_IDENTITY is always recorded.",
+    )
     feedback: str = Field(..., min_length=1)
     return_to: TaskStatus = TaskStatus.FIX_PROPOSED
 

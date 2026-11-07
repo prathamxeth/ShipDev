@@ -5,7 +5,7 @@ from typing import Annotated, Optional
 from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from app.core.config import settings
+from app.core.config import INSECURE_PLACEHOLDERS, is_insecure_placeholder, settings
 from app.core.state_machine import CallerType
 from app.repositories.task_repository import TaskRepository
 
@@ -26,8 +26,9 @@ def verify_human_bearer_token(
     """Verify that incoming request contains an authentic human Bearer token.
 
     Uses constant-time comparison (secrets.compare_digest) to prevent timing attacks.
-    Fails closed (HTTP 500) if no secret is configured server-side.
+    Fails closed (HTTP 500) if no secret is configured server-side or if configured as placeholder.
     Rejects machine credentials (HTTP 403) to prevent credential substitution.
+    Rejects development placeholders (HTTP 403) to prevent unauthorized execution.
     """
     if not credentials or not credentials.credentials:
         raise HTTPException(
@@ -36,28 +37,43 @@ def verify_human_bearer_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    token = credentials.credentials.strip()
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication Required: Missing Bearer token for human authorization.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     expected_secret = settings.HUMAN_APPROVAL_SECRET
-    if not expected_secret:
-        # Fail closed: never allow human operations if HUMAN_APPROVAL_SECRET is unconfigured
+    if not expected_secret or not expected_secret.strip() or is_insecure_placeholder(expected_secret):
+        # Fail closed: never allow human operations if HUMAN_APPROVAL_SECRET is unconfigured or a placeholder
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Server security configuration error: HUMAN_APPROVAL_SECRET is unconfigured.",
         )
 
-    # Reject machine credentials if presented to human gate
-    if settings.API_SECRET_KEY and secrets.compare_digest(credentials.credentials, settings.API_SECRET_KEY):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Security Violation: Agent API credentials cannot authorize human approval operations.",
-        )
-
-    if not secrets.compare_digest(credentials.credentials, expected_secret):
+    # Invariant: Old development placeholder secrets can NEVER authorize human operations
+    if is_insecure_placeholder(token):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Security Violation: Invalid human authorization token.",
         )
 
-    return credentials.credentials
+    # Reject machine credentials if presented to human gate
+    if settings.API_SECRET_KEY and secrets.compare_digest(token, settings.API_SECRET_KEY.strip()):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Security Violation: Agent API credentials cannot authorize human approval operations.",
+        )
+
+    if not secrets.compare_digest(token, expected_secret.strip()):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Security Violation: Invalid human authorization token.",
+        )
+
+    return token
 
 
 def verify_agent_token(
@@ -67,12 +83,15 @@ def verify_agent_token(
     """Verify that incoming request provides authentic machine (agent) credentials.
 
     Uses constant-time comparison (secrets.compare_digest).
-    Fails closed (HTTP 500) if API_SECRET_KEY is unconfigured server-side.
+    Fails closed (HTTP 500) if API_SECRET_KEY is unconfigured server-side or a placeholder.
     Rejects human credentials (HTTP 403) to prevent credential substitution.
+    Rejects development placeholders (HTTP 403) to prevent unauthorized execution.
     """
-    token = (credentials.credentials if credentials and credentials.credentials else None) or (
-        x_api_key.strip() if x_api_key else None
-    )
+    token = (
+        credentials.credentials.strip()
+        if credentials and credentials.credentials and credentials.credentials.strip()
+        else None
+    ) or (x_api_key.strip() if x_api_key and x_api_key.strip() else None)
     if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -81,20 +100,27 @@ def verify_agent_token(
         )
 
     expected_secret = settings.API_SECRET_KEY
-    if not expected_secret:
+    if not expected_secret or not expected_secret.strip() or is_insecure_placeholder(expected_secret):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Server security configuration error: API_SECRET_KEY is unconfigured.",
         )
 
+    # Invariant: Placeholder tokens can NEVER authorize machine operations
+    if is_insecure_placeholder(token):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Security Violation: Invalid agent API key or token.",
+        )
+
     # Reject human credentials presented for machine-only operations
-    if settings.HUMAN_APPROVAL_SECRET and secrets.compare_digest(token, settings.HUMAN_APPROVAL_SECRET):
+    if settings.HUMAN_APPROVAL_SECRET and secrets.compare_digest(token, settings.HUMAN_APPROVAL_SECRET.strip()):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Security Violation: Human credentials cannot authorize machine-only operations.",
         )
 
-    if not secrets.compare_digest(token, expected_secret):
+    if not secrets.compare_digest(token, expected_secret.strip()):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Security Violation: Invalid agent API key or token.",
@@ -112,8 +138,10 @@ def get_caller_identity(
     """Extract and cryptographically authenticate caller identity from incoming HTTP headers and tokens.
 
     - If X-Caller-Type is 'human': strictly requires valid HUMAN_APPROVAL_SECRET Bearer token.
+      Reviewer attribution is strictly server-derived from settings.HUMAN_OPERATOR_IDENTITY;
+      client-supplied X-Caller-ID is untrusted and intentionally ignored.
     - If X-Caller-Type is 'agent' (or omitted): strictly requires valid API_SECRET_KEY.
-    - X-Caller-ID is unverified; human callers are recorded as explicitly labelled demo/proxy identities.
+      Agent identity is recorded from X-Caller-ID (defaulting to 'authenticated-agent').
     - Human and machine credentials cannot substitute for each other.
     - Missing or invalid credentials fail closed.
     """
@@ -122,11 +150,8 @@ def get_caller_identity(
     if raw_type == "human":
         verify_human_bearer_token(credentials)
         caller_type = CallerType.HUMAN
-        actor_id = (
-            f"{DEMO_HUMAN_IDENTITY_PREFIX}:claimed-{x_caller_id.strip()}"
-            if x_caller_id and x_caller_id.strip()
-            else DEMO_HUMAN_IDENTITY_PREFIX
-        )
+        # Client-supplied reviewer attribution is intentionally ignored for authenticated human operations
+        actor_id = settings.HUMAN_OPERATOR_IDENTITY
     elif raw_type == "agent":
         verify_agent_token(credentials, x_api_key)
         caller_type = CallerType.AGENT
@@ -147,13 +172,9 @@ def require_human_caller(
     """Enforce that only authenticated human callers with a valid Bearer token can access gated endpoints.
 
     SECURITY INVARIANT:
-    The shared Bearer token establishes caller authorization via the demo proxy secret;
-    it does NOT verify individual human identity. X-Caller-ID is untrusted and cannot establish
-    a verified identity. The recorded actor_id is explicitly labelled as a demo proxy identity.
+    Reviewer attribution is strictly server-derived from settings.HUMAN_OPERATOR_IDENTITY.
+    Client-supplied headers such as X-Caller-ID and request-body reviewer_id are untrusted
+    and intentionally ignored to prevent reviewer impersonation and attribution forging.
     """
-    if x_caller_id and x_caller_id.strip():
-        actor_id = f"{DEMO_HUMAN_IDENTITY_PREFIX}:claimed-{x_caller_id.strip()}"
-    else:
-        actor_id = DEMO_HUMAN_IDENTITY_PREFIX
-
+    actor_id = settings.HUMAN_OPERATOR_IDENTITY
     return CallerType.HUMAN, actor_id

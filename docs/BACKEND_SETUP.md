@@ -36,8 +36,9 @@
    ENVIRONMENT=development
    DATABASE_URL=sqlite:///./shipdev.db
    FRONTEND_ORIGIN=http://localhost:3000
-   API_SECRET_KEY=dev-agent-secret-change-in-production
-   HUMAN_APPROVAL_SECRET=dev-human-secret-change-in-production
+   API_SECRET_KEY=your-strong-agent-key-here
+   HUMAN_APPROVAL_SECRET=your-strong-human-secret-here
+   HUMAN_OPERATOR_IDENTITY=shipdev-operator
    ```
 
 5. **Run the FastAPI development server:**
@@ -58,7 +59,9 @@ The human approval gate (`/approve`, `/reject`, `/complete`) enforces cryptograp
 * Comparison: `secrets.compare_digest(credentials.credentials, expected_secret)`
 * Security Invariants:
   - Any caller passing `X-Caller-Type: human` without a valid Bearer token is rejected with `401 Unauthorized`.
-  - Passing an invalid token is rejected with `403 Forbidden`.
+  - Passing an invalid token or agent credential is rejected with `403 Forbidden`.
+  - Missing or whitespace-only `HUMAN_APPROVAL_SECRET` fails closed with `500 Internal Server Error`.
+  - Reviewer attribution is strictly server-derived from `HUMAN_OPERATOR_IDENTITY`. Client headers (`X-Caller-ID`) and request body fields (`reviewer_id`) are untrusted and ignored to prevent identity spoofing.
   - Direct transitions to `APPROVED` or `COMPLETED` via the generic `POST /tasks/{id}/transitions` route are blocked with `400 Bad Request`.
   - Completing an unapproved task via `/complete` is blocked with `409 Conflict`.
   - Frontend bundles and agent runtimes must **NEVER** hold `HUMAN_APPROVAL_SECRET`.

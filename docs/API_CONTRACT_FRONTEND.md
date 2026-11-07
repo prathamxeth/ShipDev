@@ -148,43 +148,55 @@ export interface ApprovalRecord {
 * **`POST /api/v1/tasks/{task_id}/approve`**
 * **Required Headers:**
   * `Authorization: Bearer <HUMAN_APPROVAL_SECRET>`
-  * `X-Caller-ID: <username>` (e.g. `pratham` or `ayush`)
+* **Optional Headers:**
+  * `X-Caller-ID: <username>` (ignored for human gates; server-derived `HUMAN_OPERATOR_IDENTITY` is strictly enforced)
 * **Request Body:**
   ```json
   {
-    "reviewer_id": "pratham",
     "comments": "Reviewed repro logs and git diff. All verification tests pass."
   }
   ```
+  *(Note: `reviewer_id` is optional and ignored; server records configured `HUMAN_OPERATOR_IDENTITY`)*
 * **Response (200 OK):** Updated `Task` with `status: "APPROVED"`.
 * **Errors:**
   * `401 Unauthorized` &mdash; Missing Bearer token.
-  * `403 Forbidden` &mdash; Invalid Bearer token.
+  * `403 Forbidden` &mdash; Invalid Bearer token or agent API key presented.
   * `409 Conflict` &mdash; Task is not in `AWAITING_HUMAN_APPROVAL` status.
+  * `500 Internal Server Error` &mdash; Missing or unconfigured `HUMAN_APPROVAL_SECRET`.
 
 ### 5. Human Rejection
 * **`POST /api/v1/tasks/{task_id}/reject`**
 * **Required Headers:**
   * `Authorization: Bearer <HUMAN_APPROVAL_SECRET>`
-  * `X-Caller-ID: <username>`
+* **Optional Headers:**
+  * `X-Caller-ID: <username>` (ignored for human gates; server-derived `HUMAN_OPERATOR_IDENTITY` is strictly enforced)
 * **Request Body:**
   ```json
   {
-    "reviewer_id": "pratham",
     "feedback": "Patch breaks backward compatibility with old API clients.",
     "return_to": "FIX_PROPOSED"
   }
   ```
+  *(Note: `reviewer_id` is optional and ignored; server records configured `HUMAN_OPERATOR_IDENTITY`)*
 * **Response (200 OK):** Updated `Task` returned to `FIX_PROPOSED` for the fix agent to re-attempt.
+* **Errors:**
+  * `401 Unauthorized` &mdash; Missing Bearer token.
+  * `403 Forbidden` &mdash; Invalid Bearer token or agent API key presented.
+  * `409 Conflict` &mdash; Task is not in `AWAITING_HUMAN_APPROVAL` status.
+  * `500 Internal Server Error` &mdash; Missing or unconfigured `HUMAN_APPROVAL_SECRET`.
 
 ### 6. Human Task Completion
 * **`POST /api/v1/tasks/{task_id}/complete`**
 * **Required Headers:**
   * `Authorization: Bearer <HUMAN_APPROVAL_SECRET>`
-  * `X-Caller-ID: <username>`
+* **Optional Headers:**
+  * `X-Caller-ID: <username>` (ignored for human gates; server-derived `HUMAN_OPERATOR_IDENTITY` is strictly enforced)
 * **Response (200 OK):** Updated `Task` with `status: "COMPLETED"`.
 * **Errors:**
+  * `401 Unauthorized` &mdash; Missing Bearer token.
+  * `403 Forbidden` &mdash; Invalid Bearer token or agent API key presented.
   * `409 Conflict` &mdash; Task is not in `APPROVED` status.
+  * `500 Internal Server Error` &mdash; Missing or unconfigured `HUMAN_APPROVAL_SECRET`.
 
 ### 7. Real-Time Task Lifecycle Streaming (Server-Sent Events)
 * **`GET /api/v1/tasks/{task_id}/events`**

@@ -2,7 +2,7 @@
 
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
-from app.api.deps import get_repository
+from app.api.deps import get_repository, verify_agent_token
 from app.models.task import EvidenceCreate, EvidenceResponse
 from app.repositories.task_repository import TaskRepository
 
@@ -17,9 +17,14 @@ router = APIRouter(tags=["Evidence"])
 async def add_evidence(
     task_id: str,
     payload: EvidenceCreate,
+    _caller_token: str = Depends(verify_agent_token),
     repo: TaskRepository = Depends(get_repository),
 ):
-    """Attach verified reproduction, test, or verification evidence to a task."""
+    """Attach verified reproduction, test, or verification evidence to a task.
+
+    Requires authentic agent credentials (Bearer token or X-API-Key).
+    Human-only credentials and insecure placeholders are rejected.
+    """
     return repo.add_evidence(task_id, payload)
 
 

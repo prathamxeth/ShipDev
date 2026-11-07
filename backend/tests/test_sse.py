@@ -313,8 +313,8 @@ async def test_sse_no_secrets_exposed_in_human_approval_event(sse_repo, sse_clie
     ev_data = events[0]["data"]
     assert ev_data["to_status"] == "APPROVED"
     assert ev_data["actor_type"] == "human"
-    assert "demo-human-proxy" in ev_data["actor_id"]
-    assert "ayush_sec" in ev_data["actor_id"]
+    assert ev_data["actor_id"] == settings.HUMAN_OPERATOR_IDENTITY
+    assert "ayush_sec" not in ev_data["actor_id"]
 
     # Verify strict absence of secrets
     assert VALID_TOKEN not in raw_text

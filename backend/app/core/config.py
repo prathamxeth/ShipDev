@@ -24,6 +24,14 @@ INSECURE_PLACEHOLDERS: Set[str] = {
 }
 
 
+def is_insecure_placeholder(secret: Optional[str]) -> bool:
+    """Check case-insensitively with whitespace trimming whether a secret matches known insecure placeholders."""
+    if not secret:
+        return False
+    normalized = secret.strip().lower()
+    return normalized in INSECURE_PLACEHOLDERS
+
+
 class Settings(BaseModel):
     HOST: str = os.getenv("HOST", "0.0.0.0")
     PORT: int = int(os.getenv("PORT", "8000"))
@@ -39,6 +47,10 @@ class Settings(BaseModel):
     # No insecure hardcoded defaults. Fails closed if absent.
     HUMAN_APPROVAL_SECRET: Optional[str] = os.getenv("HUMAN_APPROVAL_SECRET")
 
+    # Server-configured operator identity for human approval, rejection, and completion records
+    # Client-supplied reviewer attribution headers/payloads are ignored in favor of this identity.
+    HUMAN_OPERATOR_IDENTITY: str = os.getenv("HUMAN_OPERATOR_IDENTITY", "shipdev-operator")
+
     SSE_HEARTBEAT_INTERVAL: float = float(os.getenv("SSE_HEARTBEAT_INTERVAL", "15.0"))
     PROJECT_NAME: str = "ShipDev Backend"
     VERSION: str = "0.1.0"
@@ -46,31 +58,41 @@ class Settings(BaseModel):
     @model_validator(mode="after")
     def validate_security_credentials(self) -> "Settings":
         env = (self.ENVIRONMENT or "development").strip().lower()
+
+        # Sanitize whitespace-only secrets to None
+        if self.HUMAN_APPROVAL_SECRET is not None:
+            self.HUMAN_APPROVAL_SECRET = self.HUMAN_APPROVAL_SECRET.strip() or None
+
+        if self.API_SECRET_KEY is not None:
+            self.API_SECRET_KEY = self.API_SECRET_KEY.strip() or None
+
+        # Sanitize operator identity
+        if self.HUMAN_OPERATOR_IDENTITY is not None:
+            self.HUMAN_OPERATOR_IDENTITY = self.HUMAN_OPERATOR_IDENTITY.strip() or "shipdev-operator"
+        else:
+            self.HUMAN_OPERATOR_IDENTITY = "shipdev-operator"
+
         if env == "production":
             # In production, credentials must be explicitly configured and non-placeholder
             if not self.API_SECRET_KEY:
                 raise ValueError("Production configuration error: API_SECRET_KEY is required in production.")
-            if self.API_SECRET_KEY in INSECURE_PLACEHOLDERS:
+            if is_insecure_placeholder(self.API_SECRET_KEY):
                 raise ValueError(
-                    f"Production configuration error: API_SECRET_KEY cannot use known development placeholder '{self.API_SECRET_KEY}' in production."
+                    "Production configuration error: API_SECRET_KEY cannot use known development placeholder in production."
                 )
             if not self.HUMAN_APPROVAL_SECRET:
                 raise ValueError("Production configuration error: HUMAN_APPROVAL_SECRET is required in production.")
-            if self.HUMAN_APPROVAL_SECRET in INSECURE_PLACEHOLDERS:
+            if is_insecure_placeholder(self.HUMAN_APPROVAL_SECRET):
                 raise ValueError(
-                    f"Production configuration error: HUMAN_APPROVAL_SECRET cannot use known development placeholder '{self.HUMAN_APPROVAL_SECRET}' in production."
+                    "Production configuration error: HUMAN_APPROVAL_SECRET cannot use known development placeholder in production."
                 )
             if self.API_SECRET_KEY == self.HUMAN_APPROVAL_SECRET:
                 raise ValueError(
                     "Production configuration error: API_SECRET_KEY and HUMAN_APPROVAL_SECRET must be distinct secrets."
                 )
-        elif env in ("development", "test"):
-            # Preserve convenient local development configuration when env vars are unset
-            # Explicitly flagged dev keys so they can NEVER be treated as production credentials
-            if not self.API_SECRET_KEY:
-                self.API_SECRET_KEY = "dev-insecure-local-agent-key"
-            if not self.HUMAN_APPROVAL_SECRET:
-                self.HUMAN_APPROVAL_SECRET = "dev-insecure-local-human-key"
+        # Note: In development and test environments, missing API_SECRET_KEY or HUMAN_APPROVAL_SECRET
+        # remain unconfigured (None) and fail closed with HTTP 500 when accessing protected endpoints.
+        # No fallback credentials (such as dev-insecure-local-agent-key) are provided.
         return self
 
 

@@ -158,14 +158,18 @@ def _validate_reproduction_evidence(evidence: Optional[Dict[str, Any]]) -> None:
         raise MissingEvidenceError(
             "Security Violation: Mock evidence cannot be accepted as real reproduction evidence."
         )
-    if not evidence.get("command_executed"):
+    cmd = evidence.get("command_executed")
+    if not cmd or not str(cmd).strip():
         raise MissingEvidenceError(
             "Reproduction evidence must include the executed reproduction command."
         )
-    # A successful reproduction must show a non-zero exit code or error trace proving failure occurred
     if evidence.get("exit_code") is None:
         raise MissingEvidenceError(
             "Reproduction evidence must include the execution exit code."
+        )
+    if evidence.get("exit_code") == 0:
+        raise MissingEvidenceError(
+            "Security Violation: Reproduction evidence must have a non-zero exit code demonstrating failure."
         )
 
 
@@ -179,7 +183,8 @@ def _validate_verification_evidence(evidence: Optional[Dict[str, Any]]) -> None:
         raise MissingEvidenceError(
             "Security Violation: Mock evidence cannot be accepted as real verification evidence."
         )
-    if not evidence.get("patch_diff"):
+    patch_diff = evidence.get("patch_diff")
+    if not patch_diff or not str(patch_diff).strip():
         raise MissingEvidenceError(
             "Verification evidence must include the proposed patch diff."
         )
@@ -187,7 +192,8 @@ def _validate_verification_evidence(evidence: Optional[Dict[str, Any]]) -> None:
         raise MissingEvidenceError(
             "Verification tests must exit with code 0 before awaiting human approval."
         )
-    if not evidence.get("command_executed"):
+    cmd = evidence.get("command_executed")
+    if not cmd or not str(cmd).strip():
         raise MissingEvidenceError(
             "Verification evidence must include the executed test command."
         )

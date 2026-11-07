@@ -37,6 +37,11 @@ class TaskNotFoundError(Exception):
     pass
 
 
+class TaskImmutableError(Exception):
+    """Raised when attempting to modify or attach evidence to a task in an immutable status (APPROVED, COMPLETED)."""
+    pass
+
+
 class TaskRepository:
     def __init__(self, db_path: Optional[str] = None):
         self.db_path = db_path
@@ -122,8 +127,12 @@ class TaskRepository:
 
     def add_evidence(self, task_id: str, data: EvidenceCreate) -> EvidenceResponse:
         """Attach verified execution or reproduction evidence to a task."""
-        # Ensure task exists
-        self.get_task(task_id)
+        # Ensure task exists and validate lifecycle state
+        task = self.get_task(task_id)
+        if task.status in {TaskStatus.APPROVED, TaskStatus.COMPLETED}:
+            raise TaskImmutableError(
+                f"Cannot attach evidence to task '{task_id}'. Task is in '{task.status.value}' status and is immutable."
+            )
 
         evidence_id = f"ev_{uuid.uuid4().hex}"
         now = _utc_now()
@@ -212,16 +221,21 @@ class TaskRepository:
 
         # Prepare evidence dict for state machine validation
         evidence_dict = custom_evidence
-        if not evidence_dict and data.evidence_id:
+        if data.evidence_id:
             ev = self.get_evidence_by_id(data.evidence_id)
             if not ev:
                 raise MissingEvidenceError(f"Referenced evidence artifact '{data.evidence_id}' does not exist.")
-            evidence_dict = {
-                "command_executed": ev.command_executed,
-                "exit_code": ev.exit_code,
-                "patch_diff": ev.patch_diff,
-                "is_mock": ev.is_mock,
-            }
+            if ev.task_id != task_id:
+                raise MissingEvidenceError(
+                    f"Referenced evidence artifact '{data.evidence_id}' belongs to task '{ev.task_id}', not '{task_id}'."
+                )
+            if not evidence_dict:
+                evidence_dict = {
+                    "command_executed": ev.command_executed,
+                    "exit_code": ev.exit_code,
+                    "patch_diff": ev.patch_diff,
+                    "is_mock": ev.is_mock,
+                }
 
         # Validate business and security rules
         validate_transition(

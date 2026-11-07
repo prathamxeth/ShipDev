@@ -25,6 +25,8 @@ async def approve_task(
 
     Task must be in 'AWAITING_HUMAN_APPROVAL' status.
     Strictly forbidden for AI agents.
+    Reviewer attribution is server-derived from settings.HUMAN_OPERATOR_IDENTITY.
+    Client-supplied payload.reviewer_id and X-Caller-ID are intentionally ignored.
     """
     caller_type, reviewer_id = caller_auth
     task = repo.get_task(task_id)
@@ -38,7 +40,7 @@ async def approve_task(
             ),
         )
 
-    # Authenticated reviewer identity from caller_auth. Payload reviewer_id cannot override it.
+    # Server-derived operator identity is enforced; payload.reviewer_id is ignored.
     verified_request = ApprovalRequest(
         reviewer_id=reviewer_id,
         comments=payload.comments,
@@ -57,6 +59,8 @@ async def reject_task(
 
     Task must be in 'AWAITING_HUMAN_APPROVAL' status.
     Task returns to FIX_PROPOSED for the fix agent to re-attempt.
+    Reviewer attribution is server-derived from settings.HUMAN_OPERATOR_IDENTITY.
+    Client-supplied payload.reviewer_id and X-Caller-ID are intentionally ignored.
     """
     caller_type, reviewer_id = caller_auth
     task = repo.get_task(task_id)
@@ -70,7 +74,7 @@ async def reject_task(
             ),
         )
 
-    # Authenticated reviewer identity from caller_auth. Payload reviewer_id cannot override it.
+    # Server-derived operator identity is enforced; payload.reviewer_id is ignored.
     verified_request = RejectionRequest(
         reviewer_id=reviewer_id,
         feedback=payload.feedback,
@@ -89,6 +93,8 @@ async def complete_task(
 
     Task must be in 'APPROVED' status before it can be marked complete.
     Strictly requires authenticated human credentials.
+    Actor attribution is server-derived from settings.HUMAN_OPERATOR_IDENTITY.
+    Client-supplied X-Caller-ID is intentionally ignored.
     """
     caller_type, reviewer_id = caller_auth
     task = repo.get_task(task_id)
