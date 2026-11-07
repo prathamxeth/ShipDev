@@ -23,10 +23,8 @@ export const INITIAL_WORKSPACE_FILES: Record<string, WorkspaceFile> = {
     path: "demo/buggy_app/calculator.py",
     language: "python",
     modified: false,
-    bugLine: 22,
-    bugDescription: "Adds markup surcharge instead of subtracting discount",
     code: `"""
-ShipDev Isolated Demo Application: Financial and arithmetic utility functions.
+ShipDev Financial and arithmetic utility functions.
 """
 
 def add(a: float, b: float) -> float:
@@ -40,13 +38,10 @@ def divide(a: float, b: float) -> float:
 def calculate_discount(price: float, discount_percent: float) -> float:
     """
     Calculate final price after applying a percentage discount.
-    
-    DEFECT: Adds the discount surcharge instead of deducting it!
     """
     if discount_percent < 0 or discount_percent > 100:
         raise ValueError("Discount percent must be between 0 and 100")
-    # BUG: should be price - (price * (discount_percent / 100.0))
-    return price + (price * (discount_percent / 100.0))
+    return price - (price * (discount_percent / 100.0))
 `,
   },
   "test_calculator.py": {
@@ -54,10 +49,8 @@ def calculate_discount(price: float, discount_percent: float) -> float:
     path: "demo/tests/test_calculator.py",
     language: "python",
     modified: false,
-    bugLine: 19,
-    bugDescription: "Regression test reproducing discount formula calculation defect",
     code: `"""
-Regression test suite for demo calculator application.
+Regression test suite for calculator application.
 """
 
 import pytest
@@ -75,15 +68,13 @@ def test_divide():
 
 
 def test_calculate_discount_applies_correct_reduction():
-    """Regression test: 20% discount on $100 must evaluate to $80.0."""
+    """Test: 20% discount on $100 must evaluate to $80.0."""
     initial_price = 100.0
     discount_rate = 20.0
     expected_discounted_price = 80.0
 
     actual_price = calculate_discount(initial_price, discount_rate)
-    assert actual_price == expected_discounted_price, (
-        f"Defect reproduced: expected \${expected_discounted_price}, but received \${actual_price}"
-    )
+    assert actual_price == expected_discounted_price
 `,
   },
   "switch_bridge.py": {
@@ -91,7 +82,6 @@ def test_calculate_discount_applies_correct_reduction():
     path: "scripts/switch_bridge.py",
     language: "python",
     modified: false,
-    bugLine: 166,
     code: `"""
 ShipDev Switch Bridge: Authenticates and orchestrates real Switch agents
 against ShipDev FastAPI backend and execution sandboxes.
@@ -118,7 +108,6 @@ class SwitchClient:
     path: "backend/app/core/state_machine.py",
     language: "python",
     modified: false,
-    bugLine: 53,
     code: `"""Workflow state machine, transition validator, and security gate rules for ShipDev."""
 
 from enum import Enum
@@ -147,7 +136,6 @@ HUMAN_ONLY_TARGET_STATES: Set[TaskStatus] = {
     path: "backend/app/api/v1/tasks.py",
     language: "python",
     modified: false,
-    bugLine: 24,
     code: `"""Task management REST routes."""
 
 from typing import List, Optional
@@ -161,7 +149,7 @@ router = APIRouter(prefix="/tasks", tags=["Tasks"])
 
 @router.post("", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
 async def create_task(payload: TaskCreate, repo = Depends(get_repository)):
-    """Create a new bug report task (text or Wispr voice transcript)."""
+    """Create a new task."""
     return repo.create_task(payload)
 `,
   },
@@ -182,25 +170,25 @@ export interface ResolvedBugLocation {
 export function resolveBugLocation(task: Task): ResolvedBugLocation {
   const text = `${task.title} ${task.description}`.toLowerCase();
 
-  if (text.includes("discount") || text.includes("calculator") || text.includes("markup")) {
+  if (text.includes("discount") || text.includes("calculator") || text.includes("markup") || text.includes("arithmetic")) {
     return {
       fileName: "calculator.py",
       filePath: "demo/buggy_app/calculator.py",
       lineNumber: 22,
       symbolName: "calculate_discount",
-      severity: "Critical",
-      defectSummary: "Discount formula performs addition (+) instead of deduction (-)",
+      severity: "High",
+      defectSummary: task.title || "Calculator arithmetic logic",
     };
   }
 
-  if (text.includes("test_calculator") || text.includes("reduction") || text.includes("assert 120")) {
+  if (text.includes("test_calculator") || text.includes("reduction") || text.includes("assert")) {
     return {
       fileName: "test_calculator.py",
       filePath: "demo/tests/test_calculator.py",
       lineNumber: 19,
       symbolName: "test_calculate_discount_applies_correct_reduction",
       severity: "High",
-      defectSummary: "Assertion failure: expected $80.0, received $120.0",
+      defectSummary: task.title || "Calculator test verification",
     };
   }
 
@@ -231,7 +219,7 @@ export function resolveBugLocation(task: Task): ResolvedBugLocation {
     filePath: "demo/buggy_app/calculator.py",
     lineNumber: 22,
     symbolName: "calculate_discount",
-    severity: "Critical",
+    severity: "Medium",
     defectSummary: task.title,
   };
 }
@@ -241,13 +229,6 @@ export function resolveBugLocation(task: Task): ResolvedBugLocation {
  */
 export function getPatchedCode(fileName: string, originalCode: string, patchDiff?: string | null): string {
   if (patchDiff && patchDiff.includes("return price - (price * (discount_percent / 100.0))")) {
-    return originalCode.replace(
-      "return price + (price * (discount_percent / 100.0))",
-      "return price - (price * (discount_percent / 100.0))"
-    );
-  }
-
-  if (fileName === "calculator.py") {
     return originalCode.replace(
       "return price + (price * (discount_percent / 100.0))",
       "return price - (price * (discount_percent / 100.0))"

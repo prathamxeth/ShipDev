@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { AlertCircle, Bug, Check, Mic, Plus, X } from "lucide-react";
+import { AlertCircle, Plus, X } from "lucide-react";
 import { createTask } from "@/lib/api";
 import { Task } from "@/types";
 
@@ -15,7 +15,7 @@ export function NewBugModal({ isOpen, onClose, onTaskCreated }: NewBugModalProps
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [reportedBy, setReportedBy] = useState("local-operator");
-  const [inputSource, setInputSource] = useState<"text" | "wispr_flow">("text");
+  const inputSource = "text";
   const [branchName, setBranchName] = useState("main");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -75,9 +75,9 @@ export function NewBugModal({ isOpen, onClose, onTaskCreated }: NewBugModalProps
         {/* Modal Header */}
         <div className="h-11 px-4 border-b border-clay-hairline flex items-center justify-between bg-white">
           <div className="flex items-center gap-2">
-            <Bug className="w-4 h-4 text-clay-primary" />
+            <Plus className="w-4 h-4 text-clay-primary" />
             <h2 id="new-bug-dialog-title" className="text-xs font-semibold text-clay-ink uppercase tracking-wider font-mono">
-              Report Issue to AI Pipeline
+              Create New Task
             </h2>
           </div>
           <button
@@ -98,47 +98,17 @@ export function NewBugModal({ isOpen, onClose, onTaskCreated }: NewBugModalProps
             </div>
           )}
 
-          {/* Input Method Selector */}
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-clay-body font-medium">Input Method</span>
-            <div className="flex items-center gap-1 p-0.5 bg-clay-surface-card border border-clay-hairline rounded-clay-pill">
-              <button
-                type="button"
-                onClick={() => setInputSource("text")}
-                className={`px-2.5 py-1 rounded-clay-pill text-[11px] font-medium transition-colors cursor-pointer ${
-                  inputSource === "text"
-                    ? "bg-clay-primary text-white shadow-clay-soft"
-                    : "text-clay-muted hover:text-clay-ink"
-                }`}
-              >
-                Standard Text
-              </button>
-              <button
-                type="button"
-                onClick={() => setInputSource("wispr_flow")}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-clay-pill text-[11px] font-medium transition-colors cursor-pointer ${
-                  inputSource === "wispr_flow"
-                    ? "bg-clay-lavender text-clay-ink font-semibold shadow-clay-soft"
-                    : "text-clay-muted hover:text-clay-ink"
-                }`}
-              >
-                <Mic className="w-3 h-3 text-clay-ink" />
-                <span>Wispr Flow Voice</span>
-              </button>
-            </div>
-          </div>
-
           {/* Title input */}
           <div className="flex flex-col gap-1">
             <label className="text-[11px] font-medium text-clay-ink">
-              Defect Title <span className="text-clay-coral">*</span>
+              Task Title <span className="text-clay-coral">*</span>
             </label>
             <input
               type="text"
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Defect in calculate_discount adds markup instead of reduction"
+              placeholder="e.g. Optimize cache invalidation or add user webhook"
               style={{ outline: "none", boxShadow: "none" }}
               className="bg-clay-surface-soft border border-clay-hairline text-xs text-clay-ink placeholder-clay-muted rounded-clay-md px-3 py-2 outline-none focus:outline-none focus:ring-0 shadow-clay-soft transition-colors"
             />
@@ -147,19 +117,14 @@ export function NewBugModal({ isOpen, onClose, onTaskCreated }: NewBugModalProps
           {/* Description input */}
           <div className="flex flex-col gap-1">
             <label className="text-[11px] font-medium text-clay-ink">
-              {inputSource === "wispr_flow" ? "Voice Transcription" : "Defect Description"}{" "}
-              <span className="text-clay-coral">*</span>
+              Description <span className="text-clay-coral">*</span>
             </label>
             <textarea
               required
               rows={4}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder={
-                inputSource === "wispr_flow"
-                  ? "Transcribed voice recording: 'calculate_discount(100, 20) returned 120.0 instead of 80.0...'"
-                  : "Detail the observed bug behavior, failed assertions, or reproduction steps..."
-              }
+              placeholder="Describe the task, expected behavior, requirements, or reproduction details..."
               style={{ outline: "none", boxShadow: "none" }}
               className="bg-clay-surface-soft border border-clay-hairline text-xs text-clay-ink placeholder-clay-muted rounded-clay-md p-3 outline-none focus:outline-none focus:ring-0 shadow-clay-soft transition-colors resize-none font-mono"
             />
@@ -206,7 +171,7 @@ export function NewBugModal({ isOpen, onClose, onTaskCreated }: NewBugModalProps
               className="px-4 py-1.5 rounded-clay-md bg-clay-primary hover:bg-clay-primary-active text-white font-medium transition-colors cursor-pointer flex items-center gap-1.5 shadow-clay-soft"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>{isSubmitting ? "Submitting..." : "Submit to Pipeline"}</span>
+              <span>{isSubmitting ? "Creating..." : "Create Task"}</span>
             </button>
           </div>
         </form>

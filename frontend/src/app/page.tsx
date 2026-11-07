@@ -15,7 +15,6 @@ import { TeamHomeView } from "@/components/workspace/TeamHomeView";
 import { TeamRoomsView } from "@/components/workspace/TeamRoomsView";
 import { ProjectsView } from "@/components/workspace/ProjectsView";
 import { ReviewsApprovalView } from "@/components/workspace/ReviewsApprovalView";
-import { KnowledgeView } from "@/components/workspace/KnowledgeView";
 import { AgentsRosterView } from "@/components/workspace/AgentsRosterView";
 import { MembersRolesView } from "@/components/workspace/MembersRolesView";
 import { CommandPalette } from "@/components/layout/CommandPalette";
@@ -606,12 +605,6 @@ export default function ShipDevIDE() {
           </div>
         )}
 
-        {/* 6. DUAL-SCOPED KNOWLEDGE VIEW */}
-        {activeActivityTab === "knowledge" && (
-          <div className="flex-1 min-w-0 h-full overflow-hidden flex flex-col">
-            <KnowledgeView activeWorkspaceType={activeWorkspaceType} />
-          </div>
-        )}
 
         {/* 7. AGENTS ROSTER VIEW */}
         {activeActivityTab === "agents" && (

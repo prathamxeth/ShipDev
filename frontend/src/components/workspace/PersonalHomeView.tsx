@@ -112,7 +112,7 @@ export function PersonalHomeView({
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-clay-muted">
             <span className="font-medium">Quick suggestions:</span>
             {[
-              "Review discount formula in calculator.py",
+              "Analyze current project and optimize queries",
               "Summarize today's Discord messages",
               "Plan Python async architecture",
               "Draft personal notes for weekly goals",

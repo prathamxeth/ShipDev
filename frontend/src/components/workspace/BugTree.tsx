@@ -895,14 +895,6 @@ export function BugTree({
         </>
       )}
 
-      {/* Footer Status */}
-      <div className="h-7 px-3 border-t border-clay-hairline bg-clay-canvas flex items-center justify-between text-[10px] font-mono text-clay-muted shrink-0">
-        <span>Workspace Sync</span>
-        <span className="text-clay-success font-semibold flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-clay-success" />
-          Live
-        </span>
-      </div>
 
       {/* ENLARGED GRAPH MODAL */}
       {isGraphEnlarged && (

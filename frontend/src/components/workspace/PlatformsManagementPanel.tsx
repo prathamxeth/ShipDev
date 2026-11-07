@@ -169,11 +169,19 @@ export function PlatformsManagementPanel({
     }
   };
 
-  // Filter connections: In Personal show Discord & Telegram; in Team show Slack & MS Teams (or show all with workspace pills)
+  // Strict Workspace Separation:
+  // Personal Workspace shows ONLY Discord & Telegram.
+  // Team Workspace shows ONLY Slack & Microsoft Teams.
   const platformsOrder: PlatformType[] =
     activeWorkspaceType === "PERSONAL"
-      ? ["discord", "telegram", "slack", "teams"]
-      : ["slack", "teams", "discord", "telegram"];
+      ? ["discord", "telegram"]
+      : ["slack", "teams"];
+
+  const filteredMappings = mappings.filter((m) =>
+    activeWorkspaceType === "PERSONAL"
+      ? m.platform === "discord" || m.platform === "telegram"
+      : m.platform === "slack" || m.platform === "teams"
+  );
 
   return (
     <div className="flex-1 flex flex-col h-full bg-clay-canvas overflow-y-auto font-sans">
@@ -256,10 +264,6 @@ export function PlatformsManagementPanel({
           {platformsOrder.map((plat) => {
             const conn = connections.find((c) => c.platform === plat);
             const isConnected = conn ? conn.connected : false;
-            const isRecommendedForWorkspace =
-              activeWorkspaceType === "PERSONAL"
-                ? plat === "discord" || plat === "telegram"
-                : plat === "slack" || plat === "teams";
 
             return (
               <div
@@ -280,11 +284,6 @@ export function PlatformsManagementPanel({
                           <h3 className="font-bold text-sm text-clay-ink">
                             {conn?.name || getPlatformDisplayName(plat)}
                           </h3>
-                          {isRecommendedForWorkspace && (
-                            <span className="text-[9px] font-semibold px-1.5 py-0.2 rounded-clay-pill bg-clay-primary/10 text-clay-primary">
-                              Recommended
-                            </span>
-                          )}
                         </div>
                         {isConnected && conn?.account_name && (
                           <span className="text-[11px] text-clay-muted font-medium block">
@@ -409,17 +408,17 @@ export function PlatformsManagementPanel({
               </h3>
             </div>
             <span className="text-[11px] text-clay-muted font-mono">
-              {mappings.length} conversation {mappings.length === 1 ? "thread" : "threads"}
+              {filteredMappings.length} conversation {filteredMappings.length === 1 ? "thread" : "threads"}
             </span>
           </div>
 
-          {mappings.length === 0 ? (
+          {filteredMappings.length === 0 ? (
             <p className="text-xs text-clay-muted italic py-3 text-center">
               No chat tasks received yet. Connect an app above and mention @ShipDev in a message to get started!
             </p>
           ) : (
             <div className="divide-y divide-clay-hairline">
-              {mappings.slice(0, 4).map((m) => (
+              {filteredMappings.slice(0, 4).map((m) => (
                 <div
                   key={m.id}
                   onClick={() => onSelectTask && onSelectTask(m.task_id)}

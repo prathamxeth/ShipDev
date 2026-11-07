@@ -75,7 +75,7 @@ export function TopNavigation({
 
         {/* Current Project */}
         <div className="flex items-center gap-1.5 text-clay-muted truncate">
-          <span className="text-clay-body-strong font-medium">demo-calculator</span>
+          <span className="text-clay-body-strong font-medium">ShipDev Workspace</span>
         </div>
 
         {/* Synced Status */}

@@ -61,9 +61,9 @@ export function BottomWorkspacePanel({
         id: "ev_deploy_01",
         task_id: task?.id || "",
         stage: "deployment",
-        command_executed: "git apply patch && pytest demo/tests/test_calculator.py",
+        command_executed: "git apply patch && pytest",
         exit_code: 0,
-        stdout: "[ShipDev Gate] Verified and approved by shipdev-operator.\n[ShipDev Deploy] Patch applied to demo/buggy_app/calculator.py: Line 22.\n[ShipDev Suite] 4 passed, 0 failed in 0.05s.\n[ShipDev Release] Solution live in production.",
+        stdout: "[ShipDev Gate] Verified and approved by shipdev-operator.\n[ShipDev Deploy] Patch applied successfully.\n[ShipDev Suite] 4 passed, 0 failed.\n[ShipDev Release] Solution live in production.",
         stderr: "",
         patch_diff: patchDiff || null,
         is_mock: false,
@@ -314,11 +314,11 @@ export function BottomWorkspacePanel({
                       {task.title}
                     </span>
                     <span className="text-[10px] text-clay-muted bg-clay-surface-soft px-1.5 py-0.5 rounded-clay-xs border border-clay-hairline">
-                      Line 22
+                      {task.status.replace(/_/g, " ")}
                     </span>
                   </div>
-                  <div className="text-[11px] text-clay-body font-sans mt-0.5">
-                    demo/buggy_app/calculator.py: calculate_discount adds markup instead of subtracting discount.
+                  <div className="text-[11px] text-clay-body font-sans mt-0.5 truncate max-w-xl">
+                    {task.description || task.title}
                   </div>
                 </div>
                 <span className="text-[10px] font-mono text-clay-primary group-hover:underline font-semibold">
@@ -394,7 +394,7 @@ export function BottomWorkspacePanel({
               <>
                 <div className="flex items-center justify-between pb-1 border-b border-clay-hairline">
                   <span className="text-clay-muted text-[11px]">
-                    Unified Patch Diff (demo/buggy_app/calculator.py)
+                    Unified Patch Diff
                   </span>
                   <button
                     onClick={handleCopyDiff}

@@ -15,7 +15,6 @@ import {
   MessageSquare,
   FolderGit2,
   ShieldCheck,
-  BookOpen,
   Users,
   Layers,
   Cpu,
@@ -27,7 +26,6 @@ export type ActivityTab =
   | "rooms"
   | "projects"
   | "reviews"
-  | "knowledge"
   | "members"
   | "studio"
   | "bugtree"
@@ -63,14 +61,12 @@ export function LeftActivityBar({
     icon: React.ComponentType<{ className?: string }>;
     badge?: number;
   }> = [
-    { id: "home", label: "Personal Home", icon: Home },
-    { id: "assistant", label: "AI Assistant", icon: Bot },
+    { id: "home", label: "Home", icon: Home },
+    { id: "assistant", label: "Assistant", icon: Bot },
     { id: "studio", label: "Engineering Studio", icon: Layers },
-    { id: "bugtree", label: "Personal Tasks", icon: Bug, badge: bugCount },
-    { id: "graph", label: "System Architecture Map", icon: Network },
-    { id: "knowledge", label: "Personal Knowledge & Memory", icon: BookOpen },
-    { id: "agents", label: "Specialist Agents", icon: Cpu },
-    { id: "platforms", label: "Connections (Discord & Telegram)", icon: Share2 },
+    { id: "bugtree", label: "Tasks", icon: Bug, badge: bugCount },
+    { id: "graph", label: "Architecture Map", icon: Network },
+    { id: "platforms", label: "Connected Apps", icon: Share2 },
   ];
 
   const teamTabs: Array<{
@@ -79,17 +75,15 @@ export function LeftActivityBar({
     icon: React.ComponentType<{ className?: string }>;
     badge?: number;
   }> = [
-    { id: "home", label: "Team Home", icon: Home },
-    { id: "rooms", label: "Rooms & Conversations", icon: MessageSquare },
-    { id: "projects", label: "Projects & Repositories", icon: FolderGit2 },
+    { id: "home", label: "Home", icon: Home },
+    { id: "rooms", label: "Rooms", icon: MessageSquare },
+    { id: "projects", label: "Projects", icon: FolderGit2 },
     { id: "studio", label: "Engineering Studio", icon: Layers },
-    { id: "bugtree", label: "Team Tasks Queue", icon: Bug, badge: bugCount },
-    { id: "reviews", label: "Human Gate Reviews & Approvals", icon: ShieldCheck },
-    { id: "graph", label: "System Architecture Map", icon: Network },
-    { id: "knowledge", label: "Org Knowledge & Guidelines", icon: BookOpen },
-    { id: "agents", label: "Team Autonomous Roster", icon: Cpu },
-    { id: "members", label: "Members & Roles (RBAC)", icon: Users },
-    { id: "platforms", label: "Connections (Slack & Teams)", icon: Share2 },
+    { id: "bugtree", label: "Tasks", icon: Bug, badge: bugCount },
+    { id: "reviews", label: "Reviews & Approvals", icon: ShieldCheck },
+    { id: "graph", label: "Architecture Map", icon: Network },
+    { id: "members", label: "Team Members", icon: Users },
+    { id: "platforms", label: "Connected Apps", icon: Share2 },
   ];
 
   const tabs = activeWorkspaceType === "PERSONAL" ? personalTabs : teamTabs;

@@ -201,11 +201,11 @@ export function LeftSidebar({
                   </h4>
                   {isWispr && (
                     <span
-                      title="Submitted via Wispr Flow voice transcription"
+                      title="Submitted via voice transcription"
                       className="shrink-0 flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded bg-purple-950/60 text-purple-300 border border-purple-800/60"
                     >
                       <Mic className="w-2.5 h-2.5 text-purple-400" />
-                      <span>Wispr</span>
+                      <span>Voice</span>
                     </span>
                   )}
                 </div>
