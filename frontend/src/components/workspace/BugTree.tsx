@@ -28,7 +28,6 @@ import { Task, TaskStatus } from "@/types";
 import { resolveBugLocation, ResolvedBugLocation, WorkspaceFile } from "@/lib/workspaceFiles";
 import { ActivityTab } from "@/components/layout/LeftActivityBar";
 import { BugGraphCanvas } from "./BugGraphCanvas";
-import { UserRole } from "@/components/layout/TopNavigation";
 
 interface BugTreeProps {
   tasks: Task[];
@@ -44,7 +43,7 @@ interface BugTreeProps {
   isLoading: boolean;
   onNewBugClick: () => void;
   onRefreshClick?: () => void;
-  userRole?: UserRole;
+  onSwitchToGraphView?: () => void;
 }
 
 interface TreeNode {
@@ -74,7 +73,7 @@ export function BugTree({
   isLoading,
   onNewBugClick,
   onRefreshClick,
-  userRole = "user",
+  onSwitchToGraphView,
 }: BugTreeProps) {
   const [viewMode, setViewMode] = useState<"tree" | "graph">("tree");
   const [isGraphEnlarged, setIsGraphEnlarged] = useState(false);
@@ -381,7 +380,7 @@ export function BugTree({
             <div className="flex items-center gap-2">
               <Bug className="w-3.5 h-3.5 text-clay-primary" />
               <span className="font-semibold text-clay-ink tracking-wide uppercase text-[11px] font-sans">
-                {userRole === "user" ? "Active Issues" : "Live Bug Tree"}
+                Active Issues
               </span>
               <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-clay-pill bg-clay-surface-card text-clay-muted border border-clay-hairline">
                 {tasks.length}
@@ -402,7 +401,13 @@ export function BugTree({
                   Tree
                 </button>
                 <button
-                  onClick={() => setViewMode("graph")}
+                  onClick={() => {
+                    if (onSwitchToGraphView) {
+                      onSwitchToGraphView();
+                    } else {
+                      setViewMode("graph");
+                    }
+                  }}
                   className={`px-2 py-0.5 rounded-clay-pill text-[10px] font-sans transition-colors cursor-pointer ${
                     viewMode === "graph"
                       ? "bg-white font-semibold text-clay-primary shadow-clay-soft"
@@ -415,8 +420,14 @@ export function BugTree({
 
               {/* Enlarge Graph View */}
               <button
-                onClick={() => setIsGraphEnlarged(true)}
-                title="Enlarge Graph Canvas"
+                onClick={() => {
+                  if (onSwitchToGraphView) {
+                    onSwitchToGraphView();
+                  } else {
+                    setIsGraphEnlarged(true);
+                  }
+                }}
+                title="View Full Architecture Map"
                 className="p-1 rounded-clay-md text-clay-muted hover:text-clay-primary hover:bg-clay-surface-card transition-colors cursor-pointer"
               >
                 <Maximize2 className="w-3.5 h-3.5" />
@@ -431,7 +442,7 @@ export function BugTree({
 
               <button
                 onClick={onNewBugClick}
-                title={userRole === "user" ? "Report Issue" : "Report New Bug"}
+                title="Report Issue"
                 className="p-1 rounded-clay-md text-clay-muted hover:text-clay-ink hover:bg-clay-surface-card transition-colors cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -452,7 +463,6 @@ export function BugTree({
                 onNavigateToLine={onNavigateToLine}
                 onSelectAgent={onSelectAgent}
                 compact={true}
-                userRole={userRole}
                 onToggleEnlarge={() => setIsGraphEnlarged(true)}
               />
             </div>
@@ -466,7 +476,7 @@ export function BugTree({
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={userRole === "user" ? "Search issues..." : "Filter bugs, files, lines..."}
+                    placeholder="Search issues, files..."
                     aria-label="Filter issues and files"
                     style={{ outline: "none", boxShadow: "none" }}
                     className="w-full bg-transparent outline-none border-none ring-0 focus:outline-none focus:ring-0 text-[11px] text-clay-ink placeholder-clay-muted font-sans"
@@ -486,9 +496,9 @@ export function BugTree({
                   {(
                     [
                       { id: "all", label: "All" },
-                      { id: "active", label: userRole === "user" ? "In Progress" : "Active" },
-                      { id: "awaiting", label: userRole === "user" ? "Needs Review" : "Gate" },
-                      { id: "resolved", label: userRole === "user" ? "Resolved" : "Resolved" },
+                      { id: "active", label: "In Progress" },
+                      { id: "awaiting", label: "Needs Review" },
+                      { id: "resolved", label: "Resolved" },
                     ] as const
                   ).map((chip) => (
                     <button
@@ -523,23 +533,78 @@ export function BugTree({
       )}
 
       {/* ========================================================================= */}
-      {/* 2. DEDICATED LIVE BUG GRAPH VIEW */}
+      {/* 2. DEDICATED ARCHITECTURE MAP SIDEBAR NAVIGATOR */}
       {/* ========================================================================= */}
       {activeActivityTab === "graph" && (
-        <div className="flex-1 min-h-0 relative flex flex-col h-full bg-clay-canvas">
-          <BugGraphCanvas
-            tasks={tasks}
-            selectedTaskId={selectedTaskId}
-            activeFileName={activeFileName}
-            workspaceFiles={workspaceFiles}
-            onSelectBug={onSelectBug}
-            onSelectFile={onSelectFile}
-            onNavigateToLine={onNavigateToLine}
-            onSelectAgent={onSelectAgent}
-            compact={false}
-            userRole={userRole}
-            onToggleEnlarge={() => setIsGraphEnlarged(true)}
-          />
+        <div className="flex-1 min-h-0 relative flex flex-col h-full bg-clay-surface-soft">
+          <div className="h-9 px-3 flex items-center justify-between border-b border-clay-hairline bg-clay-canvas">
+            <div className="flex items-center gap-2">
+              <Network className="w-3.5 h-3.5 text-clay-primary" />
+              <span className="font-semibold text-clay-ink tracking-wide uppercase text-[11px] font-sans">
+                Architecture Map
+              </span>
+            </div>
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-clay-pill bg-clay-mint/20 text-[#136149] font-medium border border-clay-mint/40">
+              Active
+            </span>
+          </div>
+
+          <div className="p-3 border-b border-clay-hairline bg-white">
+            <p className="text-[11px] text-clay-body leading-relaxed font-sans">
+              System architecture map is displayed in the main workspace. Select any file or defect below to inspect its code.
+            </p>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-2 space-y-1 font-sans text-xs">
+            <div className="text-[10px] font-semibold text-clay-muted uppercase tracking-wider px-1 py-1">
+              Codebase Files (4)
+            </div>
+            {Object.entries(workspaceFiles).map(([fileName, fileObj]) => (
+              <div
+                key={fileName}
+                onClick={() => onSelectFile(fileName)}
+                className={`flex items-center justify-between px-2.5 py-2 rounded-clay-md cursor-pointer transition-colors ${
+                  activeFileName === fileName
+                    ? "bg-white text-clay-ink border border-clay-hairline font-semibold shadow-clay-soft"
+                    : "text-clay-body hover:bg-white hover:text-clay-ink"
+                }`}
+              >
+                <div className="flex items-center gap-2 truncate">
+                  <FileCode className="w-3.5 h-3.5 text-clay-primary shrink-0" />
+                  <span className="truncate">{fileName}</span>
+                </div>
+                <span className="text-[10px] text-clay-muted font-mono">
+                  {fileObj.code.split("\n").length}L
+                </span>
+              </div>
+            ))}
+
+            <div className="text-[10px] font-semibold text-clay-muted uppercase tracking-wider px-1 pt-3 pb-1">
+              Active Issues ({tasks.length})
+            </div>
+            {tasks.map((task) => (
+              <div
+                key={task.id}
+                onClick={() => {
+                  const loc = resolveBugLocation(task);
+                  onSelectBug(task, loc.fileName, loc.lineNumber);
+                }}
+                className="p-2.5 rounded-clay-md bg-white hover:bg-clay-surface-card border border-clay-hairline cursor-pointer transition-colors shadow-clay-soft flex flex-col gap-1"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-clay-ink truncate">
+                    {task.title}
+                  </span>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-clay-pill bg-clay-pink/20 text-clay-pink-ink font-semibold">
+                    Issue
+                  </span>
+                </div>
+                <span className="text-[10px] text-clay-muted">
+                  Click to open code line
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -851,7 +916,6 @@ export function BugTree({
           onNavigateToLine={onNavigateToLine}
           onSelectAgent={onSelectAgent}
           isEnlarged={true}
-          userRole={userRole}
           onToggleEnlarge={() => setIsGraphEnlarged(false)}
         />
       )}
@@ -1005,22 +1069,11 @@ export function BugTree({
                   </div>
 
                   {/* Symbol Target / Location */}
-                  {userRole === "user" ? (
-                    <div className="mt-1 flex items-center justify-between text-[10px] text-clay-muted font-sans">
-                      <span className="truncate text-clay-muted">
-                        {location.fileName} • Line {location.lineNumber}
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="mt-1 flex items-center justify-between text-[10px] text-clay-muted font-mono">
-                      <span className="truncate text-clay-muted font-mono">
-                        @{location.symbolName}()
-                      </span>
-                      <span className="text-[9px] text-clay-muted">
-                        ID: {task.id.slice(-6)}
-                      </span>
-                    </div>
-                  )}
+                  <div className="mt-1 flex items-center justify-between text-[10px] text-clay-muted font-sans">
+                    <span className="truncate text-clay-muted">
+                      {location.fileName} • Line {location.lineNumber}
+                    </span>
+                  </div>
                 </div>
               );
             })}

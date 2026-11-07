@@ -37,12 +37,12 @@ export function LeftActivityBar({
     icon: React.ComponentType<{ className?: string }>;
     badge?: number;
   }> = [
-    { id: "bugtree", label: "Live Bug Tree", icon: Bug, badge: bugCount },
-    { id: "graph", label: "Live Bug Graph", icon: Network },
-    { id: "explorer", label: "File Explorer", icon: Files },
+    { id: "bugtree", label: "Active Issues", icon: Bug, badge: bugCount },
+    { id: "graph", label: "System Architecture Map", icon: Network },
+    { id: "explorer", label: "Files", icon: Files },
     { id: "search", label: "Search Codebase", icon: Search },
-    { id: "git", label: "Source Control", icon: GitBranch },
-    { id: "agents", label: "Switch Agents", icon: Bot },
+    { id: "git", label: "Changes", icon: GitBranch },
+    { id: "agents", label: "Smart Assistants", icon: Bot },
   ];
 
   return (

@@ -11,6 +11,7 @@ import {
   X,
   AlertTriangle,
   Bug,
+  Network,
 } from "lucide-react";
 import { WorkspaceFile } from "@/lib/workspaceFiles";
 
@@ -66,6 +67,7 @@ interface CodeEditorProps {
   cursorPosition: { lineNumber: number; column: number };
   onCursorPositionChange: (pos: { lineNumber: number; column: number }) => void;
   onSaveFile?: () => void;
+  onOpenSystemMap?: () => void;
 }
 
 export function CodeEditor({
@@ -86,6 +88,7 @@ export function CodeEditor({
   cursorPosition,
   onCursorPositionChange,
   onSaveFile,
+  onOpenSystemMap,
 }: CodeEditorProps) {
   const editorRef = useRef<MonacoEditorInstance | null>(null);
   const monacoRef = useRef<any>(null);
@@ -204,18 +207,29 @@ export function CodeEditor({
           </button>
         </div>
 
-        {/* Tab Right Controls: Diff Toggle */}
+        {/* Tab Right Controls: System Map & Diff Toggle */}
         <div className="flex items-center gap-1.5 shrink-0 pl-2">
+          {onOpenSystemMap && (
+            <button
+              onClick={onOpenSystemMap}
+              title="View Interactive System Architecture Map"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-clay-md text-[11px] font-sans border bg-white border-clay-hairline hover:bg-clay-surface-card text-clay-body hover:text-clay-ink shadow-clay-soft transition-colors cursor-pointer"
+            >
+              <Network className="w-3 h-3 text-clay-primary" />
+              <span className="hidden sm:inline">System Map</span>
+            </button>
+          )}
+
           <button
             onClick={() => onToggleDiffMode(!isDiffMode)}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-clay-md text-[11px] font-mono border transition-colors cursor-pointer ${
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-clay-md text-[11px] font-sans border transition-colors cursor-pointer ${
               isDiffMode
                 ? "bg-clay-primary text-white border-clay-primary font-semibold shadow-clay-soft"
                 : "bg-white border-clay-hairline hover:bg-clay-surface-card text-clay-body hover:text-clay-ink shadow-clay-soft"
             }`}
           >
             <SplitSquareVertical className="w-3 h-3" />
-            <span>{isDiffMode ? "Exit Diff" : "Diff View"}</span>
+            <span>{isDiffMode ? "Exit Preview" : "Review Changes"}</span>
           </button>
         </div>
       </div>

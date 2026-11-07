@@ -5,22 +5,16 @@ import {
   AlertCircle,
   Bot,
   CheckCircle2,
-  Clock,
-  ExternalLink,
-  GitBranch,
   Lock,
-  MessageSquare,
   RefreshCw,
   RotateCcw,
   ShieldCheck,
   SplitSquareVertical,
   UserCheck,
-  Sparkles,
 } from "lucide-react";
 import { ApprovalRecord, Evidence, Task, TaskStatus } from "@/types";
 import { approveTaskViaBFF, rejectTaskViaBFF, completeTaskViaBFF } from "@/lib/api";
 import { AgentDetailModal, AgentIdentifier } from "@/components/modals/AgentDetailModal";
-import { UserRole } from "@/components/layout/TopNavigation";
 
 interface SwitchAgentWorkspaceProps {
   task: Task | null;
@@ -29,7 +23,6 @@ interface SwitchAgentWorkspaceProps {
   isLoading: boolean;
   onTaskUpdated: (updatedTask: Task) => void;
   onToggleDiffMode: () => void;
-  userRole?: UserRole;
 }
 
 export function SwitchAgentWorkspace({
@@ -39,7 +32,6 @@ export function SwitchAgentWorkspace({
   isLoading,
   onTaskUpdated,
   onToggleDiffMode,
-  userRole = "user",
 }: SwitchAgentWorkspaceProps) {
   const [approvalComments, setApprovalComments] = useState("");
   const [rejectFeedback, setRejectFeedback] = useState("");
@@ -64,9 +56,7 @@ export function SwitchAgentWorkspace({
       <aside className="w-80 lg:w-92 border-l border-clay-hairline bg-clay-surface-soft p-6 flex flex-col items-center justify-center text-center text-clay-muted shrink-0 select-none">
         <Bot className="w-8 h-8 mb-2 text-clay-muted" />
         <span className="text-xs font-sans">
-          {userRole === "user"
-            ? "Select an issue to inspect the automated solution team"
-            : "Select a bug to inspect the AI Engineering Team"}
+          Select an issue to inspect the automated solution team
         </span>
       </aside>
     );
@@ -77,11 +67,9 @@ export function SwitchAgentWorkspace({
   const verifyEvidence = evidenceList.find((e) => e.stage === "verification");
 
   const hasReproRun = Boolean(reproEvidence);
-  const reproExitCode = reproEvidence ? reproEvidence.exit_code : null;
   const reproFailedAsExpected = reproEvidence ? reproEvidence.exit_code !== 0 : false;
 
   const hasVerifyRun = Boolean(verifyEvidence);
-  const verifyExitCode = verifyEvidence ? verifyEvidence.exit_code : null;
   const verifyPassed = verifyEvidence ? verifyEvidence.exit_code === 0 : false;
   const hasPatch = Boolean(verifyEvidence?.patch_diff || reproEvidence?.patch_diff);
 
@@ -89,7 +77,7 @@ export function SwitchAgentWorkspace({
   const isApproved = task.status === "APPROVED";
   const isCompleted = task.status === "COMPLETED";
 
-  // Human Gate Handlers
+  // Decision Handlers
   const handleApprove = async () => {
     setIsSubmitting(true);
     setActionError(null);
@@ -151,62 +139,62 @@ export function SwitchAgentWorkspace({
     switch (status) {
       case "REPORTED":
         return {
-          title: userRole === "user" ? "Investigating Issue" : "Analyzing defect",
-          desc: userRole === "user" ? "Analyzing the problem and locating the affected code." : "Triage agent is analyzing bug report and locating affected source code.",
+          title: "Investigating Issue",
+          desc: "Analyzing the problem and locating the affected code.",
           color: "text-clay-teal font-semibold",
         };
       case "TRIAGED":
         return {
-          title: userRole === "user" ? "Issue Located" : "Analysis complete",
-          desc: userRole === "user" ? "Isolated the exact code line. Starting automated reproduction." : "Target isolated in demo/buggy_app/calculator.py. Handing off to sandbox reproduction.",
+          title: "Issue Located",
+          desc: "Isolated the exact code line. Starting automated reproduction.",
           color: "text-clay-lavender-ink font-semibold",
         };
       case "REPRODUCING":
         return {
-          title: userRole === "user" ? "Testing Reproduction" : "Reproducing failure",
-          desc: userRole === "user" ? "Confirming the reported defect in a secure sandbox." : "Executing regression test suite in isolated sandbox workspace.",
+          title: "Testing Reproduction",
+          desc: "Confirming the reported defect in a secure sandbox.",
           color: "text-clay-lavender-ink font-semibold",
         };
       case "REPRODUCED":
         return {
-          title: userRole === "user" ? "Defect Confirmed" : "Defect confirmed",
-          desc: userRole === "user" ? "Automated check confirmed the problem. Preparing a solution." : "Reproduction confirmed genuine test failure (exit code 1). Handing off to Fix Agent.",
+          title: "Defect Confirmed",
+          desc: "Automated check confirmed the problem. Preparing a solution.",
           color: "text-clay-peach-ink font-semibold",
         };
       case "FIX_PROPOSED":
         return {
-          title: userRole === "user" ? "Solution Ready" : "Preparing a fix",
-          desc: userRole === "user" ? "Proposed code fix generated. Running verification checks." : "Candidate patch diff generated. Handing off to independent verification.",
+          title: "Solution Ready",
+          desc: "Proposed code fix generated. Running verification checks.",
           color: "text-clay-teal font-semibold",
         };
       case "VERIFYING":
         return {
-          title: userRole === "user" ? "Verifying Solution" : "Running verification",
-          desc: userRole === "user" ? "Running full test suite against the proposed fix." : "Verifier agent executing full test suite against patched workspace.",
+          title: "Verifying Solution",
+          desc: "Running full test suite against the proposed fix.",
           color: "text-clay-peach-ink font-semibold",
         };
       case "AWAITING_HUMAN_APPROVAL":
         return {
-          title: userRole === "user" ? "Ready for Your Approval" : "Waiting for your approval",
-          desc: userRole === "user" ? "All verification tests passed. Please review and approve the fix." : "All verification tests passed. Review the patch diff and decide.",
+          title: "Ready for Your Approval",
+          desc: "All verification tests passed. Please review and approve the fix.",
           color: "text-clay-peach-ink font-bold",
         };
       case "APPROVED":
         return {
-          title: userRole === "user" ? "Solution Approved" : "Approved by human",
-          desc: userRole === "user" ? "Ready to ship to main branch." : "Ready to ship to repository and complete.",
+          title: "Solution Approved",
+          desc: "Ready to ship to main branch.",
           color: "text-clay-mint-ink font-bold",
         };
       case "COMPLETED":
         return {
-          title: userRole === "user" ? "Shipped to Production" : "Completed & shipped",
-          desc: userRole === "user" ? "Issue successfully resolved and verified." : "Defect successfully resolved and verified.",
+          title: "Shipped to Production",
+          desc: "Issue successfully resolved and verified.",
           color: "text-clay-mint-ink font-bold",
         };
       case "REJECTED":
         return {
-          title: userRole === "user" ? "Adjustments Requested" : "Changes requested",
-          desc: userRole === "user" ? "Returned to Fix Assistant with your feedback." : "Returned to Fix Agent for re-attempt with human feedback.",
+          title: "Adjustments Requested",
+          desc: "Returned to Fix Assistant with your feedback.",
           color: "text-clay-coral-ink font-bold",
         };
       default:
@@ -227,14 +215,14 @@ export function SwitchAgentWorkspace({
         <div className="flex items-center gap-2">
           <Bot className="w-4 h-4 text-clay-primary" />
           <h2 className="font-semibold text-clay-ink tracking-wide uppercase text-[11px] font-sans">
-            {userRole === "user" ? "Smart Assistants" : "AI Engineering Team"}
+            Smart Assistants
           </h2>
         </div>
 
         <div className="flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-clay-success" />
-          <span className="text-[10px] font-mono text-clay-muted font-medium">
-            {userRole === "user" ? "Active" : "Switch Live"}
+          <span className="text-[10px] font-sans text-clay-muted font-medium">
+            Active
           </span>
         </div>
       </div>
@@ -259,7 +247,7 @@ export function SwitchAgentWorkspace({
             {isAwaitingApproval && (
               <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-clay-pill bg-clay-peach/40 text-clay-peach-ink border border-clay-peach/60 font-semibold">
                 <Lock className="w-2.5 h-2.5" />
-                {userRole === "user" ? "Needs Review" : "Human Gate"}
+                Needs Review
               </span>
             )}
           </div>
@@ -268,27 +256,16 @@ export function SwitchAgentWorkspace({
           </p>
         </div>
 
-        {/* SWITCH INCIDENT ROOM INFO (Dev Only) */}
-        {userRole === "dev" && (
-          <div className="p-2.5 rounded-clay-lg bg-white border border-clay-hairline shadow-clay-soft flex items-center justify-between text-[11px] font-mono">
-            <div className="flex items-center gap-2 text-clay-ink">
-              <MessageSquare className="w-3.5 h-3.5 text-clay-primary" />
-              <span className="text-clay-ink font-semibold">#shipdev-command-center</span>
-            </div>
-            <span className="text-[10px] text-clay-muted">Mattermost Bridged</span>
-          </div>
-        )}
-
         {/* AGENT ROSTER - UNIFORM BOX SIZES & EQUAL 4-DIRECTION PADDING */}
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between px-1">
-            <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-clay-muted">
-              {userRole === "user" ? "Specialized Assistants" : "Active Agents & Roles"}
+            <span className="text-[10px] font-sans font-semibold uppercase tracking-wider text-clay-muted">
+              Specialized Assistants
             </span>
             <span className="text-[10px] text-clay-muted font-mono">4 online</span>
           </div>
 
-          {/* 1. Triage Agent / Diagnosis Assistant */}
+          {/* 1. Diagnosis Assistant */}
           <div
             onClick={() => setSelectedAgentDetail("shipdev-triager")}
             className="p-3.5 rounded-clay-lg bg-white hover:bg-clay-surface-card border border-clay-hairline hover:border-clay-primary/40 shadow-clay-soft hover:shadow-clay-card flex flex-col justify-between min-h-[105px] cursor-pointer transition-all group"
@@ -299,17 +276,15 @@ export function SwitchAgentWorkspace({
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-clay-teal shrink-0" />
                   <span className="font-semibold text-clay-ink text-xs group-hover:text-clay-primary transition-colors">
-                    {userRole === "user" ? "Diagnosis Assistant" : "shipdev-triager"}
+                    Diagnosis Assistant
                   </span>
                 </div>
                 <span className="text-[10px] text-clay-teal bg-clay-teal/10 px-2 py-0.5 rounded-clay-pill font-medium">
-                  {userRole === "user" ? "Diagnosis" : "Triage Agent"}
+                  Diagnosis
                 </span>
               </div>
               <p className="text-[11px] text-clay-body font-sans leading-relaxed line-clamp-2">
-                {userRole === "user"
-                  ? "Analyzes the bug report, pinpoints the affected source file, and locates the error."
-                  : "Analyzes bug reports, maps defects to source files, and dispatches to sandbox."}
+                Analyzes the bug report, pinpoints the affected source file, and locates the error.
               </p>
             </div>
             <div className="text-[10px] pt-2 border-t border-clay-hairline flex items-center justify-between text-clay-muted mt-2">
@@ -322,11 +297,11 @@ export function SwitchAgentWorkspace({
             </div>
           </div>
 
-          {/* 2. Reproduction Agent / Automated Tester */}
+          {/* 2. Automated Tester */}
           <div
             onClick={() => setSelectedAgentDetail("shipdev-triager")}
             className="p-3.5 rounded-clay-lg bg-white hover:bg-clay-surface-card border border-clay-hairline hover:border-clay-lavender shadow-clay-soft hover:shadow-clay-card flex flex-col justify-between min-h-[105px] cursor-pointer transition-all group"
-            title="Inspect reproduction sandbox runner"
+            title="Inspect reproduction runner"
           >
             <div>
               <div className="flex items-center justify-between mb-1.5">
@@ -337,17 +312,15 @@ export function SwitchAgentWorkspace({
                     }`}
                   />
                   <span className="font-semibold text-clay-ink text-xs group-hover:text-clay-lavender-ink transition-colors">
-                    {userRole === "user" ? "Automated Tester" : "Reproduction Agent"}
+                    Automated Tester
                   </span>
                 </div>
                 <span className="text-[10px] text-clay-lavender-ink bg-clay-lavender/25 px-2 py-0.5 rounded-clay-pill font-semibold">
-                  {userRole === "user" ? "Sandbox Test" : "Sandbox Runner"}
+                  Sandbox Test
                 </span>
               </div>
               <p className="text-[11px] text-clay-body font-sans leading-relaxed line-clamp-2">
-                {userRole === "user"
-                  ? "Runs automated test scenarios in an isolated environment to verify the issue."
-                  : "Executes regression tests in pristine temporary workspaces without touching production."}
+                Runs automated test scenarios in an isolated environment to verify the issue.
               </p>
             </div>
             <div className="text-[10px] pt-2 border-t border-clay-hairline flex items-center justify-between text-clay-muted mt-2">
@@ -355,28 +328,24 @@ export function SwitchAgentWorkspace({
                 {hasReproRun ? (
                   reproFailedAsExpected ? (
                     <span className="text-clay-lavender-ink font-semibold">
-                      {userRole === "user" ? "✓ Issue Confirmed" : "✓ Defect Confirmed (Exit 1)"}
+                      ✓ Issue Confirmed
                     </span>
                   ) : (
-                    <span className="text-clay-muted">
-                      {userRole === "user" ? "Executed" : `Executed (Exit ${reproExitCode})`}
-                    </span>
+                    <span className="text-clay-muted">Executed</span>
                   )
                 ) : (
                   <span className="text-clay-muted">Pending run</span>
                 )}
               </span>
-              <span className="text-clay-muted">
-                {userRole === "user" ? "Details ↗" : "pytest ↗"}
-              </span>
+              <span className="text-clay-muted">Details ↗</span>
             </div>
           </div>
 
-          {/* 3. Fix Agent / Solution Assistant */}
+          {/* 3. Solution Assistant */}
           <div
             onClick={() => setSelectedAgentDetail("shipdev-fixer")}
             className="p-3.5 rounded-clay-lg bg-white hover:bg-clay-surface-card border border-clay-hairline hover:border-clay-teal shadow-clay-soft hover:shadow-clay-card flex flex-col justify-between min-h-[105px] cursor-pointer transition-all group"
-            title="Inspect patch generator"
+            title="Inspect solution generator"
           >
             <div>
               <div className="flex items-center justify-between mb-1.5">
@@ -387,17 +356,15 @@ export function SwitchAgentWorkspace({
                     }`}
                   />
                   <span className="font-semibold text-clay-ink text-xs group-hover:text-clay-teal transition-colors">
-                    {userRole === "user" ? "Solution Assistant" : "Fix Agent"}
+                    Solution Assistant
                   </span>
                 </div>
                 <span className="text-[10px] text-clay-teal bg-clay-teal/10 px-2 py-0.5 rounded-clay-pill font-medium">
-                  {userRole === "user" ? "Code Fixer" : "Patch Generator"}
+                  Code Fixer
                 </span>
               </div>
               <p className="text-[11px] text-clay-body font-sans leading-relaxed line-clamp-2">
-                {userRole === "user"
-                  ? "Crafts a minimal, targeted code solution that fixes the defect safely."
-                  : "Synthesizes minimal isolated code fix and generates unified diff."}
+                Crafts a minimal, targeted code solution that fixes the defect safely.
               </p>
             </div>
             <div className="text-[10px] pt-2 border-t border-clay-hairline flex items-center justify-between text-clay-muted mt-2">
@@ -414,11 +381,11 @@ export function SwitchAgentWorkspace({
             </div>
           </div>
 
-          {/* 4. Verification Agent / Quality Reviewer */}
+          {/* 4. Quality Reviewer */}
           <div
             onClick={() => setSelectedAgentDetail("shipdev-verifier")}
             className="p-3.5 rounded-clay-lg bg-white hover:bg-clay-surface-card border border-clay-hairline hover:border-[#136149] shadow-clay-soft hover:shadow-clay-card flex flex-col justify-between min-h-[105px] cursor-pointer transition-all group"
-            title="Inspect verification oracle"
+            title="Inspect quality reviewer"
           >
             <div>
               <div className="flex items-center justify-between mb-1.5">
@@ -429,17 +396,15 @@ export function SwitchAgentWorkspace({
                     }`}
                   />
                   <span className="font-semibold text-clay-ink text-xs group-hover:text-[#136149] transition-colors">
-                    {userRole === "user" ? "Quality Reviewer" : "shipdev-verifier"}
+                    Quality Reviewer
                   </span>
                 </div>
                 <span className="text-[10px] text-[#136149] bg-clay-mint/25 px-2 py-0.5 rounded-clay-pill font-semibold">
-                  {userRole === "user" ? "Verification" : "Verifier Agent"}
+                  Verification
                 </span>
               </div>
               <p className="text-[11px] text-clay-body font-sans leading-relaxed line-clamp-2">
-                {userRole === "user"
-                  ? "Independently validates that all tests pass before requesting your approval."
-                  : "Independently validates full test suite against patched workspace before human handoff."}
+                Independently validates that all tests pass before requesting your approval.
               </p>
             </div>
             <div className="text-[10px] pt-2 border-t border-clay-hairline flex items-center justify-between text-clay-muted mt-2">
@@ -447,11 +412,11 @@ export function SwitchAgentWorkspace({
                 {hasVerifyRun ? (
                   verifyPassed ? (
                     <span className="text-[#136149] font-semibold">
-                      {userRole === "user" ? "✓ All Tests Passed" : "✓ All Tests Passed (Exit 0)"}
+                      ✓ All Tests Passed
                     </span>
                   ) : (
                     <span className="text-clay-coral font-semibold">
-                      {userRole === "user" ? "Verification Failed" : `✗ Verification Failed (Exit ${verifyExitCode})`}
+                      Verification Failed
                     </span>
                   )
                 ) : (
@@ -464,16 +429,14 @@ export function SwitchAgentWorkspace({
             </div>
           </div>
 
-          {/* Unified Diff Action Button - Uniform width & padding outside cards */}
+          {/* Review Proposed Solution Changes Button */}
           {hasPatch && (
             <button
               onClick={onToggleDiffMode}
               className="w-full py-2.5 px-3.5 rounded-clay-lg bg-clay-surface-card hover:bg-clay-surface-strong border border-clay-hairline text-clay-ink font-medium text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-clay-soft"
             >
               <SplitSquareVertical className="w-3.5 h-3.5 text-clay-primary" />
-              <span>
-                {userRole === "user" ? "Review Proposed Solution Changes" : "Compare Proposed Patch Diff"}
-              </span>
+              <span>Review Proposed Solution Changes</span>
             </button>
           )}
         </div>
@@ -483,10 +446,10 @@ export function SwitchAgentWorkspace({
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-sans font-semibold uppercase tracking-wider text-clay-ink flex items-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 text-clay-primary" />
-              <span>{userRole === "user" ? "Your Review & Decision" : "Human Approval Gate"}</span>
+              <span>Your Review & Decision</span>
             </span>
             <span className="text-[9px] text-clay-muted font-sans">
-              {userRole === "user" ? "Human in the Loop" : "Immutable Boundary"}
+              Human in the Loop
             </span>
           </div>
 
@@ -511,21 +474,15 @@ export function SwitchAgentWorkspace({
               <div className="p-3 rounded-clay-lg bg-white border border-clay-hairline shadow-clay-soft flex flex-col gap-2 text-[11px] font-sans">
                 <div className="flex items-center gap-2 text-clay-body">
                   <CheckCircle2 className="w-3.5 h-3.5 text-clay-success shrink-0" />
-                  <span>
-                    {userRole === "user" ? "Issue verified in isolated sandbox" : "Reproduction verified (exit code 1)"}
-                  </span>
+                  <span>Issue verified in isolated sandbox</span>
                 </div>
                 <div className="flex items-center gap-2 text-clay-body">
                   <CheckCircle2 className="w-3.5 h-3.5 text-clay-success shrink-0" />
-                  <span>
-                    {userRole === "user" ? "Targeted fix passes all test cases" : "Verification passed (exit code 0)"}
-                  </span>
+                  <span>Targeted fix passes all test cases</span>
                 </div>
                 <div className="flex items-center gap-2 text-clay-body">
                   <CheckCircle2 className="w-3.5 h-3.5 text-clay-success shrink-0" />
-                  <span>
-                    {userRole === "user" ? "Ready for your final review and deploy" : "Unified patch diff ready for review"}
-                  </span>
+                  <span>Ready for your final review and deploy</span>
                 </div>
               </div>
 
@@ -536,7 +493,7 @@ export function SwitchAgentWorkspace({
                     type="text"
                     value={approvalComments}
                     onChange={(e) => setApprovalComments(e.target.value)}
-                    placeholder={userRole === "user" ? "Add an optional approval note..." : "Approval comments (optional)..."}
+                    placeholder="Add an optional approval note..."
                     aria-label="Approval comments"
                     style={{ outline: "none", boxShadow: "none" }}
                     className="w-full px-3 py-2 rounded-clay-md bg-clay-surface-soft border border-clay-hairline text-xs text-clay-ink placeholder-clay-muted outline-none focus:outline-none focus:ring-0 shadow-clay-soft"
@@ -553,7 +510,7 @@ export function SwitchAgentWorkspace({
                       ) : (
                         <UserCheck className="w-3.5 h-3.5" />
                       )}
-                      <span>{userRole === "user" ? "Approve & Ship" : "Approve Fix"}</span>
+                      <span>Approve & Ship</span>
                     </button>
 
                     <button
@@ -562,7 +519,7 @@ export function SwitchAgentWorkspace({
                       className="w-full py-2.5 px-3 rounded-clay-md bg-white hover:bg-clay-coral/10 border border-clay-coral/60 text-clay-coral-ink text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-clay-soft"
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
-                      <span>{userRole === "user" ? "Request Changes" : "Reject Patch"}</span>
+                      <span>Request Changes</span>
                     </button>
                   </div>
                 </>
@@ -572,11 +529,7 @@ export function SwitchAgentWorkspace({
                     rows={2}
                     value={rejectFeedback}
                     onChange={(e) => setRejectFeedback(e.target.value)}
-                    placeholder={
-                      userRole === "user"
-                        ? "Explain what needs to be changed in the solution..."
-                        : "Explain required changes for the Fix Agent..."
-                    }
+                    placeholder="Explain what needs to be changed in the solution..."
                     aria-label="Explain required changes"
                     style={{ outline: "none", boxShadow: "none" }}
                     className="w-full p-2.5 rounded-clay-md bg-clay-surface-soft border border-clay-coral/60 text-xs text-clay-ink placeholder-clay-muted outline-none focus:outline-none focus:ring-0 resize-none shadow-clay-soft"
@@ -613,7 +566,7 @@ export function SwitchAgentWorkspace({
               ) : (
                 <CheckCircle2 className="w-3.5 h-3.5" />
               )}
-              <span>{userRole === "user" ? "Deploy Solution to Main" : "Complete & Ship Fix"}</span>
+              <span>Deploy Solution to Main</span>
             </button>
           )}
 
@@ -623,7 +576,7 @@ export function SwitchAgentWorkspace({
               <span className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-clay-success shrink-0" />
                 <span className="font-semibold">
-                  {userRole === "user" ? "Fix Deployed to Production" : "Fix Shipped to Main"}
+                  Fix Deployed to Production
                 </span>
               </span>
               <span className="text-[#136149] font-bold">Verified</span>

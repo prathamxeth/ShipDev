@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { TopNavigation, UserRole } from "@/components/layout/TopNavigation";
+import { TopNavigation } from "@/components/layout/TopNavigation";
 import { LeftActivityBar, ActivityTab } from "@/components/layout/LeftActivityBar";
 import { BugTree } from "@/components/workspace/BugTree";
+import { BugGraphCanvas } from "@/components/workspace/BugGraphCanvas";
 import { CodeEditor } from "@/components/workspace/CodeEditor";
 import { SwitchAgentWorkspace } from "@/components/workspace/SwitchAgentWorkspace";
 import { BottomWorkspacePanel } from "@/components/workspace/BottomWorkspacePanel";
@@ -34,7 +35,7 @@ import {
   resolveBugLocation,
   getPatchedCode,
 } from "@/lib/workspaceFiles";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, FileCode } from "lucide-react";
 
 export default function ShipDevIDE() {
   // Backend & Real Task State
@@ -83,9 +84,6 @@ export default function ShipDevIDE() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [selectedAgentModal, setSelectedAgentModal] = useState<AgentIdentifier | null>(null);
-
-  // User Mode vs Developer Mode Toggle (User View is default for clean, non-technical experience)
-  const [userRole, setUserRole] = useState<UserRole>("user");
 
   // Show Toast Helper
   const showToast = useCallback((msg: string) => {
@@ -411,8 +409,6 @@ export default function ShipDevIDE() {
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-clay-canvas text-clay-ink font-sans select-none">
       {/* Top Bar Navigation */}
       <TopNavigation
-        userRole={userRole}
-        onToggleUserRole={setUserRole}
         onNewBugClick={() => setIsNewBugModalOpen(true)}
         onRefreshClick={handleRefresh}
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
@@ -444,15 +440,9 @@ export default function ShipDevIDE() {
           bugCount={tasks.length}
         />
 
-        {/* Left Sidebar: Live Bug Tree / Explorer / Search / Git / Agents */}
+        {/* Left Sidebar: Sleek Standard Width (Always w-64 lg:w-72 - Never squishes code editor) */}
         {isSidebarOpen && (
-          <div
-            className={`${
-              activeActivityTab === "graph"
-                ? "w-[560px] lg:w-[700px] xl:w-[820px]"
-                : "w-64 lg:w-72"
-            } shrink-0 h-full border-r border-clay-hairline transition-all duration-200`}
-          >
+          <div className="w-64 lg:w-72 shrink-0 h-full border-r border-clay-hairline">
             <BugTree
               tasks={tasks}
               selectedTaskId={selectedTaskId}
@@ -467,35 +457,88 @@ export default function ShipDevIDE() {
               isLoading={isLoadingTasks}
               onNewBugClick={() => setIsNewBugModalOpen(true)}
               onRefreshClick={handleRefresh}
-              userRole={userRole}
+              onSwitchToGraphView={() => setActiveActivityTab("graph")}
             />
           </div>
         )}
 
-        {/* Center: Monaco Code Editor & Resizable Bottom Dock */}
+        {/* Center: Main Workspace (Code Editor or Full System Architecture Map) */}
         <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-          {/* Monaco Code Editor */}
-          <div className="flex-1 min-h-0 relative">
-            <CodeEditor
-              workspaceFiles={workspaceFiles}
-              openTabs={openTabs}
-              activeFileName={activeFileName}
-              onSelectTab={handleSelectFile}
-              onCloseTab={handleCloseTab}
-              onCodeChange={handleCodeChange}
-              isDiffMode={isDiffMode}
-              onToggleDiffMode={() => setIsDiffMode((prev) => !prev)}
-              originalCodeForDiff={activeOriginalCode}
-              modifiedCodeForDiff={activePatchedCode}
-              onAcceptDiff={handleAcceptDiff}
-              onRejectDiff={handleRejectDiff}
-              targetHighlightLine={targetHighlightLine}
-              bugAnnotation={currentBugAnnotation}
-              cursorPosition={cursorPosition}
-              onCursorPositionChange={setCursorPosition}
-              onSaveFile={handleSaveFile}
-            />
-          </div>
+          {activeActivityTab === "graph" ? (
+            <div className="flex-1 min-h-0 relative flex flex-col h-full bg-clay-canvas">
+              {/* Architecture Map Header Bar with Quick Return to Code */}
+              <div className="h-10 px-4 border-b border-clay-hairline bg-white flex items-center justify-between shrink-0 shadow-xs">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-clay-primary animate-pulse" />
+                  <span className="font-semibold text-clay-ink text-xs font-sans">
+                    System Architecture Map
+                  </span>
+                  <span className="text-[10px] text-clay-muted bg-clay-surface-card border border-clay-hairline px-2 py-0.5 rounded-clay-pill font-mono">
+                    Spacious Central View
+                  </span>
+                </div>
+                <button
+                  onClick={() => {
+                    setActiveActivityTab("bugtree");
+                    if (!activeFileName && openTabs.length > 0) {
+                      setActiveFileName(openTabs[0]);
+                    }
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-clay-md bg-clay-surface-soft hover:bg-clay-surface-card border border-clay-hairline text-clay-ink text-xs font-medium cursor-pointer transition-colors shadow-clay-soft"
+                >
+                  <FileCode className="w-3.5 h-3.5 text-clay-primary" />
+                  <span>Return to Code Editor ({activeFileName || "calculator.py"})</span>
+                </button>
+              </div>
+
+              {/* Full Central Canvas */}
+              <div className="flex-1 min-h-0 relative">
+                <BugGraphCanvas
+                  tasks={tasks}
+                  selectedTaskId={selectedTaskId}
+                  activeFileName={activeFileName}
+                  workspaceFiles={workspaceFiles}
+                  onSelectBug={(task, fileName, lineNumber) => {
+                    handleSelectBug(task, fileName, lineNumber);
+                    setActiveActivityTab("bugtree");
+                  }}
+                  onSelectFile={(fileName) => {
+                    handleSelectFile(fileName);
+                    setActiveActivityTab("bugtree");
+                  }}
+                  onNavigateToLine={(fileName, lineNumber) => {
+                    handleNavigateToLine(fileName, lineNumber);
+                    setActiveActivityTab("bugtree");
+                  }}
+                  onSelectAgent={(id) => setSelectedAgentModal(id)}
+                  compact={false}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 min-h-0 relative">
+              <CodeEditor
+                workspaceFiles={workspaceFiles}
+                openTabs={openTabs}
+                activeFileName={activeFileName}
+                onSelectTab={handleSelectFile}
+                onCloseTab={handleCloseTab}
+                onCodeChange={handleCodeChange}
+                isDiffMode={isDiffMode}
+                onToggleDiffMode={() => setIsDiffMode((prev) => !prev)}
+                originalCodeForDiff={activeOriginalCode}
+                modifiedCodeForDiff={activePatchedCode}
+                onAcceptDiff={handleAcceptDiff}
+                onRejectDiff={handleRejectDiff}
+                targetHighlightLine={targetHighlightLine}
+                bugAnnotation={currentBugAnnotation}
+                cursorPosition={cursorPosition}
+                onCursorPositionChange={setCursorPosition}
+                onSaveFile={handleSaveFile}
+                onOpenSystemMap={() => setActiveActivityTab("graph")}
+              />
+            </div>
+          )}
 
           {/* Resizable Bottom Dock */}
           <BottomWorkspacePanel
@@ -511,7 +554,7 @@ export default function ShipDevIDE() {
           />
         </div>
 
-        {/* Right: AI Engineering Team (Switch Agent Workspace) */}
+        {/* Right: Smart Assistants Workspace */}
         <SwitchAgentWorkspace
           task={selectedTask}
           evidenceList={evidenceList}
@@ -523,7 +566,6 @@ export default function ShipDevIDE() {
             loadTaskDetails(updatedTask.id);
           }}
           onToggleDiffMode={() => setIsDiffMode(true)}
-          userRole={userRole}
         />
       </div>
 
@@ -532,7 +574,7 @@ export default function ShipDevIDE() {
         <div className="flex items-center gap-3 min-w-0">
           <div className="flex items-center gap-1.5 text-clay-ink">
             <span className="w-1.5 h-1.5 rounded-full bg-clay-primary" />
-            <span className="font-semibold text-clay-ink font-sans">ShipDev</span>
+            <span className="font-semibold text-clay-ink font-sans">ShipDev Studio</span>
           </div>
           <span className="text-clay-hairline">•</span>
           <div className="flex items-center gap-1 text-clay-success font-medium">
@@ -541,9 +583,7 @@ export default function ShipDevIDE() {
           </div>
           <span className="text-clay-hairline">•</span>
           <span className="text-clay-muted">
-            {userRole === "user"
-              ? `${tasks.length} ${tasks.length === 1 ? "issue monitored" : "issues monitored"}`
-              : `${tasks.length} ${tasks.length === 1 ? "bug tracked" : "bugs tracked"}`}
+            {tasks.length} {tasks.length === 1 ? "issue monitored" : "issues monitored"}
           </span>
         </div>
 
@@ -555,7 +595,7 @@ export default function ShipDevIDE() {
             Ln {cursorPosition.lineNumber}, Col {cursorPosition.column}
           </span>
           <span className="text-clay-primary font-semibold hidden md:inline">
-            {userRole === "user" ? "Autonomous Quality Active" : "Switch Supervised"}
+            Autonomous Quality Active
           </span>
         </div>
       </div>

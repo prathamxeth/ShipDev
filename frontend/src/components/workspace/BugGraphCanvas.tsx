@@ -23,7 +23,6 @@ import {
 } from "lucide-react";
 import { Task, TaskStatus } from "@/types";
 import { WorkspaceFile, resolveBugLocation } from "@/lib/workspaceFiles";
-import { UserRole } from "@/components/layout/TopNavigation";
 
 export type GraphNodeType = "folder" | "file" | "function" | "bug" | "agent";
 
@@ -65,7 +64,6 @@ interface BugGraphCanvasProps {
   isEnlarged?: boolean;
   onToggleEnlarge?: () => void;
   compact?: boolean;
-  userRole?: UserRole;
 }
 
 export function BugGraphCanvas({
@@ -80,7 +78,6 @@ export function BugGraphCanvas({
   isEnlarged = false,
   onToggleEnlarge,
   compact = false,
-  userRole = "user",
 }: BugGraphCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -114,8 +111,8 @@ export function BugGraphCanvas({
     // LEVEL 0: Root Repository Workspace
     rawNodes.push({
       id: "folder_root",
-      label: userRole === "user" ? "ShipDev App" : "ShipDev",
-      sublabel: userRole === "user" ? "Project Root" : "workspace root",
+      label: "ShipDev App",
+      sublabel: "Project Root",
       type: "folder",
       path: "/",
       x: 360,
@@ -128,7 +125,7 @@ export function BugGraphCanvas({
     const folders = [
       {
         id: "folder_demo",
-        label: userRole === "user" ? "Calculator App" : "demo",
+        label: "Calculator App",
         path: "demo",
         parentId: "folder_root",
         x: 160,
@@ -136,7 +133,7 @@ export function BugGraphCanvas({
       },
       {
         id: "folder_buggy",
-        label: userRole === "user" ? "App Code" : "buggy_app",
+        label: "App Code",
         path: "demo/buggy_app",
         parentId: "folder_demo",
         x: 160,
@@ -144,7 +141,7 @@ export function BugGraphCanvas({
       },
       {
         id: "folder_tests",
-        label: userRole === "user" ? "Test Suite" : "tests",
+        label: "Test Suite",
         path: "demo/tests",
         parentId: "folder_demo",
         x: 390,
@@ -152,7 +149,7 @@ export function BugGraphCanvas({
       },
       {
         id: "folder_scripts",
-        label: userRole === "user" ? "Bridge Scripts" : "scripts",
+        label: "Bridge Scripts",
         path: "scripts",
         parentId: "folder_root",
         x: 620,
@@ -244,7 +241,7 @@ export function BugGraphCanvas({
     const functions = [
       {
         id: "fn_divide",
-        label: userRole === "user" ? "discount_calc()" : "divide(a, b)",
+        label: "discount_calc()",
         sublabel: "Line 22",
         fileName: "calculator.py",
         lineNumber: 22,
@@ -254,7 +251,7 @@ export function BugGraphCanvas({
       },
       {
         id: "fn_add",
-        label: userRole === "user" ? "add_numbers()" : "add(a, b)",
+        label: "add_numbers()",
         sublabel: "Line 6",
         fileName: "calculator.py",
         lineNumber: 6,
@@ -264,7 +261,7 @@ export function BugGraphCanvas({
       },
       {
         id: "fn_eval",
-        label: userRole === "user" ? "eval_expr()" : "evaluate(expr)",
+        label: "eval_expr()",
         sublabel: "Line 38",
         fileName: "calculator.py",
         lineNumber: 38,
@@ -274,7 +271,7 @@ export function BugGraphCanvas({
       },
       {
         id: "fn_test_div",
-        label: userRole === "user" ? "test_discount()" : "test_calculate_discount()",
+        label: "test_discount()",
         sublabel: "Line 14",
         fileName: "test_calculator.py",
         lineNumber: 14,
@@ -284,7 +281,7 @@ export function BugGraphCanvas({
       },
       {
         id: "fn_claim",
-        label: userRole === "user" ? "relay_worker()" : "claim_task()",
+        label: "relay_worker()",
         sublabel: "Line 108",
         fileName: "switch_bridge.py",
         lineNumber: 108,
@@ -332,8 +329,8 @@ export function BugGraphCanvas({
 
       rawNodes.push({
         id: bugNodeId,
-        label: userRole === "user" ? "Active Issue" : task.title,
-        sublabel: userRole === "user" ? "Needs Review" : `Status: ${task.status}`,
+        label: "Active Issue",
+        sublabel: "Needs Review",
         type: "bug",
         task,
         status: task.status,
@@ -360,8 +357,8 @@ export function BugGraphCanvas({
     // LEVEL 5: Switch Agents Orchestrators
     rawNodes.push({
       id: "agent_triager",
-      label: userRole === "user" ? "Diagnosis Assistant" : "shipdev-triager",
-      sublabel: userRole === "user" ? "Pinpoints defect" : "Root Cause Diagnostician",
+      label: "Diagnosis Assistant",
+      sublabel: "Pinpoints defect",
       type: "agent",
       x: 300,
       y: 690,
@@ -370,8 +367,8 @@ export function BugGraphCanvas({
 
     rawNodes.push({
       id: "agent_verifier",
-      label: userRole === "user" ? "Quality Reviewer" : "shipdev-verifier",
-      sublabel: userRole === "user" ? "Validates fix" : "Independent Validation Oracle",
+      label: "Quality Reviewer",
+      sublabel: "Validates fix",
       type: "agent",
       x: 520,
       y: 690,
@@ -400,7 +397,7 @@ export function BugGraphCanvas({
     }
 
     return { nodes: rawNodes, edges: rawEdges };
-  }, [tasks, selectedTaskId, collapsedFolders, userRole]);
+  }, [tasks, selectedTaskId, collapsedFolders]);
 
   // Node Map for fast edge and lookup resolution
   const nodeMap = useMemo(() => {
@@ -555,7 +552,7 @@ export function BugGraphCanvas({
             <div className="flex items-center gap-2 min-w-0">
               <span className="w-2 h-2 rounded-full bg-clay-primary animate-pulse shrink-0" />
               <span className="font-semibold text-clay-ink text-xs font-sans truncate">
-                {userRole === "user" ? "System Architecture Map" : "Live Bug Tree Graph"}
+                System Architecture Map
               </span>
               <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-clay-pill bg-clay-surface-card border border-clay-hairline text-clay-muted shrink-0">
                 {filteredNodes.length} nodes • {edges.length} links
@@ -603,7 +600,7 @@ export function BugGraphCanvas({
               <Search className="w-3 h-3 text-clay-muted absolute left-2 top-2 pointer-events-none" />
               <input
                 type="text"
-                placeholder={userRole === "user" ? "Search map..." : "Filter nodes..."}
+                placeholder="Search map..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{ outline: "none", boxShadow: "none" }}
@@ -624,11 +621,11 @@ export function BugGraphCanvas({
               {(
                 [
                   { id: "all", label: "All" },
-                  { id: "folder", label: userRole === "user" ? "Folders" : "folder" },
-                  { id: "file", label: userRole === "user" ? "Files" : "file" },
-                  { id: "function", label: userRole === "user" ? "Logic" : "function" },
-                  { id: "bug", label: userRole === "user" ? "Issues" : "bug" },
-                  { id: "agent", label: userRole === "user" ? "Assistants" : "agent" },
+                  { id: "folder", label: "Folders" },
+                  { id: "file", label: "Files" },
+                  { id: "function", label: "Logic" },
+                  { id: "bug", label: "Issues" },
+                  { id: "agent", label: "Assistants" },
                 ] as const
               ).map((chip) => (
                 <button
@@ -739,7 +736,7 @@ export function BugGraphCanvas({
                       className={edge.animated ? "animate-pulse" : ""}
                       markerEnd={isRed ? "url(#edge-arrow-red)" : isGreen ? "url(#edge-arrow-green)" : "url(#edge-arrow)"}
                     />
-                    {edge.label && userRole === "dev" && (
+                    {edge.label && (
                       <text
                         x={(source.x + target.x) / 2 + 84}
                         y={midY}
