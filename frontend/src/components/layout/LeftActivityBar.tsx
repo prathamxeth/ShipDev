@@ -2,44 +2,33 @@
 
 import React from "react";
 import {
-  Files,
-  Bug,
-  GitBranch,
   Bot,
-  Search,
   Settings,
   Info,
-  Network,
   Share2,
-  Home,
-  MessageSquare,
-  FolderGit2,
   ShieldCheck,
-  Users,
-  Layers,
-  Cpu,
 } from "lucide-react";
 
 export type ActivityTab =
-  | "home"
   | "assistant"
-  | "rooms"
-  | "projects"
   | "reviews"
-  | "members"
-  | "studio"
+  | "platforms"
   | "bugtree"
   | "graph"
   | "explorer"
+  | "search"
   | "git"
   | "agents"
-  | "search"
-  | "platforms";
+  | "home"
+  | "rooms"
+  | "projects"
+  | "members"
+  | "studio";
 
 interface LeftActivityBarProps {
   activeTab: ActivityTab;
   onSelectTab: (tab: ActivityTab) => void;
-  isSidebarOpen: boolean;
+  isSidebarOpen?: boolean;
   onOpenSettings: () => void;
   onOpenAbout: () => void;
   bugCount?: number;
@@ -49,7 +38,6 @@ interface LeftActivityBarProps {
 export function LeftActivityBar({
   activeTab,
   onSelectTab,
-  isSidebarOpen,
   onOpenSettings,
   onOpenAbout,
   bugCount = 0,
@@ -61,12 +49,8 @@ export function LeftActivityBar({
     icon: React.ComponentType<{ className?: string }>;
     badge?: number;
   }> = [
-    { id: "home", label: "Home", icon: Home },
-    { id: "assistant", label: "Assistant", icon: Bot },
-    { id: "studio", label: "Engineering Studio", icon: Layers },
-    { id: "bugtree", label: "Tasks", icon: Bug, badge: bugCount },
-    { id: "graph", label: "Architecture Map", icon: Network },
-    { id: "platforms", label: "Connected Apps", icon: Share2 },
+    { id: "assistant", label: "Personal AI Assistant", icon: Bot },
+    { id: "platforms", label: "Connected Apps (Discord & Telegram)", icon: Share2 },
   ];
 
   const teamTabs: Array<{
@@ -75,15 +59,9 @@ export function LeftActivityBar({
     icon: React.ComponentType<{ className?: string }>;
     badge?: number;
   }> = [
-    { id: "home", label: "Home", icon: Home },
-    { id: "rooms", label: "Rooms", icon: MessageSquare },
-    { id: "projects", label: "Projects", icon: FolderGit2 },
-    { id: "studio", label: "Engineering Studio", icon: Layers },
-    { id: "bugtree", label: "Tasks", icon: Bug, badge: bugCount },
-    { id: "reviews", label: "Reviews & Approvals", icon: ShieldCheck },
-    { id: "graph", label: "Architecture Map", icon: Network },
-    { id: "members", label: "Team Members", icon: Users },
-    { id: "platforms", label: "Connected Apps", icon: Share2 },
+    { id: "assistant", label: "Team AI Assistant", icon: Bot },
+    { id: "reviews", label: "Reviews & Approvals", icon: ShieldCheck, badge: bugCount },
+    { id: "platforms", label: "Connected Apps (Slack & MS Teams)", icon: Share2 },
   ];
 
   const tabs = activeWorkspaceType === "PERSONAL" ? personalTabs : teamTabs;
@@ -98,7 +76,7 @@ export function LeftActivityBar({
       <div className="flex flex-col items-center gap-2">
         {tabs.map((tab) => {
           const Icon = tab.icon;
-          const isActive = activeTab === tab.id && isSidebarOpen;
+          const isActive = activeTab === tab.id;
 
           return (
             <button

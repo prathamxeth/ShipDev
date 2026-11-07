@@ -2,44 +2,23 @@
 
 import React, { useEffect, useState } from "react";
 import {
-  Info,
   Lock,
-  Plus,
   RefreshCw,
-  Search,
-  Settings,
-  SplitSquareVertical,
   Users,
 } from "lucide-react";
 import { checkBackendHealth } from "@/lib/api";
 import { BackendHealth } from "@/types";
 
 interface TopNavigationProps {
-  onNewBugClick: () => void;
   onRefreshClick: () => void;
-  onOpenCommandPalette: () => void;
-  onOpenSettings: () => void;
-  onOpenAbout: () => void;
-  onOpenAgentDetail?: (agentId: "shipdev-triager" | "shipdev-verifier") => void;
   isRefreshing?: boolean;
-  isDiffMode: boolean;
-  onToggleDiffMode: (diffState?: boolean) => void;
-  sseStatus?: "connecting" | "connected" | "disconnected" | null;
   activeWorkspaceType?: "PERSONAL" | "TEAM";
   onWorkspaceChange?: (type: "PERSONAL" | "TEAM") => void;
 }
 
 export function TopNavigation({
-  onNewBugClick,
   onRefreshClick,
-  onOpenCommandPalette,
-  onOpenSettings,
-  onOpenAbout,
-  onOpenAgentDetail,
   isRefreshing = false,
-  isDiffMode,
-  onToggleDiffMode,
-  sseStatus = null,
   activeWorkspaceType = "PERSONAL",
   onWorkspaceChange,
 }: TopNavigationProps) {
@@ -57,8 +36,8 @@ export function TopNavigation({
   }, []);
 
   return (
-    <header className="h-12 border-b border-clay-hairline bg-clay-canvas flex items-center justify-between px-3.5 shrink-0 select-none text-xs font-sans z-30 shadow-xs">
-      {/* Left: Branding & Synced Status */}
+    <header className="h-12 border-b border-clay-hairline bg-clay-canvas flex items-center justify-between px-4 shrink-0 select-none text-xs font-sans z-30 shadow-xs">
+      {/* Left: Branding & Workspace Isolation Switcher */}
       <div className="flex items-center gap-3 min-w-0">
         {/* ShipDev Wordmark */}
         <div className="flex items-center gap-2 pr-3 border-r border-clay-hairline">
@@ -68,139 +47,64 @@ export function TopNavigation({
           <span className="font-semibold text-clay-ink tracking-tight text-[13px]">
             ShipDev
           </span>
-          <span className="text-[10px] text-clay-muted bg-clay-surface-card border border-clay-hairline px-1.5 py-0.5 rounded-clay-pill font-mono hidden sm:inline">
-            Studio
-          </span>
         </div>
 
-        {/* Current Project */}
-        <div className="flex items-center gap-1.5 text-clay-muted truncate">
-          <span className="text-clay-body-strong font-medium">ShipDev Workspace</span>
-        </div>
-
-        {/* Synced Status */}
-        <div className="flex items-center gap-1.5 pl-2 border-l border-clay-hairline">
-          <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-clay-pill bg-clay-mint/20 text-[#136149] font-medium text-[11px] border border-clay-mint/40">
-            <span className="w-1.5 h-1.5 rounded-full bg-clay-success" />
-            <span>Synced</span>
-          </span>
-        </div>
-
-        {/* Workspace Isolation Switcher: PERSONAL | TEAM */}
+        {/* Workspace Switcher: PERSONAL | TEAM */}
         {onWorkspaceChange && (
           <div className="flex items-center p-0.5 rounded-clay-pill bg-clay-surface-soft border border-clay-hairline shadow-xs">
             <button
               onClick={() => onWorkspaceChange("PERSONAL")}
-              title="Personal Workspace (Private data, personal memory, single owner)"
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-clay-pill text-[11px] font-medium transition-all cursor-pointer ${
+              title="Personal Workspace (Discord & Telegram bot integration, private memory)"
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-clay-pill text-[11px] font-medium transition-all cursor-pointer ${
                 activeWorkspaceType === "PERSONAL"
                   ? "bg-emerald-50 text-emerald-800 border border-emerald-300 font-semibold shadow-xs"
                   : "text-clay-muted hover:text-clay-ink"
               }`}
             >
               <Lock className="w-3 h-3 text-emerald-600" />
-              <span>Personal</span>
+              <span>Personal Workspace</span>
             </button>
             <button
               onClick={() => onWorkspaceChange("TEAM")}
-              title="Team Workspace (Organization data, team policies, collaborative review)"
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-clay-pill text-[11px] font-medium transition-all cursor-pointer ${
+              title="Team Workspace (Slack & MS Teams integration, collaborative review gate)"
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-clay-pill text-[11px] font-medium transition-all cursor-pointer ${
                 activeWorkspaceType === "TEAM"
                   ? "bg-indigo-50 text-indigo-800 border border-indigo-300 font-semibold shadow-xs"
                   : "text-clay-muted hover:text-clay-ink"
               }`}
             >
               <Users className="w-3 h-3 text-indigo-600" />
-              <span>Team</span>
+              <span>Team Workspace</span>
             </button>
           </div>
         )}
       </div>
 
-      {/* Center: Command Palette Trigger (Cmd+K) */}
-      <div className="flex-1 max-w-md mx-4 hidden md:flex items-center justify-center">
-        <button
-          onClick={onOpenCommandPalette}
-          aria-label="Open command palette (Command + K)"
-          className="w-full flex items-center justify-between px-3 py-1.5 rounded-clay-md bg-clay-surface-soft hover:bg-clay-surface-card border border-clay-hairline text-clay-muted hover:text-clay-ink transition-colors cursor-pointer text-xs"
-        >
-          <div className="flex items-center gap-2">
-            <Search className="w-3.5 h-3.5 text-clay-muted" />
-            <span>Search issues, files, or actions...</span>
-          </div>
-          <kbd className="px-1.5 py-0.5 rounded-clay-xs bg-clay-surface-card border border-clay-hairline text-[10px] text-clay-body font-mono">
-            ⌘K
-          </kbd>
-        </button>
-      </div>
+      {/* Right: Live Connection Badges & Refresh */}
+      <div className="flex items-center gap-2.5">
+        {/* Live Backend Connection Status */}
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-clay-pill bg-clay-surface-soft border border-clay-hairline text-[11px] shadow-xs">
+          <span className={`w-1.5 h-1.5 rounded-full ${health?.ok ? "bg-clay-success" : "bg-clay-coral animate-pulse"}`} />
+          <span className="text-clay-muted hidden sm:inline">Backend:</span>
+          <span className="text-clay-ink font-medium">{health?.ok ? "Connected" : "Reconnecting"}</span>
+        </div>
 
-      {/* Right: Actions & Preferences (User Mode Only - No Dev Toggle) */}
-      <div className="flex items-center gap-2">
-        {/* Switch Agent Connection Pill */}
-        <button
-          onClick={() => onOpenAgentDetail?.("shipdev-triager")}
-          title="Autonomous AI Assistants Active - Click to view status"
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-clay-pill bg-clay-surface-soft hover:bg-clay-surface-card border border-clay-hairline text-[11px] shadow-xs cursor-pointer transition-colors"
-        >
+        {/* AI Engine Status */}
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-clay-pill bg-clay-surface-soft border border-clay-hairline text-[11px] shadow-xs">
           <span className="w-1.5 h-1.5 rounded-full bg-clay-success" />
-          <span className="text-clay-muted hidden lg:inline">AI Engine:</span>
+          <span className="text-clay-muted hidden sm:inline">AI Engine:</span>
           <span className="text-clay-ink font-semibold">Live</span>
-        </button>
-
-        {/* Change Preview Button */}
-        <button
-          onClick={() => onToggleDiffMode(!isDiffMode)}
-          aria-label={isDiffMode ? "Exit change preview" : "Preview proposed changes"}
-          className={`flex items-center gap-1 px-3 py-1.5 rounded-clay-md text-xs font-medium border transition-colors cursor-pointer ${
-            isDiffMode
-              ? "bg-clay-peach/30 border-clay-peach text-clay-ink shadow-xs"
-              : "bg-clay-surface-soft hover:bg-clay-surface-card border-clay-hairline text-clay-body hover:text-clay-ink"
-          }`}
-        >
-          <SplitSquareVertical className="w-3.5 h-3.5 text-clay-teal" />
-          <span className="hidden sm:inline">
-            {isDiffMode ? "Exit Preview" : "Review Changes"}
-          </span>
-        </button>
+        </div>
 
         {/* Refresh Button */}
         <button
           onClick={onRefreshClick}
-          title="Refresh task queue"
-          aria-label="Refresh task queue"
-          className="h-8 w-8 flex items-center justify-center text-clay-muted hover:text-clay-ink rounded-clay-md hover:bg-clay-surface-soft border border-transparent hover:border-clay-hairline transition-colors cursor-pointer"
+          title="Refresh task queue and platform status"
+          aria-label="Refresh task queue and platform status"
+          className="h-8 px-2.5 flex items-center gap-1.5 text-clay-body hover:text-clay-ink rounded-clay-md bg-clay-surface-soft hover:bg-clay-surface-card border border-clay-hairline transition-colors cursor-pointer text-xs font-medium"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-clay-teal" : ""}`} />
-        </button>
-
-        {/* Report Issue Button */}
-        <button
-          onClick={onNewBugClick}
-          aria-label="Report new issue"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-clay-md bg-clay-primary hover:bg-clay-primary-active text-white text-xs font-semibold transition-colors cursor-pointer shadow-clay-soft"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Report Issue</span>
-        </button>
-
-        {/* About Button */}
-        <button
-          onClick={onOpenAbout}
-          title="About ShipDev"
-          aria-label="About ShipDev"
-          className="h-8 w-8 flex items-center justify-center text-clay-muted hover:text-clay-ink rounded-clay-md hover:bg-clay-surface-soft border border-transparent hover:border-clay-hairline transition-colors cursor-pointer"
-        >
-          <Info className="w-4 h-4 text-clay-teal" />
-        </button>
-
-        {/* Settings Button */}
-        <button
-          onClick={onOpenSettings}
-          title="Settings (⌘,)"
-          aria-label="Settings (Command + comma)"
-          className="h-8 w-8 flex items-center justify-center text-clay-muted hover:text-clay-ink rounded-clay-md hover:bg-clay-surface-soft border border-transparent hover:border-clay-hairline transition-colors cursor-pointer"
-        >
-          <Settings className="w-4 h-4" />
+          <span className="hidden sm:inline">Refresh</span>
         </button>
       </div>
     </header>

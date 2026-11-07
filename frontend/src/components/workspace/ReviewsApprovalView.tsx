@@ -18,14 +18,12 @@ import { Task } from "@/types";
 
 interface ReviewsApprovalViewProps {
   tasks: Task[];
-  onOpenDiffMode: () => void;
-  onSelectTask: (taskId: string) => void;
+  onSelectTask?: (taskId: string) => void;
   onRefresh: () => void;
 }
 
 export function ReviewsApprovalView({
   tasks,
-  onOpenDiffMode,
   onSelectTask,
   onRefresh,
 }: ReviewsApprovalViewProps) {
@@ -34,6 +32,7 @@ export function ReviewsApprovalView({
   const [feedback, setFeedback] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showRejectForm, setShowRejectForm] = useState(false);
+  const [showInlineDiff, setShowInlineDiff] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const awaitingTasks = tasks.filter((t) => t.status === "AWAITING_HUMAN_APPROVAL");
@@ -149,7 +148,7 @@ export function ReviewsApprovalView({
                     key={t.id}
                     onClick={() => {
                       setSelectedReviewTaskId(t.id);
-                      onSelectTask(t.id);
+                      onSelectTask?.(t.id);
                     }}
                     className={`p-3.5 rounded-clay-lg border cursor-pointer transition-all shadow-clay-soft ${
                       (activeTask?.id === t.id)
@@ -189,13 +188,33 @@ export function ReviewsApprovalView({
                   </div>
 
                   <button
-                    onClick={onOpenDiffMode}
+                    onClick={() => setShowInlineDiff((prev) => !prev)}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-clay-md bg-clay-surface-soft hover:bg-clay-surface-card border border-clay-hairline text-xs font-medium text-clay-ink cursor-pointer transition-colors shadow-clay-soft"
                   >
                     <SplitSquareVertical className="w-3.5 h-3.5 text-clay-teal" />
-                    <span>Compare Diff</span>
+                    <span>{showInlineDiff ? "Hide Diff" : "View Patch Diff"}</span>
                   </button>
                 </div>
+
+                {/* Inline Diff Viewer */}
+                {showInlineDiff && (
+                  <div className="rounded-clay-md border border-clay-hairline bg-[#1e1e1e] text-slate-100 p-3 font-mono text-[11px] overflow-x-auto shadow-xs">
+                    <div className="flex items-center justify-between text-zinc-400 text-[10px] pb-1.5 mb-1.5 border-b border-zinc-800">
+                      <span className="flex items-center gap-1 text-zinc-300">
+                        <Code2 className="w-3 h-3 text-clay-teal" />
+                        Verified Surgical Patch Diff
+                      </span>
+                      <span className="text-emerald-400 font-semibold">1 hunk (-1 / +1)</span>
+                    </div>
+                    <pre className="whitespace-pre text-slate-200">
+{`--- demo/buggy_app/calculator.py
++++ demo/workspace/calculator.py
+@@ -21,3 +21,3 @@
+-    return price + (price * (discount_percent / 100.0))
++    return price - (price * (discount_percent / 100.0))`}
+                    </pre>
+                  </div>
+                )}
 
                 {/* Verification Evidence Overview */}
                 <div className="p-3.5 rounded-clay-lg bg-clay-surface-soft border border-clay-hairline/80 flex flex-col gap-2 text-xs">

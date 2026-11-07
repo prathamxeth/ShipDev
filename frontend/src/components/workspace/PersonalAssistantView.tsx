@@ -46,18 +46,25 @@ interface Message {
   isCompleted?: boolean;
 }
 
+interface PersonalAssistantViewProps {
+  onTaskCreated?: (taskId: string) => void;
+  activeWorkspaceType?: "PERSONAL" | "TEAM";
+}
+
 export function PersonalAssistantView({
   onTaskCreated,
-  onOpenStudio,
-}: {
-  onTaskCreated?: (taskId: string) => void;
-  onOpenStudio?: (taskId: string) => void;
-}) {
+  activeWorkspaceType = "PERSONAL",
+}: PersonalAssistantViewProps) {
+  const isTeam = activeWorkspaceType === "TEAM";
+  const workspaceId = isTeam ? "ws_team_default" : "ws_personal_default";
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "msg_init",
       sender: "assistant",
-      text: "Hello! I am your ShipDev Personal AI Assistant, connected to your private workspace memory and the Switch multi-agent pipeline.\n\nHow can I help you today? You can ask me to:\n• 🛠️ **Analyze Project & Fix Defects** (e.g. *\"Analyze the current project and identify three improvements. Create a task and execute it.\"*)\n• 🔍 **Research Architecture & Trade-offs** (e.g. *\"Research SQLite WAL mode performance\"*)\n• 📝 **Draft Documentation or Runbooks** (e.g. *\"Document deployment runbook for v2 release\"*)\n• 🗺️ **Plan Milestones & Roadmaps** (e.g. *\"Plan migration roadmap for Kubernetes staging\"*)",
+      text: isTeam
+        ? "Hello! I am your ShipDev Team AI Assistant, connected to your organization workspace memory and the Switch multi-agent pipeline.\n\nHow can I help your team today? You can ask me to:\n• 🛠️ **Analyze Project & Fix Defects** (e.g. *\"Analyze the current project and identify three improvements. Create a task and execute it.\"*)\n• 🔍 **Research Architecture & Trade-offs** (e.g. *\"Research SQLite WAL mode performance\"*)\n• 📝 **Draft Documentation or Runbooks** (e.g. *\"Document deployment runbook for v2 release\"*)\n• 🗺️ **Plan Milestones & Roadmaps** (e.g. *\"Plan migration roadmap for Kubernetes staging\"*)"
+        : "Hello! I am your ShipDev Personal AI Assistant, connected to your private workspace memory and the Switch multi-agent pipeline.\n\nHow can I help you today? You can ask me to:\n• 🛠️ **Analyze Project & Fix Defects** (e.g. *\"Analyze the current project and identify three improvements. Create a task and execute it.\"*)\n• 🔍 **Research Architecture & Trade-offs** (e.g. *\"Research SQLite WAL mode performance\"*)\n• 📝 **Draft Documentation or Runbooks** (e.g. *\"Document deployment runbook for v2 release\"*)\n• 🗺️ **Plan Milestones & Roadmaps** (e.g. *\"Plan migration roadmap for Kubernetes staging\"*)",
       timestamp: "Just now",
       category: "greeting",
     },
@@ -90,7 +97,7 @@ export function PersonalAssistantView({
     setActionError(null);
 
     try {
-      const resp = await sendAssistantChat(userPrompt, "ws_personal_default");
+      const resp = await sendAssistantChat(userPrompt, workspaceId);
 
       const reply: Message = {
         id: `ast_${Date.now()}`,
@@ -205,15 +212,23 @@ export function PersonalAssistantView({
             <Bot className="w-4 h-4" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-clay-ink">Personal AI Assistant</h2>
-            <span className="text-[10px] text-clay-muted">Private Agent • Personal Memory</span>
+            <h2 className="text-sm font-semibold text-clay-ink">
+              {isTeam ? "Team AI Assistant" : "Personal AI Assistant"}
+            </h2>
+            <span className="text-[10px] text-clay-muted">
+              {isTeam ? "Organization Agent • Team Memory" : "Private Agent • Personal Memory"}
+            </span>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-clay-pill bg-emerald-50 text-emerald-800 border border-emerald-300 font-semibold text-[11px] shadow-xs">
+          <span className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-clay-pill font-semibold text-[11px] shadow-xs ${
+            isTeam
+              ? "bg-indigo-50 text-indigo-800 border border-indigo-300"
+              : "bg-emerald-50 text-emerald-800 border border-emerald-300"
+          }`}>
             <Lock className="w-3 h-3 text-emerald-600" />
-            <span>Private Memory Active</span>
+            <span>{isTeam ? "Team Memory Active" : "Private Memory Active"}</span>
           </span>
         </div>
       </div>
@@ -310,15 +325,6 @@ export function PersonalAssistantView({
                       <ShieldCheck className="w-3 h-3 text-amber-600" />
                       Human Authorization Required
                     </span>
-                    {onOpenStudio && (
-                      <button
-                        onClick={() => onOpenStudio(m.taskId!)}
-                        className="text-[10px] text-clay-primary hover:underline flex items-center gap-0.5 font-medium cursor-pointer"
-                      >
-                        <span>Open in Engineering Studio</span>
-                        <ExternalLink className="w-2.5 h-2.5" />
-                      </button>
-                    )}
                   </div>
 
                   <div className="flex items-center gap-2 mt-1">
@@ -346,15 +352,6 @@ export function PersonalAssistantView({
                     <CheckCircle2 className="w-3 h-3 text-clay-success" />
                     Verified & Recorded
                   </span>
-                  {m.taskId && onOpenStudio && (
-                    <button
-                      onClick={() => onOpenStudio(m.taskId!)}
-                      className="text-clay-primary hover:underline flex items-center gap-0.5 cursor-pointer"
-                    >
-                      <span>Inspect in Studio</span>
-                      <ChevronRight className="w-3 h-3" />
-                    </button>
-                  )}
                 </div>
               )}
 
