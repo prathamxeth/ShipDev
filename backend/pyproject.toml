@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "shipdev-backend"
 version = "0.1.0"
-description = "FastAPI backend and verification engine for ShipDev"
+description = "FastAPI backend, state machine, and isolated sandbox verification engine for ShipDev"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

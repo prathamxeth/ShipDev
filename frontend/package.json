@@ -1,6 +1,7 @@
 {
   "name": "shipdev-frontend",
   "version": "0.1.0",
+  "description": "Human-Supervised AI Engineering IDE built with Next.js, Monaco, and Clay Design System",
   "private": true,
   "scripts": {
     "dev": "next dev",
