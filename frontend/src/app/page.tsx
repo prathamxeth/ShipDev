@@ -213,8 +213,8 @@ export default function ShipDevIDE() {
   }, [showToast]);
 
   // Load Task Details (Evidence, Transition History, Approvals)
-  const loadTaskDetails = useCallback(async (taskId: string) => {
-    setIsLoadingDetails(true);
+  const loadTaskDetails = useCallback(async (taskId: string, silent = false) => {
+    if (!silent) setIsLoadingDetails(true);
     try {
       const [taskData, evidenceData, historyData, approvalsData] = await Promise.all([
         getTaskById(taskId).catch(() => null),
@@ -262,7 +262,7 @@ export default function ShipDevIDE() {
     } catch {
       // Handled in individual promises
     } finally {
-      setIsLoadingDetails(false);
+      if (!silent) setIsLoadingDetails(false);
     }
   }, []);
 
@@ -271,19 +271,36 @@ export default function ShipDevIDE() {
     loadTasks();
   }, [loadTasks]);
 
-  // When selectedTaskId changes, reload details
+  // When selectedTaskId changes, reload details cleanly without flickering
   useEffect(() => {
     if (selectedTaskId) {
-      // Immediately seed selectedTask from tasks list to prevent any skeleton or blank flash
-      setSelectedTask((prev) => (prev?.id === selectedTaskId ? prev : tasks.find((t) => t.id === selectedTaskId) || null));
-      loadTaskDetails(selectedTaskId);
+      const existing = tasks.find((t) => t.id === selectedTaskId);
+      if (existing) {
+        setSelectedTask(existing);
+      }
+      loadTaskDetails(selectedTaskId, Boolean(existing));
     } else {
       setSelectedTask(null);
       setEvidenceList([]);
       setHistory([]);
       setApprovals([]);
     }
-  }, [selectedTaskId, loadTaskDetails, tasks]);
+  }, [selectedTaskId, loadTaskDetails]);
+
+  // Keep selectedTask in sync when tasks list updates
+  useEffect(() => {
+    if (!selectedTaskId) return;
+    const matched = tasks.find((t) => t.id === selectedTaskId);
+    if (matched) {
+      setSelectedTask((prev) => {
+        if (!prev) return matched;
+        if (prev.status !== matched.status || prev.updated_at !== matched.updated_at) {
+          return matched;
+        }
+        return prev;
+      });
+    }
+  }, [tasks, selectedTaskId]);
 
   // Real-time SSE subscription for selected task
   useEffect(() => {

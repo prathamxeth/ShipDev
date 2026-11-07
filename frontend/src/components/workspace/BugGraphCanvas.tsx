@@ -515,7 +515,8 @@ export function BugGraphCanvas({
     const availableHeight = clientHeight - 82;
     const availableWidth = clientWidth - 36;
 
-    const visibleNodes = nodes.filter((n) => filteredNodeIds.has(n.id));
+    // Always use displayedNodes so bounds match the actual rendered coordinates
+    const visibleNodes = displayedNodes;
     if (visibleNodes.length === 0) return;
 
     const minX = Math.min(...visibleNodes.map((n) => n.x));
@@ -536,7 +537,7 @@ export function BugGraphCanvas({
 
     setZoom(targetZoom);
     setPan({ x: targetPanX, y: targetPanY });
-  }, [nodes, filteredNodeIds]);
+  }, [displayedNodes]);
 
   // Fit to view on mount, container resize, and filter change
   useEffect(() => {

@@ -10,7 +10,7 @@ from app.api.deps import (
     get_workspace_repository,
     resolve_workspace_context,
 )
-from app.core.state_machine import CallerType
+from app.core.state_machine import CallerType, TaskStatus
 from app.models.task import TaskResponse
 from app.models.workspace import (
     Workspace,
@@ -305,3 +305,42 @@ async def get_workspace_sharing_audit(
 ):
     """Retrieve audit log of cross-workspace sharing events."""
     return ws_repo.list_sharing_audit(workspace_id)
+
+
+@router.get("/{workspace_id}/companion-summary")
+async def get_companion_summary(
+    workspace_id: str,
+    context: WorkspaceContext = Depends(resolve_workspace_context),
+    task_repo: TaskRepository = Depends(get_repository),
+    ws_repo: WorkspaceRepository = Depends(get_workspace_repository),
+):
+    """Lightweight summary endpoint for macOS & Windows Desktop Companion popover."""
+    ws = ws_repo.get_workspace(workspace_id)
+    tasks = task_repo.list_tasks(workspace_id=workspace_id)
+    pending_approvals = [t for t in tasks if t.status == TaskStatus.AWAITING_HUMAN_APPROVAL]
+    active_tasks = [t for t in tasks if t.status not in {TaskStatus.COMPLETED, TaskStatus.FAILED}]
+
+    platforms = (
+        ["discord", "telegram"]
+        if ws.workspace_type == WorkspaceType.PERSONAL
+        else ["slack", "teams"]
+    )
+
+    return {
+        "workspace_id": ws.id,
+        "workspace_name": ws.name,
+        "workspace_type": ws.workspace_type.value,
+        "pending_approval_count": len(pending_approvals),
+        "pending_approvals": [
+            {"id": t.id, "title": t.title, "reported_by": t.reported_by}
+            for t in pending_approvals[:3]
+        ],
+        "active_task_count": len(active_tasks),
+        "active_tasks": [
+            {"id": t.id, "title": t.title, "status": t.status.value, "updated_at": t.updated_at}
+            for t in active_tasks[:5]
+        ],
+        "platforms": platforms,
+        "agent_status": "live",
+    }
+

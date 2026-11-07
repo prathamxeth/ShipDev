@@ -123,3 +123,4 @@ class WorkspaceContext(BaseModel):
     @property
     def can_admin(self) -> bool:
         return WorkspacePermission.ADMIN in self.permissions
+

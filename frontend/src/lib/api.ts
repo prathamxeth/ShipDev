@@ -9,6 +9,7 @@ import {
   ApprovalRecord,
   ApprovalRequest,
   BackendHealth,
+  CompanionSummaryResponse,
   Evidence,
   EvidenceCreate,
   PlatformHealthItem,
@@ -391,4 +392,12 @@ export async function executeShareResource(payload: {
  */
 export async function getWorkspaceSharingAudit(workspaceId: string): Promise<WorkspaceSharingAudit[]> {
   return request<WorkspaceSharingAudit[]>(`${API_BASE_URL}/workspaces/${encodeURIComponent(workspaceId)}/audit`);
+}
+
+/**
+ * Get aggregate companion summary for desktop menu-bar popover
+ */
+export async function getCompanionSummary(workspaceId?: string): Promise<CompanionSummaryResponse> {
+  const targetWs = workspaceId || currentActiveWorkspaceId;
+  return request<CompanionSummaryResponse>(`${API_BASE_URL}/workspaces/${encodeURIComponent(targetWs)}/companion-summary`);
 }

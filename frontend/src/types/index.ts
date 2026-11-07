@@ -211,3 +211,15 @@ export interface SharePreviewResponse {
   confirmed: boolean;
   warning: string;
 }
+
+export interface CompanionSummaryResponse {
+  workspace_id: string;
+  workspace_name: string;
+  workspace_type: WorkspaceType;
+  pending_approval_count: number;
+  pending_approvals: Array<{ id: string; title: string; reported_by: string }>;
+  active_task_count: number;
+  active_tasks: Array<{ id: string; title: string; status: TaskStatus; updated_at: string }>;
+  platforms: PlatformType[];
+  agent_status: string;
+}

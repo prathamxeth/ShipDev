@@ -41,17 +41,6 @@ export function SwitchAgentWorkspace({
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [selectedAgentDetail, setSelectedAgentDetail] = useState<AgentIdentifier | null>(null);
 
-  if (!task) {
-    return (
-      <aside className="w-80 lg:w-92 border-l border-clay-hairline bg-clay-surface-soft p-6 flex flex-col items-center justify-center text-center text-clay-muted shrink-0 select-none">
-        <Bot className="w-8 h-8 mb-2 text-clay-muted" />
-        <span className="text-xs font-sans">
-          {isLoading ? "Connecting to AI Engineering Team..." : "Select an issue to inspect the automated solution team"}
-        </span>
-      </aside>
-    );
-  }
-
   // Evidence extraction
   const reproEvidence = evidenceList.find((e) => e.stage === "reproduction");
   const verifyEvidence = evidenceList.find((e) => e.stage === "verification");
@@ -63,22 +52,23 @@ export function SwitchAgentWorkspace({
   const verifyPassed = verifyEvidence ? verifyEvidence.exit_code === 0 : false;
   const hasPatch = Boolean(verifyEvidence?.patch_diff || reproEvidence?.patch_diff);
 
-  const isAwaitingApproval = task.status === "AWAITING_HUMAN_APPROVAL";
-  const isApproved = task.status === "APPROVED";
-  const isCompleted = task.status === "COMPLETED";
+  const isAwaitingApproval = task?.status === "AWAITING_HUMAN_APPROVAL";
+  const isApproved = task?.status === "APPROVED";
+  const isCompleted = task?.status === "COMPLETED";
 
-  const originatingPlatform = task.reported_by?.toLowerCase().includes("slack")
+  const originatingPlatform = task?.reported_by?.toLowerCase().includes("slack")
     ? { name: "Slack", icon: "💬", color: "bg-[#4A154B]/10 text-[#4A154B] border-[#4A154B]/30" }
-    : task.reported_by?.toLowerCase().includes("teams")
+    : task?.reported_by?.toLowerCase().includes("teams")
     ? { name: "MS Teams", icon: "👥", color: "bg-[#5B5FC7]/10 text-[#5B5FC7] border-[#5B5FC7]/30" }
-    : task.reported_by?.toLowerCase().includes("discord")
+    : task?.reported_by?.toLowerCase().includes("discord")
     ? { name: "Discord", icon: "🎮", color: "bg-[#5865F2]/10 text-[#5865F2] border-[#5865F2]/30" }
-    : task.reported_by?.toLowerCase().includes("telegram")
+    : task?.reported_by?.toLowerCase().includes("telegram")
     ? { name: "Telegram", icon: "✈️", color: "bg-[#229ED9]/10 text-[#229ED9] border-[#229ED9]/30" }
     : null;
 
   // Decision Handlers
   const handleApprove = async () => {
+    if (!task) return;
     setIsSubmitting(true);
     setActionError(null);
     setActionSuccess(null);
@@ -97,6 +87,7 @@ export function SwitchAgentWorkspace({
   };
 
   const handleReject = async () => {
+    if (!task) return;
     if (!rejectFeedback.trim()) {
       setActionError("Feedback explaining the reason for adjustment is required.");
       return;
@@ -121,6 +112,7 @@ export function SwitchAgentWorkspace({
   };
 
   const handleComplete = async () => {
+    if (!task) return;
     setIsSubmitting(true);
     setActionError(null);
     setActionSuccess(null);
@@ -206,7 +198,13 @@ export function SwitchAgentWorkspace({
     }
   };
 
-  const statusInfo = getHumanFriendlyStatus(task.status);
+  const statusInfo = task
+    ? getHumanFriendlyStatus(task.status)
+    : {
+        title: "Autonomous Team Standby",
+        desc: "Specialized agents are online and ready to diagnose, reproduce, and repair issues.",
+        color: "text-clay-ink font-semibold",
+      };
 
   return (
     <aside className="w-80 lg:w-92 border-l border-clay-hairline bg-clay-surface-soft flex flex-col shrink-0 select-text overflow-y-auto h-full text-xs text-clay-ink">
@@ -240,7 +238,7 @@ export function SwitchAgentWorkspace({
               : "bg-white border-clay-hairline text-clay-ink"
           }`}
         >
-          {originatingPlatform && (
+          {originatingPlatform && task && (
             <div className={`flex items-center justify-between px-2 py-0.5 rounded-clay-md border text-[10px] font-sans font-medium ${originatingPlatform.color} mb-0.5`}>
               <span className="flex items-center gap-1.5 font-semibold">
                 <span>{originatingPlatform.icon}</span>
@@ -300,7 +298,7 @@ export function SwitchAgentWorkspace({
             </div>
             <div className="text-[10px] pt-2 border-t border-clay-hairline flex items-center justify-between text-clay-muted mt-2">
               <span className="text-clay-body font-medium">
-                {task.status !== "REPORTED" ? "✓ Defect Identified" : "Analyzing..."}
+                {task ? (task.status !== "REPORTED" ? "✓ Defect Identified" : "Analyzing...") : "Standby • Ready"}
               </span>
               <span className="text-clay-primary font-medium flex items-center gap-0.5">
                 Inspect ↗
@@ -336,16 +334,20 @@ export function SwitchAgentWorkspace({
             </div>
             <div className="text-[10px] pt-2 border-t border-clay-hairline flex items-center justify-between text-clay-muted mt-2">
               <span className="text-clay-body font-medium">
-                {hasReproRun ? (
-                  reproFailedAsExpected ? (
-                    <span className="text-clay-lavender-ink font-semibold">
-                      ✓ Issue Confirmed
-                    </span>
+                {task ? (
+                  hasReproRun ? (
+                    reproFailedAsExpected ? (
+                      <span className="text-clay-lavender-ink font-semibold">
+                        ✓ Issue Confirmed
+                      </span>
+                    ) : (
+                      <span className="text-clay-muted">Executed</span>
+                    )
                   ) : (
-                    <span className="text-clay-muted">Executed</span>
+                    <span className="text-clay-muted">Pending run</span>
                   )
                 ) : (
-                  <span className="text-clay-muted">Pending run</span>
+                  <span className="text-clay-muted">Standby • Sandbox Ready</span>
                 )}
               </span>
               <span className="text-clay-muted">Details ↗</span>
@@ -380,10 +382,14 @@ export function SwitchAgentWorkspace({
             </div>
             <div className="text-[10px] pt-2 border-t border-clay-hairline flex items-center justify-between text-clay-muted mt-2">
               <span className="text-clay-body font-medium">
-                {hasPatch ? (
-                  <span className="text-clay-teal font-semibold">✓ Solution Ready</span>
+                {task ? (
+                  hasPatch ? (
+                    <span className="text-clay-teal font-semibold">✓ Solution Ready</span>
+                  ) : (
+                    <span className="text-clay-muted">Preparing fix...</span>
+                  )
                 ) : (
-                  <span className="text-clay-muted">Preparing fix...</span>
+                  <span className="text-clay-muted">Standby • Fixer Ready</span>
                 )}
               </span>
               <span className="text-clay-teal font-medium flex items-center gap-0.5">
@@ -420,18 +426,22 @@ export function SwitchAgentWorkspace({
             </div>
             <div className="text-[10px] pt-2 border-t border-clay-hairline flex items-center justify-between text-clay-muted mt-2">
               <span className="text-clay-body font-medium">
-                {hasVerifyRun ? (
-                  verifyPassed ? (
-                    <span className="text-[#136149] font-semibold">
-                      ✓ All Tests Passed
-                    </span>
+                {task ? (
+                  hasVerifyRun ? (
+                    verifyPassed ? (
+                      <span className="text-[#136149] font-semibold">
+                        ✓ All Tests Passed
+                      </span>
+                    ) : (
+                      <span className="text-clay-coral font-semibold">
+                        Verification Failed
+                      </span>
+                    )
                   ) : (
-                    <span className="text-clay-coral font-semibold">
-                      Verification Failed
-                    </span>
+                    <span className="text-clay-muted">Pending run</span>
                   )
                 ) : (
-                  <span className="text-clay-muted">Pending run</span>
+                  <span className="text-clay-muted">Standby • Verifier Ready</span>
                 )}
               </span>
               <span className="text-[#136149] font-medium flex items-center gap-0.5">
@@ -591,6 +601,21 @@ export function SwitchAgentWorkspace({
                 </span>
               </span>
               <span className="text-[#136149] font-bold">Verified</span>
+            </div>
+          )}
+
+          {/* Standby / In-Progress Supervisory Note */}
+          {!isAwaitingApproval && !isApproved && !isCompleted && (
+            <div className="p-3 rounded-clay-lg bg-white border border-clay-hairline text-center flex flex-col items-center justify-center gap-1.5 shadow-clay-soft">
+              <div className="flex items-center gap-1.5 text-clay-ink font-semibold text-xs">
+                <ShieldCheck className="w-4 h-4 text-clay-primary" />
+                <span>{task ? "Supervisory Verification Active" : "Supervisory Gate Standby"}</span>
+              </div>
+              <p className="text-[10px] text-clay-muted leading-relaxed font-sans">
+                {task
+                  ? "Changes require verified test evidence and supervisor sign-off before shipping."
+                  : "Select an issue from the architecture map or left panel to inspect real-time progress."}
+              </p>
             </div>
           )}
         </div>
