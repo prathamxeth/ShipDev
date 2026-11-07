@@ -451,6 +451,32 @@ export function BugGraphCanvas({
     return new Set(filteredNodes.map((n) => n.id));
   }, [filteredNodes]);
 
+  // Dynamically center filtered nodes so they stay on a clean, consistent level and never move down
+  const displayedNodes = useMemo(() => {
+    if (activeFilter === "all" && !searchQuery.trim()) {
+      return filteredNodes;
+    }
+    if (filteredNodes.length === 0) return [];
+
+    // When filtered by type (e.g. issues, assistants, files, functions)
+    // Place them on a single clean level (y: 150) centered horizontally
+    const totalCount = filteredNodes.length;
+    const spacing = 160;
+    const startX = Math.max(30, 360 - ((totalCount - 1) * spacing) / 2);
+
+    return filteredNodes.map((n, idx) => ({
+      ...n,
+      x: startX + idx * spacing,
+      y: 150, // Keep on same level in view!
+    }));
+  }, [filteredNodes, activeFilter, searchQuery]);
+
+  const displayedNodeMap = useMemo(() => {
+    const map = new Map<string, GraphNode>();
+    displayedNodes.forEach((n) => map.set(n.id, n));
+    return map;
+  }, [displayedNodes]);
+
   // Interactive Pan Handlers
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest(".graph-node-interactive")) return;
@@ -817,8 +843,8 @@ export function BugGraphCanvas({
               </defs>
 
               {edges.map((edge) => {
-                const source = nodeMap.get(edge.source);
-                const target = nodeMap.get(edge.target);
+                const source = displayedNodeMap.get(edge.source);
+                const target = displayedNodeMap.get(edge.target);
                 if (!source || !target) return null;
                 if (!filteredNodeIds.has(source.id) || !filteredNodeIds.has(target.id)) return null;
 
@@ -874,7 +900,7 @@ export function BugGraphCanvas({
             </svg>
 
             {/* DOM NODES - UNIFORM WIDTH, HEIGHT, AND 4-DIRECTION PADDING */}
-            {filteredNodes.map((node) => {
+            {displayedNodes.map((node) => {
               const colors = getNodeColor(node);
               const isHovered = hoveredNodeId === node.id;
               const isSelected =

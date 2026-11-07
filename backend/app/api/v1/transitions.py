@@ -1,6 +1,7 @@
 """State transition REST routes."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Optional
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from app.api.deps import get_caller_identity, get_repository
 from app.core.state_machine import CallerType, TaskStatus
 from app.models.task import TransitionRequest, TransitionResponse
@@ -13,6 +14,7 @@ router = APIRouter(prefix="/tasks", tags=["Transitions"])
 async def transition_task(
     task_id: str,
     payload: TransitionRequest,
+    x_workspace_id: Optional[str] = Header(None, alias="X-Workspace-ID"),
     caller_auth: tuple[CallerType, str] = Depends(get_caller_identity),
     repo: TaskRepository = Depends(get_repository),
 ):
@@ -39,7 +41,7 @@ async def transition_task(
         reason=payload.reason,
         evidence_id=payload.evidence_id,
     )
-    transition_result = repo.record_transition(task_id, verified_request)
+    transition_result = repo.record_transition(task_id, verified_request, workspace_id=x_workspace_id)
 
     # If the task reached AWAITING_HUMAN_APPROVAL and is conversation-linked, dispatch review card
     if payload.target_status == TaskStatus.AWAITING_HUMAN_APPROVAL:

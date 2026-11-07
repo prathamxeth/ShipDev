@@ -25,6 +25,8 @@ export interface Task {
   status: TaskStatus;
   repository_url?: string | null;
   branch_name?: string | null;
+  workspace_id?: string | null;
+  workspace_type?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -161,4 +163,51 @@ export interface ReviewerRole {
   role: string;
   assigned_by: string;
   created_at: string;
+}
+
+export type WorkspaceType = "PERSONAL" | "TEAM";
+
+export type WorkspaceRole = "owner" | "admin" | "lead" | "operator" | "member";
+
+export interface Workspace {
+  id: string;
+  name: string;
+  workspace_type: WorkspaceType;
+  owner_user_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkspaceMember {
+  id: string;
+  workspace_id: string;
+  user_id: string;
+  role: WorkspaceRole;
+  joined_at: string;
+}
+
+export interface WorkspaceSharingAudit {
+  id: string;
+  source_workspace_id: string;
+  target_workspace_id: string;
+  resource_type: string;
+  resource_id: string;
+  shared_by_user_id: string;
+  content_preview?: string | null;
+  created_at: string;
+}
+
+export interface SharePreviewResponse {
+  source_workspace_id: string;
+  target_workspace_id: string;
+  target_workspace_name: string;
+  resource_type: string;
+  resource_id: string;
+  preview_title: string;
+  preview_description: string;
+  evidence_count: number;
+  will_share: string[];
+  will_NOT_share: string[];
+  confirmed: boolean;
+  warning: string;
 }

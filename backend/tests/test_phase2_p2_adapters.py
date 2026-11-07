@@ -279,3 +279,4 @@ def test_api_platforms_health():
     assert "teams" in platforms
     assert "discord" in platforms
     assert "telegram" in platforms
+

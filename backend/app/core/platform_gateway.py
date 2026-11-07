@@ -101,3 +101,4 @@ class PlatformGateway:
                     )
                 )
         return results
+

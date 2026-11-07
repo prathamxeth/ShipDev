@@ -116,3 +116,4 @@ class PlatformHealth(BaseModel):
     configured: bool
     status: str  # "healthy" | "unconfigured" | "error"
     details: Dict[str, Any] = Field(default_factory=dict)
+

@@ -54,3 +54,4 @@ class BasePlatformAdapter(ABC):
     def get_health(self) -> PlatformHealth:
         """Return health status and configuration details for this adapter."""
         pass
+

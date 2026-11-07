@@ -185,3 +185,4 @@ class UniversalIntentClassifier:
         if len(first_line) > 70:
             return first_line[:67] + "..."
         return first_line or f"{category.value.capitalize()} Request"
+

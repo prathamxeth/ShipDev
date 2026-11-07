@@ -216,3 +216,75 @@ def get_api_key_or_human_secret(
         )
 
     return token
+
+
+# =========================================================================
+# Workspace Isolation & Context Resolution Dependencies (Phase 1)
+# =========================================================================
+
+def get_workspace_repository() -> "WorkspaceRepository":
+    """Yield a WorkspaceRepository instance."""
+    from app.repositories.workspace_repository import WorkspaceRepository
+    return WorkspaceRepository()
+
+
+def resolve_workspace_context(
+    x_workspace_id: Annotated[Optional[str], Header(alias="X-Workspace-ID")] = None,
+    caller_auth: tuple[CallerType, str] = Depends(get_caller_identity),
+    ws_repo: "WorkspaceRepository" = Depends(get_workspace_repository),
+) -> "WorkspaceContext":
+    """Resolve and authorize workspace context on the server.
+
+    SECURITY INVARIANTS:
+    1. Client-provided X-Workspace-ID is NEVER trusted blindly; authenticated user's
+       membership and active permissions are strictly validated against workspace_members.
+    2. If X-Workspace-ID is absent, resolves canonical personal default for caller.
+    3. Requests targeting unauthorized or foreign workspaces fail closed (HTTP 403 Forbidden).
+    4. Personal data is never accessible from Team context, and vice-versa.
+    """
+    from app.repositories.workspace_repository import (
+        WorkspaceAccessDeniedError,
+        WorkspaceNotFoundError,
+    )
+    caller_type, actor_id = caller_auth
+    target_ws = (x_workspace_id.strip() if x_workspace_id and x_workspace_id.strip() else None) or "ws_personal_default"
+
+    try:
+        return ws_repo.resolve_context(target_ws, actor_id)
+    except WorkspaceNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Workspace '{target_ws}' not found.",
+        )
+    except WorkspaceAccessDeniedError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        )
+
+
+def resolve_human_workspace_context(
+    x_workspace_id: Annotated[Optional[str], Header(alias="X-Workspace-ID")] = None,
+    human_auth: tuple[CallerType, str] = Depends(require_human_caller),
+    ws_repo: "WorkspaceRepository" = Depends(get_workspace_repository),
+) -> "WorkspaceContext":
+    """Resolve workspace context strictly for authenticated human operations."""
+    from app.repositories.workspace_repository import (
+        WorkspaceAccessDeniedError,
+        WorkspaceNotFoundError,
+    )
+    caller_type, actor_id = human_auth
+    target_ws = (x_workspace_id.strip() if x_workspace_id and x_workspace_id.strip() else None) or "ws_personal_default"
+
+    try:
+        return ws_repo.resolve_context(target_ws, actor_id)
+    except WorkspaceNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Workspace '{target_ws}' not found.",
+        )
+    except WorkspaceAccessDeniedError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        )

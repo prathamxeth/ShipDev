@@ -46,17 +46,24 @@ class TaskRepository:
     def __init__(self, db_path: Optional[str] = None):
         self.db_path = db_path
 
-    def create_task(self, data: TaskCreate) -> TaskResponse:
-        """Create and persist a new task in REPORTED status."""
+    def create_task(
+        self,
+        data: TaskCreate,
+        workspace_id: Optional[str] = None,
+        workspace_type: Optional[str] = None,
+    ) -> TaskResponse:
+        """Create and persist a new task in REPORTED status within a designated workspace."""
         task_id = f"task_{uuid.uuid4().hex}"
         now = _utc_now()
         initial_status = TaskStatus.REPORTED.value
+        ws_id = (workspace_id or data.workspace_id or "ws_personal_default").strip()
+        ws_type = (workspace_type or data.workspace_type or ("TEAM" if "team" in ws_id.lower() else "PERSONAL")).strip()
 
         query = """
         INSERT INTO tasks (
             id, title, description, reported_by, input_source, status,
-            repository_url, branch_name, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+            repository_url, branch_name, workspace_id, workspace_type, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """
         with get_connection(self.db_path) as conn:
             with conn:
@@ -71,6 +78,8 @@ class TaskRepository:
                         initial_status,
                         data.repository_url,
                         data.branch_name,
+                        ws_id,
+                        ws_type,
                         now,
                         now,
                     ),
@@ -78,13 +87,20 @@ class TaskRepository:
 
         return self.get_task(task_id)
 
-    def get_task(self, task_id: str) -> TaskResponse:
-        """Retrieve a task by ID. Raises TaskNotFoundError if not found."""
+    def get_task(self, task_id: str, workspace_id: Optional[str] = None) -> TaskResponse:
+        """Retrieve a task by ID, optionally enforcing workspace isolation."""
         query = "SELECT * FROM tasks WHERE id = ?;"
         with get_connection(self.db_path) as conn:
             row = conn.execute(query, (task_id,)).fetchone()
             if not row:
                 raise TaskNotFoundError(f"Task '{task_id}' not found.")
+
+            task_ws_id = row["workspace_id"] if "workspace_id" in row.keys() else "ws_personal_default"
+            task_ws_type = row["workspace_type"] if "workspace_type" in row.keys() else "PERSONAL"
+
+            if workspace_id and task_ws_id != workspace_id:
+                raise TaskNotFoundError(f"Task '{task_id}' not found in workspace '{workspace_id}'.")
+
             return TaskResponse(
                 id=row["id"],
                 title=row["title"],
@@ -94,21 +110,33 @@ class TaskRepository:
                 status=TaskStatus(row["status"]),
                 repository_url=row["repository_url"],
                 branch_name=row["branch_name"],
+                workspace_id=task_ws_id,
+                workspace_type=task_ws_type,
                 created_at=row["created_at"],
                 updated_at=row["updated_at"],
             )
 
-    def list_tasks(self, status: Optional[TaskStatus] = None) -> List[TaskResponse]:
-        """List tasks, optionally filtered by workflow status."""
+    def list_tasks(
+        self,
+        status: Optional[TaskStatus] = None,
+        workspace_id: Optional[str] = None,
+    ) -> List[TaskResponse]:
+        """List tasks, optionally filtered by workflow status and workspace boundary."""
         query = "SELECT * FROM tasks"
-        params = ()
+        clauses = []
+        params = []
+        if workspace_id:
+            clauses.append("workspace_id = ?")
+            params.append(workspace_id.strip())
         if status:
-            query += " WHERE status = ?"
-            params = (status.value,)
+            clauses.append("status = ?")
+            params.append(status.value)
+        if clauses:
+            query += " WHERE " + " AND ".join(clauses)
         query += " ORDER BY created_at DESC;"
 
         with get_connection(self.db_path) as conn:
-            rows = conn.execute(query, params).fetchall()
+            rows = conn.execute(query, tuple(params)).fetchall()
             return [
                 TaskResponse(
                     id=row["id"],
@@ -119,16 +147,23 @@ class TaskRepository:
                     status=TaskStatus(row["status"]),
                     repository_url=row["repository_url"],
                     branch_name=row["branch_name"],
+                    workspace_id=row["workspace_id"] if "workspace_id" in row.keys() else "ws_personal_default",
+                    workspace_type=row["workspace_type"] if "workspace_type" in row.keys() else "PERSONAL",
                     created_at=row["created_at"],
                     updated_at=row["updated_at"],
                 )
                 for row in rows
             ]
 
-    def add_evidence(self, task_id: str, data: EvidenceCreate) -> EvidenceResponse:
+    def add_evidence(
+        self,
+        task_id: str,
+        data: EvidenceCreate,
+        workspace_id: Optional[str] = None,
+    ) -> EvidenceResponse:
         """Attach verified execution or reproduction evidence to a task."""
-        # Ensure task exists and validate lifecycle state
-        task = self.get_task(task_id)
+        # Ensure task exists and validate lifecycle state within authorized workspace
+        task = self.get_task(task_id, workspace_id=workspace_id)
         if task.status in {TaskStatus.APPROVED, TaskStatus.COMPLETED}:
             raise TaskImmutableError(
                 f"Cannot attach evidence to task '{task_id}'. Task is in '{task.status.value}' status and is immutable."
@@ -186,8 +221,11 @@ class TaskRepository:
                 recorded_at=row["recorded_at"],
             )
 
-    def list_evidence_for_task(self, task_id: str) -> List[EvidenceResponse]:
+    def list_evidence_for_task(
+        self, task_id: str, workspace_id: Optional[str] = None
+    ) -> List[EvidenceResponse]:
         """Retrieve all evidence artifacts associated with a task."""
+        self.get_task(task_id, workspace_id=workspace_id)
         query = "SELECT * FROM evidence WHERE task_id = ? ORDER BY recorded_at ASC;"
         with get_connection(self.db_path) as conn:
             rows = conn.execute(query, (task_id,)).fetchall()
@@ -213,9 +251,10 @@ class TaskRepository:
         task_id: str,
         data: TransitionRequest,
         custom_evidence: Optional[Dict[str, Any]] = None,
+        workspace_id: Optional[str] = None,
     ) -> TransitionResponse:
-        """Validate and execute an atomic state transition with audit logging."""
-        task = self.get_task(task_id)
+        """Validate and execute an atomic state transition with audit logging and workspace validation."""
+        task = self.get_task(task_id, workspace_id=workspace_id)
         current_status = task.status
         target_status = data.target_status
 
@@ -305,15 +344,17 @@ class TaskRepository:
         task_id: str,
         approval_req: ApprovalRequest,
         actor_type: CallerType = CallerType.HUMAN,
+        workspace_id: Optional[str] = None,
     ) -> TaskResponse:
-        """Execute human approval for a task currently awaiting approval."""
+        """Execute human approval for a task currently awaiting approval within authorized workspace."""
+        task = self.get_task(task_id, workspace_id=workspace_id)
         transition_req = TransitionRequest(
             target_status=TaskStatus.APPROVED,
             actor_type=actor_type,
             actor_id=approval_req.reviewer_id,
             reason=approval_req.comments or "Human approved proposed fix",
         )
-        self.record_transition(task_id, transition_req)
+        self.record_transition(task_id, transition_req, workspace_id=workspace_id)
 
         # Record in approval_records table
         appr_id = f"appr_{uuid.uuid4().hex}"
@@ -329,22 +370,24 @@ class TaskRepository:
                     (appr_id, task_id, "approved", approval_req.reviewer_id, approval_req.comments, now),
                 )
 
-        return self.get_task(task_id)
+        return self.get_task(task_id, workspace_id=workspace_id)
 
     def record_human_rejection(
         self,
         task_id: str,
         rejection_req: RejectionRequest,
         actor_type: CallerType = CallerType.HUMAN,
+        workspace_id: Optional[str] = None,
     ) -> TaskResponse:
-        """Execute human rejection with feedback and target return state."""
+        """Execute human rejection with feedback and target return state within authorized workspace."""
+        task = self.get_task(task_id, workspace_id=workspace_id)
         transition_req = TransitionRequest(
             target_status=TaskStatus.REJECTED,
             actor_type=actor_type,
             actor_id=rejection_req.reviewer_id,
             reason=rejection_req.feedback,
         )
-        self.record_transition(task_id, transition_req)
+        self.record_transition(task_id, transition_req, workspace_id=workspace_id)
 
         # Record in approval_records table
         appr_id = f"appr_{uuid.uuid4().hex}"
@@ -370,9 +413,100 @@ class TaskRepository:
                     actor_id="system",
                     reason=f"Returned to FIX_PROPOSED following human rejection: {rejection_req.feedback}",
                 ),
+                workspace_id=workspace_id,
             )
 
-        return self.get_task(task_id)
+        return self.get_task(task_id, workspace_id=workspace_id)
+
+    def preview_share_task(
+        self,
+        task_id: str,
+        source_workspace_id: str,
+        target_workspace_id: str,
+    ) -> Dict[str, Any]:
+        """Preview cross-workspace task transfer without executing changes."""
+        source_task = self.get_task(task_id, workspace_id=source_workspace_id)
+        evidence = self.list_evidence_for_task(task_id, workspace_id=source_workspace_id)
+        return {
+            "task_id": source_task.id,
+            "task_title": source_task.title,
+            "source_workspace_id": source_workspace_id,
+            "target_workspace_id": target_workspace_id,
+            "evidence_count": len(evidence),
+            "confirmed": False,
+            "warning": "Cross-workspace transfer will copy task definition and verified evidence only. Private messages and conversation threads will NOT be transferred.",
+        }
+
+    def share_task(
+        self,
+        task_id: str,
+        source_workspace_id: str,
+        target_workspace_id: str,
+        shared_by_user_id: str,
+    ) -> TaskResponse:
+        """Explicitly share a task across workspaces via controlled copy without leaking private context."""
+        source_task = self.get_task(task_id, workspace_id=source_workspace_id)
+
+        with get_connection(self.db_path) as conn:
+            target_ws = conn.execute("SELECT * FROM workspaces WHERE id = ?;", (target_workspace_id.strip(),)).fetchone()
+            if not target_ws:
+                raise TaskNotFoundError(f"Target workspace '{target_workspace_id}' not found.")
+            target_ws_type = target_ws["workspace_type"]
+
+        shared_create = TaskCreate(
+            title=f"[Shared] {source_task.title}",
+            description=source_task.description,
+            reported_by=f"shared:{source_workspace_id}:{shared_by_user_id}",
+            input_source="explicit_sharing",
+            repository_url=source_task.repository_url,
+            branch_name=source_task.branch_name,
+            workspace_id=target_workspace_id,
+            workspace_type=target_ws_type,
+        )
+        new_task = self.create_task(shared_create, workspace_id=target_workspace_id, workspace_type=target_ws_type)
+
+        # Copy verified evidence if available (decoupled from private mappings/memory)
+        evidence_list = self.list_evidence_for_task(task_id)
+        for ev in evidence_list:
+            self.add_evidence(
+                new_task.id,
+                EvidenceCreate(
+                    stage=ev.stage,
+                    command_executed=ev.command_executed,
+                    exit_code=ev.exit_code,
+                    stdout=ev.stdout,
+                    stderr=ev.stderr,
+                    patch_diff=ev.patch_diff,
+                    is_mock=ev.is_mock,
+                ),
+                workspace_id=target_workspace_id,
+            )
+
+        # Record audit log in workspace_sharing_audit
+        with get_connection(self.db_path) as conn:
+            with conn:
+                audit_id = f"audit_{uuid.uuid4().hex[:12]}"
+                now = _utc_now()
+                conn.execute(
+                    """
+                    INSERT INTO workspace_sharing_audit (
+                        id, source_workspace_id, target_workspace_id,
+                        resource_type, resource_id, shared_by_user_id, content_preview, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+                    """,
+                    (
+                        audit_id,
+                        source_workspace_id.strip(),
+                        target_workspace_id.strip(),
+                        "task",
+                        task_id,
+                        shared_by_user_id.strip(),
+                        f"Task: {source_task.title}",
+                        now,
+                    ),
+                )
+
+        return new_task
 
     def get_transitions_for_task(self, task_id: str) -> List[TransitionResponse]:
         """Retrieve chronological immutable transition history for a task."""

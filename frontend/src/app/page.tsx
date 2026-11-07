@@ -20,6 +20,7 @@ import {
   getTaskEvidence,
   getTaskHistory,
   getTaskApprovals,
+  setActiveWorkspaceId,
 } from "@/lib/api";
 import { subscribeToTaskEvents } from "@/lib/sse";
 import {
@@ -47,6 +48,9 @@ export default function ShipDevIDE() {
   const [history, setHistory] = useState<TransitionHistory[]>([]);
   const [approvals, setApprovals] = useState<ApprovalRecord[]>([]);
   const [sseStatus, setSseStatus] = useState<SSEConnectionStatus | null>(null);
+
+  // Workspace Isolation State: PERSONAL vs TEAM
+  const [activeWorkspaceType, setActiveWorkspaceType] = useState<"PERSONAL" | "TEAM">("PERSONAL");
 
   // Loading & Diagnostics
   const [isLoadingTasks, setIsLoadingTasks] = useState(true);
@@ -168,10 +172,11 @@ export default function ShipDevIDE() {
   }, [isDiffMode, handleSaveFile, handleAcceptDiff, handleRejectDiff]);
 
   // Load Task Queue from Backend
-  const loadTasks = useCallback(async (quiet = false) => {
+  const loadTasks = useCallback(async (quiet = false, overrideWsId?: string) => {
     if (!quiet) setIsLoadingTasks(true);
+    const targetWs = overrideWsId || (activeWorkspaceType === "PERSONAL" ? "ws_personal_default" : "ws_team_default");
     try {
-      const fetchedTasks = await getTasks();
+      const fetchedTasks = await getTasks(undefined, targetWs);
       setTasks(fetchedTasks);
 
       if (fetchedTasks.length > 0) {
@@ -187,7 +192,25 @@ export default function ShipDevIDE() {
     } finally {
       if (!quiet) setIsLoadingTasks(false);
     }
-  }, []);
+  }, [activeWorkspaceType]);
+
+  // Handle Workspace Switch (Personal <-> Team) with Full Security Boundary Reset
+  const handleWorkspaceChange = useCallback((newType: "PERSONAL" | "TEAM") => {
+    setActiveWorkspaceType(newType);
+    const newWsId = newType === "PERSONAL" ? "ws_personal_default" : "ws_team_default";
+    setActiveWorkspaceId(newWsId);
+
+    // Security reset: Clear existing tasks, details, history to eliminate cross-workspace data leakage
+    setTasks([]);
+    setSelectedTaskId(null);
+    setSelectedTask(null);
+    setEvidenceList([]);
+    setHistory([]);
+    setApprovals([]);
+    setIsDiffMode(false);
+
+    showToast(`Switched to ${newType === "PERSONAL" ? "🔒 Personal Workspace" : "👥 Team Workspace"}`);
+  }, [showToast]);
 
   // Load Task Details (Evidence, Transition History, Approvals)
   const loadTaskDetails = useCallback(async (taskId: string) => {
@@ -443,6 +466,8 @@ export default function ShipDevIDE() {
         isDiffMode={isDiffMode}
         onToggleDiffMode={() => setIsDiffMode((prev) => !prev)}
         sseStatus={sseStatus}
+        activeWorkspaceType={activeWorkspaceType}
+        onWorkspaceChange={handleWorkspaceChange}
       />
 
       {/* Main IDE Workspace Shell */}
@@ -521,6 +546,7 @@ export default function ShipDevIDE() {
           ) : activeActivityTab === "platforms" ? (
             <div className="flex-1 min-h-0 relative flex flex-col h-full bg-clay-canvas">
               <PlatformsManagementPanel
+                activeWorkspaceType={activeWorkspaceType}
                 onSelectTask={(id) => {
                   setSelectedTaskId(id);
                   setActiveActivityTab("bugtree");

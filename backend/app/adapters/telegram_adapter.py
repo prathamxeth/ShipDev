@@ -221,3 +221,4 @@ class TelegramAdapter(BasePlatformAdapter):
                 "has_webhook_secret": bool(self.webhook_secret),
             },
         )
+

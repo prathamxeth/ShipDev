@@ -16,15 +16,30 @@ import {
   PlatformType,
   RejectionRequest,
   ReviewerRole,
+  SharePreviewResponse,
   Task,
   TaskCreatePayload,
   TaskStatus,
   TransitionHistory,
+  Workspace,
+  WorkspaceRole,
+  WorkspaceSharingAudit,
+  WorkspaceType,
 } from "@/types";
 
 // Base URL for direct backend access (configurable via NEXT_PUBLIC_API_URL)
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 const BACKEND_HOST = API_BASE_URL.replace(/\/api\/v1\/?$/, "");
+
+let currentActiveWorkspaceId = "ws_personal_default";
+
+export function setActiveWorkspaceId(id: string) {
+  currentActiveWorkspaceId = id;
+}
+
+export function getActiveWorkspaceId(): string {
+  return currentActiveWorkspaceId;
+}
 
 export class ApiError extends Error {
   status: number;
@@ -45,6 +60,9 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers || {});
   if (!headers.has("Accept")) {
     headers.set("Accept", "application/json");
+  }
+  if (!headers.has("X-Workspace-ID") && currentActiveWorkspaceId) {
+    headers.set("X-Workspace-ID", currentActiveWorkspaceId);
   }
 
   let response: Response;
@@ -129,12 +147,18 @@ export async function checkBackendHealth(): Promise<{ ok: boolean; data?: Backen
 /**
  * List tasks with optional workflow status filter (`GET /api/v1/tasks[?status=...]`)
  */
-export async function getTasks(statusFilter?: TaskStatus): Promise<Task[]> {
+export async function getTasks(statusFilter?: TaskStatus, workspaceId?: string): Promise<Task[]> {
   const url = new URL(`${API_BASE_URL}/tasks`);
   if (statusFilter) {
     url.searchParams.set("status", statusFilter);
   }
-  return request<Task[]>(url.toString());
+  const targetWs = workspaceId || currentActiveWorkspaceId;
+  if (targetWs) {
+    url.searchParams.set("workspace_id", targetWs);
+  }
+  return request<Task[]>(url.toString(), {
+    headers: { "X-Workspace-ID": targetWs },
+  });
 }
 
 /**
@@ -304,4 +328,67 @@ export async function assignPlatformRole(payload: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
+}
+
+/* =========================================================================
+ * 4. Workspace Isolation & Explicit Sharing Operations
+ * ========================================================================= */
+
+/**
+ * List all workspaces accessible by the current authenticated user
+ */
+export async function getWorkspaces(): Promise<Workspace[]> {
+  return request<Workspace[]>(`${API_BASE_URL}/workspaces`);
+}
+
+/**
+ * Create a new workspace (Personal or Team)
+ */
+export async function createWorkspace(payload: {
+  name: string;
+  workspace_type: WorkspaceType;
+}): Promise<Workspace> {
+  return request<Workspace>(`${API_BASE_URL}/workspaces`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * Preview resource sharing without mutating or syncing
+ */
+export async function previewShareResource(payload: {
+  resource_type: "task" | "memory";
+  resource_id: string;
+  target_workspace_id: string;
+}): Promise<SharePreviewResponse> {
+  return request<SharePreviewResponse>(`${API_BASE_URL}/workspaces/share/preview`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * Confirmed execution of resource sharing to another workspace
+ */
+export async function executeShareResource(payload: {
+  resource_type: "task" | "memory";
+  resource_id: string;
+  target_workspace_id: string;
+  confirmed: boolean;
+}): Promise<Task> {
+  return request<Task>(`${API_BASE_URL}/workspaces/share`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * Get immutable cross-workspace transfer audit records
+ */
+export async function getWorkspaceSharingAudit(workspaceId: string): Promise<WorkspaceSharingAudit[]> {
+  return request<WorkspaceSharingAudit[]>(`${API_BASE_URL}/workspaces/${encodeURIComponent(workspaceId)}/audit`);
 }

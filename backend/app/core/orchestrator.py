@@ -62,16 +62,25 @@ class UniversalOrchestrator:
         # 4. Select specialist agents
         assigned_agents = self.agents.select_agents_for_capabilities(plan.required_capabilities)
 
-        # 5. Persist task in backend repository (Strictly starting at REPORTED)
+        # 5. Determine target workspace by platform binding:
+        # Personal: Discord, Telegram -> ws_personal_default
+        # Team: Slack, Teams -> ws_team_default
+        if event.platform in (PlatformType.DISCORD, PlatformType.TELEGRAM):
+            target_ws = "ws_personal_default"
+        else:
+            target_ws = "ws_team_default"
+
+        # 6. Persist task in backend repository (Strictly starting at REPORTED)
         task_payload = TaskCreate(
             title=plan.title,
             description=f"[{classification.category.value.upper()}] {event.message_text.strip()}",
             reported_by=f"{event.platform.value}:{event.user_handle or event.user_id}",
             input_source=event.platform.value,
+            workspace_id=target_ws,
         )
         task = self.task_repo.create_task(task_payload)
 
-        # 6. Correlate conversation thread to task
+        # 7. Correlate conversation thread to task
         mapping = self.platform_repo.create_mapping(
             platform=event.platform,
             conversation_id=event.conversation_id,
@@ -83,7 +92,7 @@ class UniversalOrchestrator:
             status=task.status.value,
         )
 
-        # 7. Post initial status acknowledgment to conversation
+        # 8. Post initial status acknowledgment to conversation
         agent_names = ", ".join([a.name for a in assigned_agents]) or "AI Team"
         ack_text = (
             f"⚡ **ShipDev Acknowledged:** `{task.title}`\n"
@@ -140,6 +149,12 @@ class UniversalOrchestrator:
             )
             return {"status": "unauthorized", "user_id": event.user_id}
 
+        # 2. Fetch task to verify existence and determine workspace scope
+        try:
+            task = self.task_repo.get_task(task_id)
+        except Exception:
+            return {"status": "error", "message": f"Task '{task_id}' not found"}
+
         # 2. Process Approval Decision
         if "approve" in action.lower():
             try:
@@ -150,6 +165,7 @@ class UniversalOrchestrator:
                         reviewer_id=f"{event.platform.value}:{event.user_id}",
                         comments=f"Approved by authorized human operator via {event.platform.value}.",
                     ),
+                    workspace_id=task.workspace_id,
                 )
                 self.task_repo.record_transition(
                     task_id=task_id,
@@ -159,6 +175,7 @@ class UniversalOrchestrator:
                         actor_id=f"{event.platform.value}:{event.user_id}",
                         reason="Production deployment verified.",
                     ),
+                    workspace_id=task.workspace_id,
                 )
                 self.platform_repo.update_mapping_status(task_id, "COMPLETED")
 
@@ -190,6 +207,7 @@ class UniversalOrchestrator:
                         feedback=feedback,
                         return_to=TaskStatus.FIX_PROPOSED,
                     ),
+                    workspace_id=task.workspace_id,
                 )
                 self.platform_repo.update_mapping_status(task_id, "REVISION_REQUESTED")
 

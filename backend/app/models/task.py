@@ -13,6 +13,8 @@ class TaskCreate(BaseModel):
     input_source: str = Field(default="text", max_length=50)  # "text" | "wispr_flow"
     repository_url: Optional[str] = None
     branch_name: Optional[str] = None
+    workspace_id: Optional[str] = None
+    workspace_type: Optional[str] = None
 
 
 class TaskResponse(BaseModel):
@@ -26,6 +28,8 @@ class TaskResponse(BaseModel):
     branch_name: Optional[str] = None
     created_at: str
     updated_at: str
+    workspace_id: str = "ws_personal_default"
+    workspace_type: str = "PERSONAL"
 
 
 class EvidenceCreate(BaseModel):

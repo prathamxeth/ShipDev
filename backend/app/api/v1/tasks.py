@@ -2,10 +2,10 @@
 
 import asyncio
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Header, Query, Request, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
 from fastapi.responses import StreamingResponse
 
-from app.api.deps import get_repository
+from app.api.deps import get_repository, get_workspace_repository
 from app.core.config import settings
 from app.core.events import event_broadcaster, format_heartbeat, format_sse
 from app.core.state_machine import TaskStatus
@@ -16,6 +16,7 @@ from app.models.task import (
     TransitionResponse,
 )
 from app.repositories.task_repository import TaskRepository
+from app.repositories.workspace_repository import WorkspaceRepository
 
 router = APIRouter(prefix="/tasks", tags=["Tasks"])
 
@@ -23,47 +24,105 @@ router = APIRouter(prefix="/tasks", tags=["Tasks"])
 @router.post("", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
 async def create_task(
     payload: TaskCreate,
+    x_workspace_id: Optional[str] = Header(None, alias="X-Workspace-ID"),
+    authorization: Optional[str] = Header(None),
+    x_caller_type: Optional[str] = Header(None, alias="X-Caller-Type"),
+    x_caller_id: Optional[str] = Header(None, alias="X-Caller-ID"),
     repo: TaskRepository = Depends(get_repository),
+    ws_repo: WorkspaceRepository = Depends(get_workspace_repository),
 ):
-    """Create a new bug report task (text or Wispr Flow voice transcript)."""
-    return repo.create_task(payload)
+    """Create a new bug report task within the authorized workspace boundary."""
+    ws_resolver = WorkspaceRepository(db_path=repo.db_path) if repo.db_path else ws_repo
+    explicit_ws = x_workspace_id or payload.workspace_id
+    target_ws = (explicit_ws or "ws_personal_default").strip()
+    if explicit_ws:
+        try:
+            ws = ws_resolver.get_workspace(target_ws)
+        except Exception:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Workspace '{target_ws}' not found.")
+        actor_id = "local-operator" if (authorization or x_caller_type == "human") else (x_caller_id or "local-operator")
+        if not ws_resolver.get_member(target_ws, actor_id):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access Denied: User '{actor_id}' is not an authorized member of workspace '{target_ws}'.",
+            )
+    return repo.create_task(payload, workspace_id=target_ws)
 
 
 @router.get("", response_model=List[TaskResponse])
 async def list_tasks(
-    status: Optional[TaskStatus] = Query(None, description="Filter tasks by workflow status"),
+    task_status: Optional[TaskStatus] = Query(None, alias="status", description="Filter tasks by workflow status"),
+    workspace_id: Optional[str] = Query(None, description="Filter tasks by workspace"),
+    x_workspace_id: Optional[str] = Header(None, alias="X-Workspace-ID"),
+    authorization: Optional[str] = Header(None),
+    x_caller_type: Optional[str] = Header(None, alias="X-Caller-Type"),
+    x_caller_id: Optional[str] = Header(None, alias="X-Caller-ID"),
     repo: TaskRepository = Depends(get_repository),
+    ws_repo: WorkspaceRepository = Depends(get_workspace_repository),
 ):
-    """List tasks, optionally filtered by status."""
-    return repo.list_tasks(status=status)
+    """List tasks, optionally filtered by status and workspace boundary."""
+    target_ws = (workspace_id or x_workspace_id or "").strip()
+    if target_ws:
+        ws_resolver = WorkspaceRepository(db_path=repo.db_path) if repo.db_path else ws_repo
+        try:
+            ws = ws_resolver.get_workspace(target_ws)
+        except Exception:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Workspace '{target_ws}' not found.")
+        actor_id = "local-operator" if (authorization or x_caller_type == "human") else (x_caller_id or "local-operator")
+        if not ws_resolver.get_member(target_ws, actor_id):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access Denied: User '{actor_id}' is not an authorized member of workspace '{target_ws}'.",
+            )
+    return repo.list_tasks(status=task_status, workspace_id=target_ws if target_ws else None)
 
 
 @router.get("/{task_id}", response_model=TaskResponse)
 async def get_task(
     task_id: str,
+    x_workspace_id: Optional[str] = Header(None, alias="X-Workspace-ID"),
+    authorization: Optional[str] = Header(None),
+    x_caller_type: Optional[str] = Header(None, alias="X-Caller-Type"),
+    x_caller_id: Optional[str] = Header(None, alias="X-Caller-ID"),
     repo: TaskRepository = Depends(get_repository),
+    ws_repo: WorkspaceRepository = Depends(get_workspace_repository),
 ):
-    """Get complete task details by ID."""
-    return repo.get_task(task_id)
+    """Get complete task details by ID within workspace boundary."""
+    target_ws = (x_workspace_id or "").strip()
+    if target_ws:
+        ws_resolver = WorkspaceRepository(db_path=repo.db_path) if repo.db_path else ws_repo
+        try:
+            ws = ws_resolver.get_workspace(target_ws)
+        except Exception:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Workspace '{target_ws}' not found.")
+        actor_id = "local-operator" if (authorization or x_caller_type == "human") else (x_caller_id or "local-operator")
+        if not ws_resolver.get_member(target_ws, actor_id):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access Denied: User '{actor_id}' is not an authorized member of workspace '{target_ws}'.",
+            )
+    return repo.get_task(task_id, workspace_id=target_ws if target_ws else None)
 
 
 @router.get("/{task_id}/history", response_model=List[TransitionResponse])
 async def get_task_history(
     task_id: str,
+    x_workspace_id: Optional[str] = Header(None, alias="X-Workspace-ID"),
     repo: TaskRepository = Depends(get_repository),
 ):
     """Get chronological immutable state transition history for a task."""
-    repo.get_task(task_id)  # Validate task exists
+    repo.get_task(task_id, workspace_id=x_workspace_id)  # Validate task exists in workspace
     return repo.get_transitions_for_task(task_id)
 
 
 @router.get("/{task_id}/approvals", response_model=List[ApprovalRecordResponse])
 async def get_task_approvals(
     task_id: str,
+    x_workspace_id: Optional[str] = Header(None, alias="X-Workspace-ID"),
     repo: TaskRepository = Depends(get_repository),
 ):
     """Get human approval and rejection records for a task."""
-    repo.get_task(task_id)  # Validate task exists
+    repo.get_task(task_id, workspace_id=x_workspace_id)  # Validate task exists in workspace
     return repo.get_approval_records_for_task(task_id)
 
 

@@ -31,9 +31,13 @@ import {
 
 interface PlatformsManagementPanelProps {
   onSelectTask?: (taskId: string) => void;
+  activeWorkspaceType?: "PERSONAL" | "TEAM";
 }
 
-export function PlatformsManagementPanel({ onSelectTask }: PlatformsManagementPanelProps) {
+export function PlatformsManagementPanel({
+  onSelectTask,
+  activeWorkspaceType = "PERSONAL",
+}: PlatformsManagementPanelProps) {
   const [healthList, setHealthList] = useState<PlatformHealthItem[]>([]);
   const [mappings, setMappings] = useState<PlatformMapping[]>([]);
   const [roles, setRoles] = useState<ReviewerRole[]>([]);
@@ -41,12 +45,23 @@ export function PlatformsManagementPanel({ onSelectTask }: PlatformsManagementPa
   const [error, setError] = useState<string | null>(null);
 
   // New role form state
-  const [newPlatform, setNewPlatform] = useState<PlatformType>("slack");
+  const [newPlatform, setNewPlatform] = useState<PlatformType>(
+    activeWorkspaceType === "PERSONAL" ? "discord" : "slack"
+  );
   const [newUserId, setNewUserId] = useState("");
   const [newRole, setNewRole] = useState("lead");
   const [newUserHandle, setNewUserHandle] = useState("");
   const [isSubmittingRole, setIsSubmittingRole] = useState(false);
   const [roleSuccess, setRoleSuccess] = useState<string | null>(null);
+
+  const allowedPlatforms: PlatformType[] =
+    activeWorkspaceType === "PERSONAL"
+      ? ["discord", "telegram"]
+      : ["slack", "teams"];
+
+  useEffect(() => {
+    setNewPlatform(activeWorkspaceType === "PERSONAL" ? "discord" : "slack");
+  }, [activeWorkspaceType]);
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -170,7 +185,9 @@ export function PlatformsManagementPanel({ onSelectTask }: PlatformsManagementPa
                 scope: "Direct & Group Messaging",
                 eventTypes: "message, callback_query inline keyboard",
               },
-            ].map((p) => {
+            ]
+              .filter((p) => allowedPlatforms.includes(p.id))
+              .map((p) => {
               const health = healthList.find((h) => h.platform === p.id);
               const isConfigured = health ? health.configured : false;
 
@@ -242,7 +259,9 @@ export function PlatformsManagementPanel({ onSelectTask }: PlatformsManagementPa
               </p>
             ) : (
               <div className="divide-y divide-clay-hairline">
-                {roles.map((r) => (
+                {roles
+                  .filter((r) => allowedPlatforms.includes(r.platform))
+                  .map((r) => (
                   <div key={r.id} className="py-2.5 flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2.5">
                       <span>{getPlatformIcon(r.platform)}</span>
@@ -276,10 +295,11 @@ export function PlatformsManagementPanel({ onSelectTask }: PlatformsManagementPa
                 onChange={(e) => setNewPlatform(e.target.value as PlatformType)}
                 className="h-8 px-2.5 rounded-clay-md bg-clay-surface-soft border border-clay-hairline text-xs text-clay-ink font-medium outline-none shadow-xs"
               >
-                <option value="slack">Slack</option>
-                <option value="teams">MS Teams</option>
-                <option value="discord">Discord</option>
-                <option value="telegram">Telegram</option>
+                {allowedPlatforms.map((plat) => (
+                  <option key={plat} value={plat}>
+                    {plat === "slack" ? "Slack" : plat === "teams" ? "MS Teams" : plat === "discord" ? "Discord" : "Telegram"}
+                  </option>
+                ))}
               </select>
 
               <input
@@ -346,7 +366,9 @@ export function PlatformsManagementPanel({ onSelectTask }: PlatformsManagementPa
               </p>
             ) : (
               <div className="divide-y divide-clay-hairline">
-                {mappings.map((m) => (
+                {mappings
+                  .filter((m) => allowedPlatforms.includes(m.platform))
+                  .map((m) => (
                   <div
                     key={m.id}
                     onClick={() => onSelectTask && onSelectTask(m.task_id)}
@@ -389,3 +411,4 @@ export function PlatformsManagementPanel({ onSelectTask }: PlatformsManagementPa
     </div>
   );
 }
+

@@ -275,3 +275,4 @@ class SlackAdapter(BasePlatformAdapter):
                 "has_signing_secret": bool(self.signing_secret),
             },
         )
+

@@ -3,11 +3,13 @@
 import React, { useEffect, useState } from "react";
 import {
   Info,
+  Lock,
   Plus,
   RefreshCw,
   Search,
   Settings,
   SplitSquareVertical,
+  Users,
 } from "lucide-react";
 import { checkBackendHealth } from "@/lib/api";
 import { BackendHealth } from "@/types";
@@ -23,6 +25,8 @@ interface TopNavigationProps {
   isDiffMode: boolean;
   onToggleDiffMode: (diffState?: boolean) => void;
   sseStatus?: "connecting" | "connected" | "disconnected" | null;
+  activeWorkspaceType?: "PERSONAL" | "TEAM";
+  onWorkspaceChange?: (type: "PERSONAL" | "TEAM") => void;
 }
 
 export function TopNavigation({
@@ -36,6 +40,8 @@ export function TopNavigation({
   isDiffMode,
   onToggleDiffMode,
   sseStatus = null,
+  activeWorkspaceType = "PERSONAL",
+  onWorkspaceChange,
 }: TopNavigationProps) {
   const [health, setHealth] = useState<{ ok: boolean; data?: BackendHealth; error?: string } | null>(null);
 
@@ -79,6 +85,36 @@ export function TopNavigation({
             <span>Synced</span>
           </span>
         </div>
+
+        {/* Workspace Isolation Switcher: PERSONAL | TEAM */}
+        {onWorkspaceChange && (
+          <div className="flex items-center p-0.5 rounded-clay-pill bg-clay-surface-soft border border-clay-hairline shadow-xs">
+            <button
+              onClick={() => onWorkspaceChange("PERSONAL")}
+              title="Personal Workspace (Private data, personal memory, single owner)"
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-clay-pill text-[11px] font-medium transition-all cursor-pointer ${
+                activeWorkspaceType === "PERSONAL"
+                  ? "bg-emerald-50 text-emerald-800 border border-emerald-300 font-semibold shadow-xs"
+                  : "text-clay-muted hover:text-clay-ink"
+              }`}
+            >
+              <Lock className="w-3 h-3 text-emerald-600" />
+              <span>Personal</span>
+            </button>
+            <button
+              onClick={() => onWorkspaceChange("TEAM")}
+              title="Team Workspace (Organization data, team policies, collaborative review)"
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-clay-pill text-[11px] font-medium transition-all cursor-pointer ${
+                activeWorkspaceType === "TEAM"
+                  ? "bg-indigo-50 text-indigo-800 border border-indigo-300 font-semibold shadow-xs"
+                  : "text-clay-muted hover:text-clay-ink"
+              }`}
+            >
+              <Users className="w-3 h-3 text-indigo-600" />
+              <span>Team</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Center: Command Palette Trigger (Cmd+K) */}

@@ -285,3 +285,4 @@ class TeamsAdapter(BasePlatformAdapter):
                 "has_app_credentials": bool(self.app_id and self.app_password),
             },
         )
+
