@@ -60,6 +60,10 @@ class Settings(BaseModel):
                 raise ValueError(
                     f"Production configuration error: HUMAN_APPROVAL_SECRET cannot use known development placeholder '{self.HUMAN_APPROVAL_SECRET}' in production."
                 )
+            if self.API_SECRET_KEY == self.HUMAN_APPROVAL_SECRET:
+                raise ValueError(
+                    "Production configuration error: API_SECRET_KEY and HUMAN_APPROVAL_SECRET must be distinct secrets."
+                )
         elif env in ("development", "test"):
             # Preserve convenient local development configuration when env vars are unset
             # Explicitly flagged dev keys so they can NEVER be treated as production credentials

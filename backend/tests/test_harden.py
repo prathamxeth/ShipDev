@@ -297,3 +297,106 @@ async def test_replay_recovers_missed_transitions(harden_client, harden_repo):
     assert received_data[1]["event_id"] == t3.id
     assert received_data[1]["to_status"] == "REPRODUCED"
     assert received_data[1]["evidence_id"] == ev.id
+
+
+# ---------------------------------------------------------------------------
+# Test 11: Configuration forbids identical machine and human secrets
+# ---------------------------------------------------------------------------
+def test_identical_production_secrets_rejected():
+    """Verify that identical machine and human secrets fail closed in production."""
+    with pytest.raises(ValueError, match="must be distinct secrets"):
+        Settings(
+            ENVIRONMENT="production",
+            API_SECRET_KEY="shared-super-secret-key-12345",
+            HUMAN_APPROVAL_SECRET="shared-super-secret-key-12345",
+        )
+
+
+# ---------------------------------------------------------------------------
+# Test 12: Generic transitions payload.actor_id cannot override authenticated identity
+# ---------------------------------------------------------------------------
+@pytest.mark.asyncio
+async def test_transitions_payload_actor_id_cannot_override_authenticated_identity(harden_client, harden_repo):
+    """Verify that an agent cannot forge its actor_id in the request payload."""
+    task = harden_repo.create_task(TaskCreate(title="Actor Override", description="Desc", reported_by="user"))
+
+    resp = await harden_client.post(
+        f"/api/v1/tasks/{task.id}/transitions",
+        headers={**VALID_AGENT_HEADER, "X-Caller-ID": "trusted-agent-1"},
+        json={"target_status": "TRIAGED", "actor_type": "agent", "actor_id": "forged-admin"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["actor_id"] != "forged-admin"
+    assert data["actor_id"] == "trusted-agent-1"
+
+
+# ---------------------------------------------------------------------------
+# Test 13: Transactional consistency with invalid evidence reference
+# ---------------------------------------------------------------------------
+@pytest.mark.asyncio
+async def test_nonexistent_evidence_reference_fails_closed(harden_client, harden_repo):
+    """Verify that referencing non-existent evidence fails atomically without mutating state."""
+    task = harden_repo.create_task(TaskCreate(title="Evidence Fail", description="Desc", reported_by="user"))
+    harden_repo.record_transition(
+        task.id, TransitionRequest(target_status=TaskStatus.TRIAGED, actor_type=CallerType.AGENT, actor_id="a1")
+    )
+    harden_repo.record_transition(
+        task.id, TransitionRequest(target_status=TaskStatus.REPRODUCING, actor_type=CallerType.AGENT, actor_id="a1")
+    )
+
+    # Attempt to transition to REPRODUCED referencing non-existent evidence ID
+    resp = await harden_client.post(
+        f"/api/v1/tasks/{task.id}/transitions",
+        headers=VALID_AGENT_HEADER,
+        json={"target_status": "REPRODUCED", "actor_type": "agent", "actor_id": "a1", "evidence_id": "ev_nonexistent_999"},
+    )
+    assert resp.status_code == 400
+    assert "referenced evidence artifact 'ev_nonexistent_999' does not exist" in resp.json()["detail"].lower()
+
+    # Task status remains unchanged
+    refetched = harden_repo.get_task(task.id)
+    assert refetched.status == TaskStatus.REPRODUCING
+
+    # Transition history contains only the 2 prior transitions
+    history = harden_repo.get_transitions_for_task(task.id)
+    assert len(history) == 2
+
+
+# ---------------------------------------------------------------------------
+# Test 14: Zero secret or credential leakage across entire SSE lifecycle
+# ---------------------------------------------------------------------------
+@pytest.mark.asyncio
+async def test_zero_secrets_leak_in_sse_stream_across_full_lifecycle(harden_client, harden_repo):
+    """Verify that no secrets, Bearer tokens, or authorization headers leak in SSE streams."""
+    task = harden_repo.create_task(TaskCreate(title="SSE Leak Check", description="Desc", reported_by="user"))
+    task_id = task.id
+    _advance_to_awaiting_approval(harden_repo, task_id)
+
+    # Human approves with secret token
+    approve_resp = await harden_client.post(
+        f"/api/v1/tasks/{task_id}/approve",
+        headers={**VALID_HUMAN_HEADER, "X-Caller-ID": "auditor"},
+        json={"reviewer_id": "auditor", "comments": "Approved after inspection"},
+    )
+    assert approve_resp.status_code == 200
+
+    # Human completes with secret token
+    complete_resp = await harden_client.post(
+        f"/api/v1/tasks/{task_id}/complete",
+        headers={**VALID_HUMAN_HEADER, "X-Caller-ID": "auditor"},
+    )
+    assert complete_resp.status_code == 200
+
+    # Stream all 8 lifecycle events via replay_all
+    sse_resp = await harden_client.get(f"/api/v1/tasks/{task_id}/events?replay_all=true&max_events=8")
+    assert sse_resp.status_code == 200
+
+    raw_stream = sse_resp.text
+    assert settings.HUMAN_APPROVAL_SECRET not in raw_stream
+    assert settings.API_SECRET_KEY not in raw_stream
+    assert "Bearer" not in raw_stream
+    assert "Authorization" not in raw_stream
+    assert "dev-insecure-local" not in raw_stream
+
+

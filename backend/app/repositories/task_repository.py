@@ -10,6 +10,7 @@ from app.core.events import event_broadcaster
 from app.core.state_machine import (
     CallerType,
     InvalidStateTransitionError,
+    MissingEvidenceError,
     TaskStatus,
     validate_transition,
 )
@@ -213,13 +214,14 @@ class TaskRepository:
         evidence_dict = custom_evidence
         if not evidence_dict and data.evidence_id:
             ev = self.get_evidence_by_id(data.evidence_id)
-            if ev:
-                evidence_dict = {
-                    "command_executed": ev.command_executed,
-                    "exit_code": ev.exit_code,
-                    "patch_diff": ev.patch_diff,
-                    "is_mock": ev.is_mock,
-                }
+            if not ev:
+                raise MissingEvidenceError(f"Referenced evidence artifact '{data.evidence_id}' does not exist.")
+            evidence_dict = {
+                "command_executed": ev.command_executed,
+                "exit_code": ev.exit_code,
+                "patch_diff": ev.patch_diff,
+                "is_mock": ev.is_mock,
+            }
 
         # Validate business and security rules
         validate_transition(

@@ -35,7 +35,7 @@ async def transition_task(
     verified_request = TransitionRequest(
         target_status=payload.target_status,
         actor_type=caller_type,
-        actor_id=caller_id if caller_id != "anonymous" else payload.actor_id,
+        actor_id=caller_id,
         reason=payload.reason,
         evidence_id=payload.evidence_id,
     )

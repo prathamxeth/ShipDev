@@ -214,7 +214,10 @@ async def test_sse_concurrent_subscribers(sse_repo, sse_client):
         sse_client.get(f"/api/v1/tasks/{task_id}/events?max_events=1")
     )
 
-    await asyncio.sleep(0.05)
+    for _ in range(50):
+        if event_broadcaster.subscriber_count(task_id) == 2:
+            break
+        await asyncio.sleep(0.01)
     assert event_broadcaster.subscriber_count(task_id) == 2
 
     # Trigger transition
