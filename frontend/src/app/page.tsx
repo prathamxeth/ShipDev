@@ -206,12 +206,26 @@ export default function ShipDevIDE() {
 
       // Auto-focus the affected file in the editor
       if (taskData) {
+        const isResolved = taskData.status === "APPROVED" || taskData.status === "COMPLETED";
         const loc = resolveBugLocation(taskData);
         if (loc.fileName && workspaceFiles[loc.fileName]) {
           setActiveFileName(loc.fileName);
-          setTargetHighlightLine(loc.lineNumber);
+          setTargetHighlightLine(isResolved ? null : loc.lineNumber);
           if (!openTabs.includes(loc.fileName)) {
             setOpenTabs((prev) => [...prev, loc.fileName]);
+          }
+
+          // If task is resolved, update file code to the fixed version
+          if (isResolved && loc.fileName === "calculator.py") {
+            const patched = getPatchedCode(loc.fileName, workspaceFiles[loc.fileName].code, null);
+            setWorkspaceFiles((prev) => ({
+              ...prev,
+              [loc.fileName]: {
+                ...prev[loc.fileName],
+                code: patched,
+                bugLine: undefined,
+              },
+            }));
           }
         }
       }
@@ -394,6 +408,7 @@ export default function ShipDevIDE() {
   // Active File Bug Annotation
   const currentBugAnnotation = useMemo(() => {
     if (!selectedTask) return null;
+    if (selectedTask.status === "APPROVED" || selectedTask.status === "COMPLETED") return null;
     const loc = resolveBugLocation(selectedTask);
     if (loc.fileName === activeFileName) {
       return {
@@ -466,31 +481,6 @@ export default function ShipDevIDE() {
         <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
           {activeActivityTab === "graph" ? (
             <div className="flex-1 min-h-0 relative flex flex-col h-full bg-clay-canvas">
-              {/* Architecture Map Header Bar with Quick Return to Code */}
-              <div className="h-10 px-4 border-b border-clay-hairline bg-white flex items-center justify-between shrink-0 shadow-xs">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-clay-primary animate-pulse" />
-                  <span className="font-semibold text-clay-ink text-xs font-sans">
-                    System Architecture Map
-                  </span>
-                  <span className="text-[10px] text-clay-muted bg-clay-surface-card border border-clay-hairline px-2 py-0.5 rounded-clay-pill font-mono">
-                    Spacious Central View
-                  </span>
-                </div>
-                <button
-                  onClick={() => {
-                    setActiveActivityTab("bugtree");
-                    if (!activeFileName && openTabs.length > 0) {
-                      setActiveFileName(openTabs[0]);
-                    }
-                  }}
-                  className="flex items-center gap-1.5 px-3 py-1 rounded-clay-md bg-clay-surface-soft hover:bg-clay-surface-card border border-clay-hairline text-clay-ink text-xs font-medium cursor-pointer transition-colors shadow-clay-soft"
-                >
-                  <FileCode className="w-3.5 h-3.5 text-clay-primary" />
-                  <span>Return to Code Editor ({activeFileName || "calculator.py"})</span>
-                </button>
-              </div>
-
               {/* Full Central Canvas */}
               <div className="flex-1 min-h-0 relative">
                 <BugGraphCanvas
@@ -512,6 +502,12 @@ export default function ShipDevIDE() {
                   }}
                   onSelectAgent={(id) => setSelectedAgentModal(id)}
                   compact={false}
+                  onReturnToCode={() => {
+                    setActiveActivityTab("bugtree");
+                    if (!activeFileName && openTabs.length > 0) {
+                      setActiveFileName(openTabs[0]);
+                    }
+                  }}
                 />
               </div>
             </div>
@@ -563,6 +559,24 @@ export default function ShipDevIDE() {
           onTaskUpdated={(updatedTask) => {
             setSelectedTask(updatedTask);
             setTasks((prev) => prev.map((t) => (t.id === updatedTask.id ? updatedTask : t)));
+            const isResolved = updatedTask.status === "APPROVED" || updatedTask.status === "COMPLETED";
+            if (isResolved) {
+              const loc = resolveBugLocation(updatedTask);
+              if (loc.fileName && workspaceFiles[loc.fileName]) {
+                const patched = getPatchedCode(loc.fileName, workspaceFiles[loc.fileName].code, null);
+                setWorkspaceFiles((prev) => ({
+                  ...prev,
+                  [loc.fileName]: {
+                    ...prev[loc.fileName],
+                    code: patched,
+                    bugLine: undefined,
+                    modified: false,
+                  },
+                }));
+                setTargetHighlightLine(null);
+                showToast(`✓ Solution deployed to ${loc.fileName}! Bug fixed.`);
+              }
+            }
             loadTaskDetails(updatedTask.id);
           }}
           onToggleDiffMode={() => setIsDiffMode(true)}

@@ -64,6 +64,7 @@ interface BugGraphCanvasProps {
   isEnlarged?: boolean;
   onToggleEnlarge?: () => void;
   compact?: boolean;
+  onReturnToCode?: () => void;
 }
 
 export function BugGraphCanvas({
@@ -78,6 +79,7 @@ export function BugGraphCanvas({
   isEnlarged = false,
   onToggleEnlarge,
   compact = false,
+  onReturnToCode,
 }: BugGraphCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -115,8 +117,8 @@ export function BugGraphCanvas({
       sublabel: "Project Root",
       type: "folder",
       path: "/",
-      x: 360,
-      y: 35,
+      x: 270,
+      y: 16,
       level: 0,
       collapsed: Boolean(collapsedFolders["folder_root"]),
     });
@@ -128,32 +130,32 @@ export function BugGraphCanvas({
         label: "Calculator App",
         path: "demo",
         parentId: "folder_root",
-        x: 160,
-        y: 135,
+        x: 140,
+        y: 86,
       },
       {
         id: "folder_buggy",
         label: "App Code",
         path: "demo/buggy_app",
         parentId: "folder_demo",
-        x: 160,
-        y: 235,
+        x: 90,
+        y: 156,
       },
       {
         id: "folder_tests",
         label: "Test Suite",
         path: "demo/tests",
         parentId: "folder_demo",
-        x: 390,
-        y: 235,
+        x: 270,
+        y: 156,
       },
       {
         id: "folder_scripts",
         label: "Bridge Scripts",
         path: "scripts",
         parentId: "folder_root",
-        x: 620,
-        y: 135,
+        x: 460,
+        y: 86,
       },
     ];
 
@@ -185,8 +187,8 @@ export function BugGraphCanvas({
         path: "demo/buggy_app/calculator.py",
         fileName: "calculator.py",
         folderId: "folder_buggy",
-        x: 80,
-        y: 345,
+        x: 40,
+        y: 226,
       },
       {
         id: "file_utils",
@@ -194,8 +196,8 @@ export function BugGraphCanvas({
         path: "demo/buggy_app/utils.py",
         fileName: "utils.py",
         folderId: "folder_buggy",
-        x: 240,
-        y: 345,
+        x: 180,
+        y: 226,
       },
       {
         id: "file_test_calc",
@@ -203,8 +205,8 @@ export function BugGraphCanvas({
         path: "demo/tests/test_calculator.py",
         fileName: "test_calculator.py",
         folderId: "folder_tests",
-        x: 420,
-        y: 345,
+        x: 320,
+        y: 226,
       },
       {
         id: "file_bridge",
@@ -212,8 +214,8 @@ export function BugGraphCanvas({
         path: "scripts/switch_bridge.py",
         fileName: "switch_bridge.py",
         folderId: "folder_scripts",
-        x: 620,
-        y: 345,
+        x: 470,
+        y: 226,
       },
     ];
 
@@ -246,8 +248,8 @@ export function BugGraphCanvas({
         fileName: "calculator.py",
         lineNumber: 22,
         fileId: "file_calculator",
-        x: 60,
-        y: 460,
+        x: 30,
+        y: 296,
       },
       {
         id: "fn_add",
@@ -256,8 +258,8 @@ export function BugGraphCanvas({
         fileName: "calculator.py",
         lineNumber: 6,
         fileId: "file_calculator",
-        x: 160,
-        y: 460,
+        x: 120,
+        y: 296,
       },
       {
         id: "fn_eval",
@@ -266,8 +268,8 @@ export function BugGraphCanvas({
         fileName: "calculator.py",
         lineNumber: 38,
         fileId: "file_calculator",
-        x: 250,
-        y: 460,
+        x: 210,
+        y: 296,
       },
       {
         id: "fn_test_div",
@@ -276,8 +278,8 @@ export function BugGraphCanvas({
         fileName: "test_calculator.py",
         lineNumber: 14,
         fileId: "file_test_calc",
-        x: 430,
-        y: 460,
+        x: 330,
+        y: 296,
       },
       {
         id: "fn_claim",
@@ -286,8 +288,8 @@ export function BugGraphCanvas({
         fileName: "switch_bridge.py",
         lineNumber: 108,
         fileId: "file_bridge",
-        x: 620,
-        y: 460,
+        x: 470,
+        y: 296,
       },
     ];
 
@@ -325,12 +327,24 @@ export function BugGraphCanvas({
     tasks.forEach((task, index) => {
       const loc = resolveBugLocation(task);
       const bugNodeId = `bug_${task.id}`;
-      const xOffset = 60 + index * 180;
+      const xOffset = 30 + index * 180;
+      const isResolved = task.status === "COMPLETED" || task.status === "APPROVED";
+      const isAwaiting = task.status === "AWAITING_HUMAN_APPROVAL";
 
       rawNodes.push({
         id: bugNodeId,
-        label: "Active Issue",
-        sublabel: "Needs Review",
+        label: isResolved
+          ? "✓ Resolved Issue"
+          : isAwaiting
+          ? "Needs Review"
+          : "Active Issue",
+        sublabel: isResolved
+          ? "Verified in Prod"
+          : isAwaiting
+          ? "Solution Ready"
+          : task.status === "REPRODUCED"
+          ? "Confirmed (Exit 1)"
+          : "Investigating",
         type: "bug",
         task,
         status: task.status,
@@ -338,7 +352,7 @@ export function BugGraphCanvas({
         fileName: loc.fileName,
         lineNumber: loc.lineNumber,
         x: xOffset,
-        y: 575,
+        y: 366,
         level: 4,
       });
 
@@ -348,9 +362,15 @@ export function BugGraphCanvas({
         id: `e_${bugNodeId}_${targetNodeId}`,
         source: bugNodeId,
         target: targetNodeId,
-        label: "affects",
-        color: task.id === selectedTaskId ? "#ef4444" : "#f87171",
-        animated: true,
+        label: isResolved ? "fixed" : "affects",
+        color: isResolved
+          ? "#10b981"
+          : isAwaiting
+          ? "#f54e00"
+          : task.id === selectedTaskId
+          ? "#ef4444"
+          : "#f87171",
+        animated: !isResolved,
       });
     });
 
@@ -360,8 +380,8 @@ export function BugGraphCanvas({
       label: "Diagnosis Assistant",
       sublabel: "Pinpoints defect",
       type: "agent",
-      x: 300,
-      y: 690,
+      x: 160,
+      y: 436,
       level: 5,
     });
 
@@ -370,28 +390,29 @@ export function BugGraphCanvas({
       label: "Quality Reviewer",
       sublabel: "Validates fix",
       type: "agent",
-      x: 520,
-      y: 690,
+      x: 360,
+      y: 436,
       level: 5,
     });
 
     // Connect agents to active bugs
     if (tasks.length > 0) {
       const primaryBugId = `bug_${tasks[0].id}`;
+      const isFirstResolved = tasks[0].status === "COMPLETED" || tasks[0].status === "APPROVED";
       rawEdges.push({
         id: `e_agent_triager_${primaryBugId}`,
         source: "agent_triager",
         target: primaryBugId,
-        label: "triages",
-        animated: true,
-        color: "#f54e00",
+        label: isFirstResolved ? "diagnosed" : "triages",
+        animated: !isFirstResolved,
+        color: isFirstResolved ? "#10b981" : "#f54e00",
       });
       rawEdges.push({
         id: `e_agent_verifier_${primaryBugId}`,
         source: "agent_verifier",
         target: primaryBugId,
-        label: "verifies",
-        animated: true,
+        label: isFirstResolved ? "verified" : "verifies",
+        animated: !isFirstResolved,
         color: "#10b981",
       });
     }
@@ -457,9 +478,50 @@ export function BugGraphCanvas({
     });
   }, []);
 
+  // Dynamic Auto-Fit to View: Ensures 100% of nodes fit without cut-offs
+  const fitToView = useCallback(() => {
+    if (!containerRef.current) return;
+    const { clientWidth, clientHeight } = containerRef.current;
+    if (clientWidth <= 0 || clientHeight <= 0) return;
+
+    // Available canvas area (subtracting the header toolbar ~76px)
+    const availableHeight = clientHeight - 82;
+    const availableWidth = clientWidth - 36;
+
+    const visibleNodes = nodes.filter((n) => filteredNodeIds.has(n.id));
+    if (visibleNodes.length === 0) return;
+
+    const minX = Math.min(...visibleNodes.map((n) => n.x));
+    const maxX = Math.max(...visibleNodes.map((n) => n.x + 156));
+    const minY = Math.min(...visibleNodes.map((n) => n.y));
+    const maxY = Math.max(...visibleNodes.map((n) => n.y + 46));
+
+    const graphWidth = maxX - minX;
+    const graphHeight = maxY - minY;
+
+    const scaleX = availableWidth / (graphWidth + 40);
+    const scaleY = availableHeight / (graphHeight + 40);
+    const targetZoom = Math.min(Math.max(Math.min(scaleX, scaleY), 0.52), 1.0);
+
+    const targetPanX = (clientWidth - graphWidth * targetZoom) / 2 - minX * targetZoom;
+    const targetPanY = Math.max(16, (availableHeight - graphHeight * targetZoom) / 2 - minY * targetZoom + 6);
+
+    setZoom(targetZoom);
+    setPan({ x: targetPanX, y: targetPanY });
+  }, [nodes, filteredNodeIds]);
+
+  // Fit to view on mount, window resize, and filter change
+  useEffect(() => {
+    fitToView();
+    const handleResize = () => {
+      fitToView();
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [fitToView]);
+
   const resetView = () => {
-    setZoom(compact ? 0.72 : 0.88);
-    setPan({ x: compact ? 25 : 50, y: 25 });
+    fitToView();
   };
 
   // Node Click Handlers
@@ -470,11 +532,14 @@ export function BugGraphCanvas({
       toggleFolderCollapse(node.id);
     } else if (node.type === "file" && node.fileName) {
       onSelectFile(node.fileName);
+      if (onReturnToCode) onReturnToCode();
     } else if (node.type === "function" && node.fileName && node.lineNumber) {
       onNavigateToLine(node.fileName, node.lineNumber);
+      if (onReturnToCode) onReturnToCode();
     } else if (node.type === "bug" && node.task) {
       const loc = resolveBugLocation(node.task);
       onSelectBug(node.task, loc.fileName, loc.lineNumber);
+      if (onReturnToCode) onReturnToCode();
     } else if (node.type === "agent" && onSelectAgent) {
       if (node.id === "agent_triager") {
         onSelectAgent("shipdev-triager");
@@ -512,13 +577,32 @@ export function BugGraphCanvas({
           iconColor: "text-clay-lavender-ink",
           glow: isSelected ? "shadow-clay-card" : "",
         };
-      case "bug":
+      case "bug": {
+        const isResolved = node.status === "COMPLETED" || node.status === "APPROVED";
+        const isAwaiting = node.status === "AWAITING_HUMAN_APPROVAL";
+        if (isResolved) {
+          return {
+            bg: "bg-clay-mint/25 hover:bg-clay-mint/35",
+            border: isSelected ? "border-[#136149] ring-2 ring-clay-mint" : "border-clay-mint/60",
+            iconColor: "text-[#136149]",
+            glow: isSelected ? "shadow-clay-card" : "",
+          };
+        }
+        if (isAwaiting) {
+          return {
+            bg: "bg-clay-peach/25 hover:bg-clay-peach/35",
+            border: isSelected ? "border-clay-peach-ink ring-2 ring-clay-peach" : "border-clay-peach/60",
+            iconColor: "text-clay-peach-ink",
+            glow: isSelected ? "shadow-clay-card" : "",
+          };
+        }
         return {
           bg: "bg-clay-pink/20 hover:bg-clay-pink/30",
           border: isSelected ? "border-clay-pink-ink ring-2 ring-clay-pink/40" : "border-clay-pink/40",
           iconColor: "text-clay-pink-ink",
           glow: isSelected ? "shadow-clay-card" : "",
         };
+      }
       case "agent":
       default:
         return {
@@ -559,7 +643,17 @@ export function BugGraphCanvas({
               </span>
             </div>
 
-            <div className="flex items-center gap-1 text-clay-muted shrink-0">
+            <div className="flex items-center gap-1.5 text-clay-muted shrink-0">
+              {onReturnToCode && (
+                <button
+                  onClick={onReturnToCode}
+                  className="flex items-center gap-1.5 px-2.5 py-1 mr-1 rounded-clay-md bg-clay-surface-soft hover:bg-clay-surface-card border border-clay-hairline text-clay-ink text-xs font-medium cursor-pointer transition-colors shadow-clay-soft"
+                >
+                  <FileCode className="w-3.5 h-3.5 text-clay-primary" />
+                  <span>Return to Code Editor ({activeFileName || "calculator.py"})</span>
+                </button>
+              )}
+
               <button
                 onClick={() => setZoom((z) => Math.min(2.2, z * 1.15))}
                 className="p-1 rounded-clay-xs hover:bg-clay-surface-card hover:text-clay-ink transition-colors cursor-pointer"
@@ -576,10 +670,11 @@ export function BugGraphCanvas({
               </button>
               <button
                 onClick={resetView}
-                className="p-1 rounded-clay-xs hover:bg-clay-surface-card hover:text-clay-ink transition-colors cursor-pointer"
-                title="Reset View"
+                className="flex items-center gap-1 px-2 py-0.5 rounded-clay-xs hover:bg-clay-surface-card hover:text-clay-ink transition-colors cursor-pointer text-[10px] font-sans font-medium border border-clay-hairline"
+                title="Fit to Screen"
               >
-                <RotateCw className="w-3.5 h-3.5" />
+                <RotateCw className="w-3 h-3 text-clay-primary" />
+                <span>Fit Screen</span>
               </button>
               {onToggleEnlarge && (
                 <button
@@ -721,7 +816,7 @@ export function BugGraphCanvas({
                 const dy = target.y - source.y;
                 const midY = source.y + dy * 0.5;
 
-                const pathData = `M ${source.x + 84} ${source.y + 26} C ${source.x + 84} ${midY}, ${target.x + 84} ${midY}, ${target.x + 84} ${target.y}`;
+                const pathData = `M ${source.x + 78} ${source.y + 23} C ${source.x + 78} ${midY}, ${target.x + 78} ${midY}, ${target.x + 78} ${target.y}`;
                 const isRed = edge.color?.includes("ef4444") || edge.color?.includes("f87171");
                 const isGreen = edge.color?.includes("10b981");
 
@@ -738,7 +833,7 @@ export function BugGraphCanvas({
                     />
                     {edge.label && (
                       <text
-                        x={(source.x + target.x) / 2 + 84}
+                        x={(source.x + target.x) / 2 + 78}
                         y={midY}
                         fill="#64748b"
                         fontSize="9"
@@ -784,7 +879,7 @@ export function BugGraphCanvas({
                   }}
                   onMouseEnter={() => setHoveredNodeId(node.id)}
                   onMouseLeave={() => setHoveredNodeId(null)}
-                  className={`graph-node-interactive absolute rounded-clay-lg border p-2.5 flex items-center gap-2 cursor-pointer transition-all duration-150 ${
+                  className={`graph-node-interactive absolute rounded-clay-lg border p-2 flex items-center gap-2 cursor-pointer transition-all duration-150 ${
                     colors.bg
                   } ${colors.border} ${colors.glow} ${
                     isSelected ? "ring-2 ring-clay-primary scale-105 z-20 shadow-clay-card" : "hover:scale-102 z-10"
@@ -792,8 +887,8 @@ export function BugGraphCanvas({
                   style={{
                     left: `${node.x}px`,
                     top: `${node.y}px`,
-                    width: "168px",
-                    height: "52px",
+                    width: "156px",
+                    height: "46px",
                   }}
                 >
                   <div className={`w-7 h-7 rounded-clay-md bg-white flex items-center justify-center shrink-0 shadow-xs ${colors.iconColor}`}>
