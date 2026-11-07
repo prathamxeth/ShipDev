@@ -25,32 +25,19 @@ export async function GET() {
           status: "unhealthy",
           http_status: res.status,
           target: `${backendHost}/health`,
-          backend_base: backendBase,
-          env_backend: process.env.BACKEND_API_URL || null,
-          env_next_public: process.env.NEXT_PUBLIC_API_URL || null,
         },
         { status: 503 }
       );
     }
 
     const data = await res.json();
-    return NextResponse.json(
-      {
-        ...data,
-        target: `${backendHost}/health`,
-        backend_base: backendBase,
-      },
-      { status: 200 }
-    );
+    return NextResponse.json(data, { status: 200 });
   } catch (err: any) {
     clearTimeout(timeoutId);
     return NextResponse.json(
       {
         status: "unreachable",
         target: `${backendHost}/health`,
-        backend_base: backendBase,
-        env_backend: process.env.BACKEND_API_URL || null,
-        env_next_public: process.env.NEXT_PUBLIC_API_URL || null,
         error: err.name === "AbortError" ? "Health check timed out (5s)" : err.message,
       },
       { status: 503 }

@@ -34,6 +34,9 @@ const PROD_API_URL = "https://shipdev.onrender.com/api/v1";
 
 function resolveApiBaseUrl(): string {
   let url = process.env.NEXT_PUBLIC_API_URL;
+  if (url && url.includes("shipdev-api.onrender.com")) {
+    url = PROD_API_URL;
+  }
   if (!url) {
     if (typeof window !== "undefined") {
       const host = window.location.hostname;

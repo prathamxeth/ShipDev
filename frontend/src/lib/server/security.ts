@@ -109,13 +109,19 @@ const PROD_API_URL = "https://shipdev.onrender.com/api/v1";
 
 /**
  * Resolves the canonical backend API base URL for server-side Next.js route proxies.
- * Normalizes input: removes trailing slashes and guarantees the '/api/v1' path prefix.
+ * Normalizes input:
+ * 1. Discards obsolete/broken domains (e.g. shipdev-api.onrender.com which has no server).
+ * 2. Uses NEXT_PUBLIC_API_URL or valid BACKEND_API_URL pointing to the verified live backend.
+ * 3. Removes trailing slashes and guarantees the '/api/v1' path prefix.
  */
 export function resolveBackendApiBase(): string {
-  let url =
-    process.env.BACKEND_API_URL ||
-    process.env.NEXT_PUBLIC_API_URL ||
-    (process.env.NODE_ENV === "production" ? PROD_API_URL : "http://localhost:8000/api/v1");
+  let url = process.env.BACKEND_API_URL;
+  if (!url || url.includes("shipdev-api.onrender.com")) {
+    url = process.env.NEXT_PUBLIC_API_URL;
+  }
+  if (!url || url.includes("shipdev-api.onrender.com")) {
+    url = process.env.NODE_ENV === "production" ? PROD_API_URL : "http://localhost:8000/api/v1";
+  }
 
   url = url.trim().replace(/\/+$/, "");
   if (!url.endsWith("/api/v1")) {
