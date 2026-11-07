@@ -3,16 +3,64 @@
 @tailwind utilities;
 
 :root {
-  --background: #000000;
-  --foreground: #fafafa;
-  --color-primary: #f54e00;
-  --color-primary-active: #d04200;
-  --color-accent: #f54e00;
-  --color-timeline-thinking: #dfa88f;
-  --color-timeline-grep: #9fc9a2;
-  --color-timeline-read: #9fbbe0;
-  --color-timeline-edit: #c0a8dd;
-  --color-timeline-done: #c08532;
+  /* =========================================================================
+   * Clay Design System Tokens (Source: DESIGN.md)
+   * ========================================================================= */
+  --color-clay-primary: #0a0a0a;
+  --color-clay-primary-active: #1f1f1f;
+  --color-clay-primary-disabled: #e5e5e5;
+  --color-clay-ink: #0a0a0a;
+  --color-clay-body: #3a3a3a;
+  --color-clay-body-strong: #1a1a1a;
+  --color-clay-muted: #6a6a6a;
+  --color-clay-muted-soft: #9a9a9a;
+  --color-clay-hairline: #e5e5e5;
+  --color-clay-hairline-soft: #f0f0f0;
+  --color-clay-canvas: #fffaf0;
+  --color-clay-surface-soft: #faf5e8;
+  --color-clay-surface-card: #f5f0e0;
+  --color-clay-surface-strong: #ebe6d6;
+  --color-clay-surface-dark: #0a1a1a;
+  --color-clay-surface-dark-elevated: #1a2a2a;
+  --color-clay-on-primary: #ffffff;
+  --color-clay-on-dark: #ffffff;
+  --color-clay-on-dark-soft: #a0a0a0;
+
+  /* Saturated Brand Accents */
+  --color-clay-pink: #ff4d8b;
+  --color-clay-teal: #1a3a3a;
+  --color-clay-lavender: #b8a4ed;
+  --color-clay-peach: #ffb084;
+  --color-clay-ochre: #e8b94a;
+  --color-clay-mint: #a4d4c5;
+  --color-clay-coral: #ff6b5a;
+
+  /* Semantic */
+  --color-clay-success: #22c55e;
+  --color-clay-warning: #f59e0b;
+  --color-clay-error: #ef4444;
+
+  /* Border Radii */
+  --radius-clay-xs: 6px;
+  --radius-clay-sm: 8px;
+  --radius-clay-md: 12px;
+  --radius-clay-lg: 16px;
+  --radius-clay-xl: 24px;
+  --radius-clay-pill: 9999px;
+
+  /* Standard bindings */
+  --background: var(--color-clay-canvas);
+  --foreground: var(--color-clay-ink);
+}
+
+/* Accessible reduced motion support (WCAG 2.2.2 / Impeccable A11y) */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 html, body {
@@ -21,17 +69,17 @@ html, body {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  background-color: #000000;
-  color: #fafafa;
+  background-color: var(--color-clay-canvas);
+  color: var(--color-clay-ink);
   font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom dark OLED scrollbars matching Nexus IDE */
+/* Clay refined warm scrollbars */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -39,45 +87,45 @@ html, body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #242424;
-  border-radius: 4px;
+  background: #dcd6c6;
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #383838;
+  background: #c2bcac;
 }
 
-/* Base selection styling */
+/* Clay selection styling using lavender tint */
 ::selection {
-  background-color: rgba(245, 78, 0, 0.25);
-  color: #ffffff;
+  background-color: rgba(184, 164, 237, 0.35);
+  color: #0a0a0a;
 }
 
 :focus-visible {
-  outline: 1.5px solid rgba(245, 78, 0, 0.5);
+  outline: 2px solid #0a0a0a;
   outline-offset: 1px;
 }
 
 * {
-  caret-color: #888888;
+  caret-color: #0a0a0a;
 }
 
-/* Monospace fonts */
+/* Monospace fonts strictly preserve Geist Mono */
 code, pre, kbd, samp, .font-mono {
   font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
-/* Borderless soft inline code badge matching Cursor / Nexus IDE */
+/* Clay soft inline code token */
 .inline-code-token {
-  background: rgba(255, 255, 255, 0.065);
-  color: #e5c07b;
-  padding: 0.12rem 0.35rem;
+  background: #f5f0e0;
+  color: #1a1a1a;
+  padding: 0.12rem 0.4rem;
   margin: 0 0.12rem;
-  border-radius: 4px;
+  border-radius: 6px;
   font-family: var(--font-geist-mono), monospace;
   font-size: 11px;
-  font-weight: 400;
-  border: none !important;
+  font-weight: 500;
+  border: 1px solid #ebe6d6;
   display: inline-block;
 }
 

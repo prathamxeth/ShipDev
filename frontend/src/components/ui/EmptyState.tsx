@@ -9,18 +9,18 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({
-  icon = <FileCode2 className="w-8 h-8 text-zinc-600" />,
+  icon = <FileCode2 className="w-8 h-8 text-clay-muted" />,
   title,
   description,
   action,
 }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center text-center p-8 border border-dashed border-zinc-800/80 rounded-lg bg-oled-panel/50 my-auto">
-      <div className="p-3 bg-zinc-900/60 rounded-full border border-zinc-800 mb-3">
+    <div className="flex flex-col items-center justify-center text-center p-8 border border-dashed border-clay-hairline rounded-clay-lg bg-clay-surface-soft my-auto">
+      <div className="p-3 bg-white rounded-clay-pill border border-clay-hairline mb-3 shadow-clay-soft">
         {icon}
       </div>
-      <h3 className="text-sm font-medium text-slate-200 mb-1">{title}</h3>
-      <p className="text-xs text-zinc-400 max-w-sm mb-4 leading-relaxed">{description}</p>
+      <h3 className="text-sm font-semibold text-clay-ink mb-1">{title}</h3>
+      <p className="text-xs text-clay-muted max-w-sm mb-4 leading-relaxed">{description}</p>
       {action && <div>{action}</div>}
     </div>
   );

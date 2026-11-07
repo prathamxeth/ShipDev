@@ -51,18 +51,18 @@ export function SwitchAgentWorkspace({
 
   if (isLoading) {
     return (
-      <aside className="w-80 lg:w-92 border-l border-[#1e1e1e] bg-[#050505] p-4 flex flex-col gap-3 shrink-0">
-        <div className="h-4 w-1/2 bg-[#181818] rounded animate-pulse" />
-        <div className="h-24 w-full bg-[#141414] rounded-lg animate-pulse" />
-        <div className="h-32 w-full bg-[#141414] rounded-lg animate-pulse" />
+      <aside className="w-80 lg:w-92 border-l border-clay-hairline bg-clay-surface-soft p-4 flex flex-col gap-3 shrink-0">
+        <div className="h-4 w-1/2 bg-clay-surface-card rounded-clay-md animate-pulse" />
+        <div className="h-24 w-full bg-clay-surface-card rounded-clay-lg animate-pulse" />
+        <div className="h-32 w-full bg-clay-surface-card rounded-clay-lg animate-pulse" />
       </aside>
     );
   }
 
   if (!task) {
     return (
-      <aside className="w-80 lg:w-92 border-l border-[#1e1e1e] bg-[#050505] p-6 flex flex-col items-center justify-center text-center text-neutral-500 shrink-0 select-none">
-        <Bot className="w-8 h-8 mb-2 text-neutral-600" />
+      <aside className="w-80 lg:w-92 border-l border-clay-hairline bg-clay-surface-soft p-6 flex flex-col items-center justify-center text-center text-clay-muted shrink-0 select-none">
+        <Bot className="w-8 h-8 mb-2 text-clay-muted" />
         <span className="text-xs font-mono">Select a bug to inspect the AI Engineering Team</span>
       </aside>
     );
@@ -149,67 +149,67 @@ export function SwitchAgentWorkspace({
         return {
           title: "Investigating issue",
           desc: "Triage agent is analyzing bug report and locating affected source code.",
-          color: "text-blue-400",
+          color: "text-clay-teal font-semibold",
         };
       case "TRIAGED":
         return {
           title: "Analysis complete",
           desc: "Target isolated in demo/buggy_app/calculator.py. Handing off to sandbox reproduction.",
-          color: "text-purple-400",
+          color: "text-clay-lavender-ink font-semibold",
         };
       case "REPRODUCING":
         return {
           title: "Reproducing failure",
           desc: "Executing regression test suite in isolated sandbox workspace.",
-          color: "text-blue-400 animate-pulse",
+          color: "text-clay-lavender-ink font-semibold",
         };
       case "REPRODUCED":
         return {
           title: "Defect confirmed",
           desc: "Reproduction confirmed genuine test failure (exit code 1). Handing off to Fix Agent.",
-          color: "text-purple-400",
+          color: "text-clay-peach-ink font-semibold",
         };
       case "FIX_PROPOSED":
         return {
           title: "Preparing a fix",
           desc: "Candidate patch diff generated. Handing off to independent verification.",
-          color: "text-cyan-400",
+          color: "text-clay-teal font-semibold",
         };
       case "VERIFYING":
         return {
           title: "Running verification",
           desc: "Verifier agent executing full test suite against patched workspace.",
-          color: "text-indigo-400 animate-pulse",
+          color: "text-clay-peach-ink font-semibold",
         };
       case "AWAITING_HUMAN_APPROVAL":
         return {
           title: "Waiting for your approval",
           desc: "All verification tests passed. Review the patch diff and decide.",
-          color: "text-amber-400 font-bold",
+          color: "text-clay-peach-ink font-bold",
         };
       case "APPROVED":
         return {
           title: "Approved by human",
           desc: "Ready to ship to repository and complete.",
-          color: "text-emerald-400 font-bold",
+          color: "text-clay-mint-ink font-bold",
         };
       case "COMPLETED":
         return {
           title: "Completed & shipped",
           desc: "Defect successfully resolved and verified.",
-          color: "text-emerald-400 font-bold",
+          color: "text-clay-mint-ink font-bold",
         };
       case "REJECTED":
         return {
           title: "Changes requested",
           desc: "Returned to Fix Agent for re-attempt with human feedback.",
-          color: "text-rose-400",
+          color: "text-clay-coral-ink font-bold",
         };
       default:
         return {
           title: status,
           desc: "Agent processing in progress.",
-          color: "text-neutral-400",
+          color: "text-clay-muted font-medium",
         };
     }
   };
@@ -217,207 +217,212 @@ export function SwitchAgentWorkspace({
   const statusInfo = getHumanFriendlyStatus(task.status);
 
   return (
-    <aside className="w-80 lg:w-92 border-l border-[#1e1e1e] bg-[#050505] flex flex-col shrink-0 select-text overflow-y-auto h-full text-xs">
+    <aside className="w-80 lg:w-92 border-l border-clay-hairline bg-clay-surface-soft flex flex-col shrink-0 select-text overflow-y-auto h-full text-xs text-clay-ink">
       {/* Top Header */}
-      <div className="h-9 px-3 border-b border-[#1e1e1e] bg-[#080808] flex items-center justify-between shrink-0">
+      <div className="h-9 px-3 border-b border-clay-hairline bg-clay-canvas flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
-          <Bot className="w-4 h-4 text-[#f54e00]" />
-          <span className="font-semibold text-neutral-200 tracking-wide uppercase text-[11px]">
+          <Bot className="w-4 h-4 text-clay-primary" />
+          <h2 className="font-semibold text-clay-ink tracking-wide uppercase text-[11px]">
             AI Engineering Team
-          </span>
+          </h2>
         </div>
 
         <div className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#22c55e]" />
-          <span className="text-[10px] font-mono text-neutral-400">Switch Live</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-clay-success" />
+          <span className="text-[10px] font-mono text-clay-muted font-medium">Switch Live</span>
         </div>
       </div>
 
       <div className="p-3 flex flex-col gap-3.5 flex-1 overflow-y-auto">
-        {/* CURRENT ACTIVITY BANNER */}
+        {/* CURRENT ACTIVITY BANNER (Kicker removed per Impeccable craft floor) */}
         <div
-          className={`p-3 rounded-xl border flex flex-col gap-1.5 ${
+          className={`p-3.5 rounded-clay-xl border flex flex-col gap-1.5 shadow-clay-card ${
             isAwaitingApproval
-              ? "bg-amber-950/40 border-amber-500/50 text-amber-200 shadow-[0_0_15px_rgba(245,158,11,0.1)]"
+              ? "bg-clay-peach/25 border-clay-peach/50 text-clay-ink"
               : isApproved
-              ? "bg-emerald-950/40 border-emerald-500/50 text-emerald-200"
+              ? "bg-clay-mint/25 border-clay-mint/50 text-[#136149]"
               : isCompleted
-              ? "bg-emerald-950/30 border-emerald-600/40 text-emerald-300"
-              : "bg-[#0c0c0c] border-[#1e1e1e] text-neutral-300"
+              ? "bg-clay-mint/20 border-clay-mint/40 text-[#136149]"
+              : "bg-white border-clay-hairline text-clay-ink"
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-mono font-semibold tracking-wider text-neutral-400">
-              Current Activity
-            </span>
+            <h3 className={`text-xs ${statusInfo.color}`}>
+              {statusInfo.title}
+            </h3>
             {isAwaitingApproval && (
-              <span className="flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">
+              <span className="flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-clay-pill bg-clay-peach/40 text-clay-peach-ink border border-clay-peach/60 font-semibold">
                 <Lock className="w-2.5 h-2.5" />
                 Human Gate
               </span>
             )}
           </div>
-          <div className={`text-xs font-semibold ${statusInfo.color}`}>
-            {statusInfo.title}
-          </div>
-          <p className="text-[11px] text-neutral-400 leading-relaxed font-sans">
+          <p className="text-[11px] text-clay-body leading-relaxed font-sans">
             {statusInfo.desc}
           </p>
         </div>
 
         {/* SWITCH INCIDENT ROOM INFO */}
-        <div className="p-2.5 rounded-lg bg-[#0e0e0e] border border-[#202020] flex items-center justify-between text-[11px] font-mono">
-          <div className="flex items-center gap-2 text-neutral-300">
-            <MessageSquare className="w-3.5 h-3.5 text-[#f54e00]" />
-            <span className="text-white font-medium">#shipdev-command-center</span>
+        <div className="p-2.5 rounded-clay-lg bg-white border border-clay-hairline shadow-clay-soft flex items-center justify-between text-[11px] font-mono">
+          <div className="flex items-center gap-2 text-clay-ink">
+            <MessageSquare className="w-3.5 h-3.5 text-clay-primary" />
+            <span className="text-clay-ink font-semibold">#shipdev-command-center</span>
           </div>
-          <span className="text-[10px] text-neutral-500">Mattermost Bridged</span>
+          <span className="text-[10px] text-clay-muted">Mattermost Bridged</span>
         </div>
 
         {/* AGENT ROSTER */}
         <div className="flex flex-col gap-2">
-          <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-neutral-400 px-1">
+          <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-clay-muted px-1">
             Active Agents & Roles
           </span>
 
           {/* 1. Triage Agent */}
-          <div className="p-2.5 rounded-lg bg-[#0a0a0a] border border-[#1e1e1e] flex flex-col gap-1.5">
+          <div className="p-2.5 rounded-clay-lg bg-white border border-clay-hairline shadow-clay-soft flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-blue-400" />
-                <span className="font-mono font-semibold text-neutral-200">
+                <span className="w-2 h-2 rounded-full bg-clay-teal" />
+                <span className="font-mono font-semibold text-clay-ink">
                   shipdev-triager
                 </span>
               </div>
-              <span className="text-[10px] font-mono text-neutral-500">Triage Agent</span>
+              <span className="text-[10px] font-mono text-clay-teal bg-clay-teal/10 px-1.5 py-0.5 rounded-clay-pill">
+                Triage Agent
+              </span>
             </div>
-            <p className="text-[11px] text-neutral-400 font-sans leading-relaxed">
+            <p className="text-[11px] text-clay-body font-sans leading-relaxed">
               Analyzes bug reports, maps defects to source files, and dispatches to sandbox.
             </p>
-            <div className="text-[10px] font-mono text-neutral-500 pt-1 border-t border-[#181818] flex items-center justify-between">
+            <div className="text-[10px] font-mono text-clay-muted pt-1 border-t border-clay-hairline flex items-center justify-between">
               <span>Status: {task.status !== "REPORTED" ? "Analysis Posted" : "Investigating"}</span>
-              <span className="text-neutral-600">UUID: bd717264</span>
+              <span className="text-clay-muted">UUID: bd717264</span>
             </div>
           </div>
 
           {/* 2. Sandbox Reproduction Agent */}
-          <div className="p-2.5 rounded-lg bg-[#0a0a0a] border border-[#1e1e1e] flex flex-col gap-1.5">
+          <div className="p-2.5 rounded-clay-lg bg-white border border-clay-hairline shadow-clay-soft flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span
                   className={`w-2 h-2 rounded-full ${
-                    reproFailedAsExpected ? "bg-purple-400" : "bg-neutral-600"
+                    reproFailedAsExpected ? "bg-clay-lavender" : "bg-clay-muted"
                   }`}
                 />
-                <span className="font-mono font-semibold text-neutral-200">
+                <span className="font-mono font-semibold text-clay-ink">
                   Reproduction Agent
                 </span>
               </div>
-              <span className="text-[10px] font-mono text-neutral-500">Sandbox Runner</span>
+              <span className="text-[10px] font-mono text-clay-lavender-ink bg-clay-lavender/25 px-1.5 py-0.5 rounded-clay-pill font-semibold">
+                Sandbox Runner
+              </span>
             </div>
-            <p className="text-[11px] text-neutral-400 font-sans leading-relaxed">
+            <p className="text-[11px] text-clay-body font-sans leading-relaxed">
               Executes regression tests in pristine temporary workspaces without touching production.
             </p>
-            <div className="text-[10px] font-mono pt-1 border-t border-[#181818] flex items-center justify-between">
-              <span className="text-neutral-400">
+            <div className="text-[10px] font-mono pt-1 border-t border-clay-hairline flex items-center justify-between">
+              <span className="text-clay-body">
                 {hasReproRun ? (
                   reproFailedAsExpected ? (
-                    <span className="text-purple-400 font-medium">✓ Defect Confirmed (Exit 1)</span>
+                    <span className="text-clay-lavender-ink font-semibold">✓ Defect Confirmed (Exit 1)</span>
                   ) : (
-                    <span className="text-neutral-500">Executed (Exit {reproExitCode})</span>
+                    <span className="text-clay-muted">Executed (Exit {reproExitCode})</span>
                   )
                 ) : (
-                  <span className="text-neutral-600">Pending run</span>
+                  <span className="text-clay-muted">Pending run</span>
                 )}
               </span>
-              <span className="text-neutral-600">pytest</span>
+              <span className="text-clay-muted">pytest</span>
             </div>
           </div>
 
           {/* 3. Fix Agent */}
-          <div className="p-2.5 rounded-lg bg-[#0a0a0a] border border-[#1e1e1e] flex flex-col gap-1.5">
+          <div className="p-2.5 rounded-clay-lg bg-white border border-clay-hairline shadow-clay-soft flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span
                   className={`w-2 h-2 rounded-full ${
-                    hasPatch ? "bg-cyan-400" : "bg-neutral-600"
+                    hasPatch ? "bg-clay-teal" : "bg-clay-muted"
                   }`}
                 />
-                <span className="font-mono font-semibold text-neutral-200">
+                <span className="font-mono font-semibold text-clay-ink">
                   Fix Agent
                 </span>
               </div>
-              <span className="text-[10px] font-mono text-neutral-500">Patch Generator</span>
+              <span className="text-[10px] font-mono text-clay-teal bg-clay-teal/10 px-1.5 py-0.5 rounded-clay-pill font-medium">
+                Patch Generator
+              </span>
             </div>
-            <p className="text-[11px] text-neutral-400 font-sans leading-relaxed">
+            <p className="text-[11px] text-clay-body font-sans leading-relaxed">
               Synthesizes minimal isolated code fix and generates unified diff.
             </p>
             {hasPatch && (
               <button
                 onClick={onToggleDiffMode}
-                className="mt-1 flex items-center justify-center gap-1.5 py-1 px-2 rounded bg-[#161616] hover:bg-[#202020] border border-[#2a2a2a] text-[#f54e00] hover:text-[#ff6a26] font-mono text-[11px] transition-colors cursor-pointer"
+                className="mt-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-clay-md bg-clay-surface-card hover:bg-clay-surface-strong border border-clay-hairline text-clay-ink font-mono text-[11px] transition-colors cursor-pointer shadow-clay-soft"
               >
-                <SplitSquareVertical className="w-3 h-3" />
+                <SplitSquareVertical className="w-3 h-3 text-clay-primary" />
                 <span>Compare Proposed Patch</span>
               </button>
             )}
           </div>
 
           {/* 4. Verification Agent */}
-          <div className="p-2.5 rounded-lg bg-[#0a0a0a] border border-[#1e1e1e] flex flex-col gap-1.5">
+          <div className="p-2.5 rounded-clay-lg bg-white border border-clay-hairline shadow-clay-soft flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span
                   className={`w-2 h-2 rounded-full ${
-                    verifyPassed ? "bg-emerald-400" : "bg-neutral-600"
+                    verifyPassed ? "bg-clay-mint" : "bg-clay-muted"
                   }`}
                 />
-                <span className="font-mono font-semibold text-neutral-200">
+                <span className="font-mono font-semibold text-clay-ink">
                   shipdev-verifier
                 </span>
               </div>
-              <span className="text-[10px] font-mono text-neutral-500">Verifier Agent</span>
+              <span className="text-[10px] font-mono text-[#136149] bg-clay-mint/25 px-1.5 py-0.5 rounded-clay-pill font-semibold">
+                Verifier Agent
+              </span>
             </div>
-            <p className="text-[11px] text-neutral-400 font-sans leading-relaxed">
+            <p className="text-[11px] text-clay-body font-sans leading-relaxed">
               Independently validates full test suite against patched workspace before human handoff.
             </p>
-            <div className="text-[10px] font-mono pt-1 border-t border-[#181818] flex items-center justify-between">
-              <span className="text-neutral-400">
+            <div className="text-[10px] font-mono pt-1 border-t border-clay-hairline flex items-center justify-between">
+              <span className="text-clay-body">
                 {hasVerifyRun ? (
                   verifyPassed ? (
-                    <span className="text-emerald-400 font-medium">✓ All Tests Passed (Exit 0)</span>
+                    <span className="text-[#136149] font-semibold">✓ All Tests Passed (Exit 0)</span>
                   ) : (
-                    <span className="text-rose-400 font-medium">✗ Verification Failed (Exit {verifyExitCode})</span>
+                    <span className="text-clay-coral font-semibold">✗ Verification Failed (Exit {verifyExitCode})</span>
                   )
                 ) : (
-                  <span className="text-neutral-600">Pending run</span>
+                  <span className="text-clay-muted">Pending run</span>
                 )}
               </span>
-              <span className="text-neutral-600">UUID: 7dc5d295</span>
+              <span className="text-clay-muted">UUID: 7dc5d295</span>
             </div>
           </div>
         </div>
 
         {/* HUMAN GATE APPROVAL CONSOLE */}
-        <div className="mt-auto pt-3 border-t border-[#1e1e1e] flex flex-col gap-2.5">
+        <div className="mt-auto pt-3 border-t border-clay-hairline flex flex-col gap-2.5">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-neutral-400 flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-[#f54e00]" />
+            <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-clay-ink flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-clay-primary" />
               <span>Human Approval Gate</span>
             </span>
-            <span className="text-[9px] font-mono text-neutral-500">Immutable Boundary</span>
+            <span className="text-[9px] font-mono text-clay-muted">Immutable Boundary</span>
           </div>
 
           {actionSuccess && (
-            <div className="p-2 rounded bg-emerald-950/40 border border-emerald-800/60 text-emerald-300 text-[11px] font-sans flex items-center gap-2">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <div className="p-2 rounded-clay-md bg-clay-mint/20 border border-clay-mint/40 text-[#136149] text-[11px] font-sans flex items-center gap-2 shadow-clay-soft">
+              <CheckCircle2 className="w-3.5 h-3.5 text-[#136149] shrink-0" />
               <span>{actionSuccess}</span>
             </div>
           )}
 
           {actionError && (
-            <div className="p-2 rounded bg-rose-950/40 border border-rose-800/60 text-rose-300 text-[11px] font-sans flex items-center gap-2">
-              <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+            <div className="p-2 rounded-clay-md bg-clay-coral/15 border border-clay-coral/40 text-clay-coral text-[11px] font-sans flex items-center gap-2 shadow-clay-soft">
+              <AlertCircle className="w-3.5 h-3.5 text-clay-coral shrink-0" />
               <span>{actionError}</span>
             </div>
           )}
@@ -426,17 +431,17 @@ export function SwitchAgentWorkspace({
           {isAwaitingApproval && (
             <div className="flex flex-col gap-2">
               {/* Review Checklist */}
-              <div className="p-2.5 rounded-lg bg-[#0e0e0e] border border-[#222222] flex flex-col gap-1.5 font-mono text-[10px]">
-                <div className="flex items-center gap-1.5 text-neutral-300">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
+              <div className="p-2.5 rounded-clay-lg bg-white border border-clay-hairline shadow-clay-soft flex flex-col gap-1.5 font-mono text-[10px]">
+                <div className="flex items-center gap-1.5 text-clay-body">
+                  <CheckCircle2 className="w-3 h-3 text-clay-success shrink-0" />
                   <span>Reproduction verified (exit code 1)</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-neutral-300">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
+                <div className="flex items-center gap-1.5 text-clay-body">
+                  <CheckCircle2 className="w-3 h-3 text-clay-success shrink-0" />
                   <span>Verification passed (exit code 0)</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-neutral-300">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
+                <div className="flex items-center gap-1.5 text-clay-body">
+                  <CheckCircle2 className="w-3 h-3 text-clay-success shrink-0" />
                   <span>Unified patch diff ready for review</span>
                 </div>
               </div>
@@ -449,14 +454,15 @@ export function SwitchAgentWorkspace({
                     value={approvalComments}
                     onChange={(e) => setApprovalComments(e.target.value)}
                     placeholder="Approval comments (optional)..."
-                    className="w-full px-2.5 py-1.5 rounded-md bg-[#121212] border border-[#262626] text-xs font-mono text-white placeholder-neutral-500 outline-none focus:border-[#f54e00]"
+                    aria-label="Approval comments"
+                    className="w-full px-2.5 py-1.5 rounded-clay-md bg-white border border-clay-hairline text-xs font-mono text-clay-ink placeholder-clay-muted outline-none focus:border-clay-primary shadow-clay-soft"
                   />
 
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={handleApprove}
                       disabled={isSubmitting}
-                      className="w-full py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-sm disabled:opacity-50"
+                      className="w-full py-2 px-3 rounded-clay-md bg-clay-primary hover:bg-clay-primary-active text-white font-mono text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-clay-soft disabled:opacity-50"
                     >
                       {isSubmitting ? (
                         <RefreshCw className="w-3 h-3 animate-spin" />
@@ -469,7 +475,7 @@ export function SwitchAgentWorkspace({
                     <button
                       onClick={() => setShowRejectForm(true)}
                       disabled={isSubmitting}
-                      className="w-full py-2 px-3 rounded-lg bg-transparent hover:bg-rose-500/10 border border-rose-500/60 text-rose-400 hover:text-rose-300 font-mono text-xs font-medium flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                      className="w-full py-2 px-3 rounded-clay-md bg-white hover:bg-clay-coral/10 border border-clay-coral/60 text-clay-coral-ink font-mono text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-clay-soft"
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
                       <span>Request Changes</span>
@@ -483,19 +489,20 @@ export function SwitchAgentWorkspace({
                     value={rejectFeedback}
                     onChange={(e) => setRejectFeedback(e.target.value)}
                     placeholder="Explain required changes for the Fix Agent..."
-                    className="w-full p-2 rounded-md bg-[#121212] border border-rose-500/60 text-xs font-mono text-white placeholder-neutral-500 outline-none resize-none"
+                    aria-label="Explain required changes for the Fix Agent"
+                    className="w-full p-2 rounded-clay-md bg-white border border-clay-coral/60 text-xs font-mono text-clay-ink placeholder-clay-muted outline-none resize-none shadow-clay-soft"
                   />
                   <div className="flex items-center gap-2">
                     <button
                       onClick={handleReject}
                       disabled={isSubmitting || !rejectFeedback.trim()}
-                      className="flex-1 py-1.5 rounded-md bg-rose-600 hover:bg-rose-500 text-white font-mono text-xs font-semibold cursor-pointer transition-colors disabled:opacity-40"
+                      className="flex-1 py-1.5 rounded-clay-md bg-clay-coral hover:bg-clay-coral/90 text-white font-mono text-xs font-semibold cursor-pointer transition-colors disabled:opacity-40 shadow-clay-soft"
                     >
                       Confirm Rejection
                     </button>
                     <button
                       onClick={() => setShowRejectForm(false)}
-                      className="py-1.5 px-3 rounded-md border border-[#2a2a2a] text-neutral-400 hover:text-white font-mono text-xs cursor-pointer"
+                      className="py-1.5 px-3 rounded-clay-md border border-clay-hairline bg-white hover:bg-clay-surface-card text-clay-muted hover:text-clay-ink font-mono text-xs cursor-pointer shadow-clay-soft"
                     >
                       Cancel
                     </button>
@@ -510,7 +517,7 @@ export function SwitchAgentWorkspace({
             <button
               onClick={handleComplete}
               disabled={isSubmitting}
-              className="w-full py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-mono text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-sm disabled:opacity-50"
+              className="w-full py-2 px-3 rounded-clay-md bg-clay-teal hover:bg-clay-teal/90 text-white font-mono text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-clay-soft disabled:opacity-50"
             >
               {isSubmitting ? (
                 <RefreshCw className="w-3 h-3 animate-spin" />
@@ -523,12 +530,12 @@ export function SwitchAgentWorkspace({
 
           {/* When completed */}
           {isCompleted && (
-            <div className="p-2.5 rounded-lg bg-emerald-950/40 border border-emerald-500/50 flex items-center justify-between font-mono text-[11px] text-emerald-300">
+            <div className="p-2.5 rounded-clay-lg bg-clay-mint/25 border border-clay-mint/50 flex items-center justify-between font-mono text-[11px] text-[#136149] shadow-clay-soft">
               <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Fix Shipped to Main</span>
+                <CheckCircle2 className="w-3.5 h-3.5 text-clay-success" />
+                <span className="font-semibold">Fix Shipped to Main</span>
               </span>
-              <span className="text-emerald-500">Verified</span>
+              <span className="text-[#136149] font-semibold">Verified</span>
             </div>
           )}
         </div>

@@ -259,50 +259,50 @@ export function BugTree({
       case "AWAITING_HUMAN_APPROVAL":
         return {
           label: "Awaiting Approval",
-          classes: "bg-amber-950/70 text-amber-300 border-amber-600/60 font-semibold",
-          icon: <Lock className="w-2.5 h-2.5 text-amber-400" />,
+          classes: "bg-clay-peach/25 text-clay-peach-ink border-clay-peach/50 font-semibold",
+          icon: <Lock className="w-2.5 h-2.5 text-clay-peach-ink" />,
         };
       case "REPRODUCING":
         return {
           label: "Reproducing",
-          classes: "bg-blue-950/70 text-blue-300 border-blue-600/60 animate-pulse",
-          icon: <RefreshCw className="w-2.5 h-2.5 text-blue-400 animate-spin" />,
+          classes: "bg-clay-lavender/30 text-clay-lavender-ink border-clay-lavender/60 font-medium",
+          icon: <RefreshCw className="w-2.5 h-2.5 text-clay-lavender-ink animate-spin" />,
         };
       case "REPRODUCED":
         return {
           label: "Reproduced",
-          classes: "bg-purple-950/70 text-purple-300 border-purple-600/60",
-          icon: <Bug className="w-2.5 h-2.5 text-purple-400" />,
+          classes: "bg-clay-lavender/25 text-clay-lavender-ink border-clay-lavender/50 font-medium",
+          icon: <Bug className="w-2.5 h-2.5 text-clay-lavender-ink" />,
         };
       case "FIX_PROPOSED":
         return {
           label: "Fix Proposed",
-          classes: "bg-cyan-950/70 text-cyan-300 border-cyan-600/60",
-          icon: <AlertCircle className="w-2.5 h-2.5 text-cyan-400" />,
+          classes: "bg-clay-teal/15 text-clay-teal border-clay-teal/30 font-medium",
+          icon: <AlertCircle className="w-2.5 h-2.5 text-clay-teal" />,
         };
       case "VERIFYING":
         return {
           label: "Verifying",
-          classes: "bg-indigo-950/70 text-indigo-300 border-indigo-600/60 animate-pulse",
-          icon: <RefreshCw className="w-2.5 h-2.5 text-indigo-400 animate-spin" />,
+          classes: "bg-clay-peach/25 text-clay-peach-ink border-clay-peach/40 font-medium",
+          icon: <RefreshCw className="w-2.5 h-2.5 text-clay-peach-ink animate-spin" />,
         };
       case "APPROVED":
         return {
           label: "Approved",
-          classes: "bg-emerald-950/70 text-emerald-300 border-emerald-600/60",
-          icon: <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />,
+          classes: "bg-clay-mint/25 text-clay-mint-ink border-clay-mint/50 font-semibold",
+          icon: <CheckCircle2 className="w-2.5 h-2.5 text-clay-mint-ink" />,
         };
       case "COMPLETED":
         return {
           label: "Completed",
-          classes: "bg-emerald-950/70 text-emerald-400 border-emerald-700/60",
-          icon: <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />,
+          classes: "bg-clay-mint/25 text-clay-mint-ink border-clay-mint/50 font-semibold",
+          icon: <CheckCircle2 className="w-2.5 h-2.5 text-clay-mint-ink" />,
         };
       default:
         return {
           label: status,
-          classes: "bg-zinc-900 text-zinc-400 border-zinc-800",
-          icon: <Clock className="w-2.5 h-2.5 text-zinc-500" />,
+          classes: "bg-clay-surface-card text-clay-muted border-clay-hairline font-medium",
+          icon: <Clock className="w-2.5 h-2.5 text-clay-muted" />,
         };
     }
   };
@@ -311,27 +311,27 @@ export function BugTree({
     switch (severity) {
       case "Critical":
         return {
-          dot: "bg-rose-500",
-          text: "text-rose-400",
-          bg: "bg-rose-950/60 border-rose-800/60",
+          dot: "bg-clay-pink",
+          text: "text-clay-pink-ink font-semibold",
+          bg: "bg-clay-pink/15 border-clay-pink/30",
         };
       case "High":
         return {
-          dot: "bg-amber-500",
-          text: "text-amber-400",
-          bg: "bg-amber-950/60 border-amber-800/60",
+          dot: "bg-clay-coral",
+          text: "text-clay-coral-ink font-semibold",
+          bg: "bg-clay-coral/15 border-clay-coral/30",
         };
       case "Medium":
         return {
-          dot: "bg-yellow-500",
-          text: "text-yellow-400",
-          bg: "bg-yellow-950/60 border-yellow-800/60",
+          dot: "bg-clay-ochre",
+          text: "text-clay-ochre-ink font-semibold",
+          bg: "bg-clay-ochre/25 border-clay-ochre/40",
         };
       default:
         return {
-          dot: "bg-blue-500",
-          text: "text-blue-400",
-          bg: "bg-blue-950/60 border-blue-800/60",
+          dot: "bg-clay-mint",
+          text: "text-clay-mint-ink font-semibold",
+          bg: "bg-clay-mint/20 border-clay-mint/40",
         };
     }
   };
@@ -361,27 +361,27 @@ export function BugTree({
   const awaitingCount = tasks.filter((t) => t.status === "AWAITING_HUMAN_APPROVAL").length;
 
   return (
-    <div className="flex flex-col h-full bg-[#080808] border-r border-[#1e1e1e] select-none text-xs">
+    <div className="flex flex-col h-full bg-clay-surface-soft border-r border-clay-hairline select-none text-xs text-clay-ink">
       {/* ========================================================================= */}
       {/* 1. BUG TREE VIEW */}
       {/* ========================================================================= */}
       {activeActivityTab === "bugtree" && (
         <>
-          <div className="h-9 px-3 flex items-center justify-between border-b border-[#1e1e1e] bg-[#050505]">
+          <div className="h-9 px-3 flex items-center justify-between border-b border-clay-hairline bg-clay-canvas">
             <div className="flex items-center gap-2">
-              <Bug className="w-3.5 h-3.5 text-[#f54e00]" />
-              <span className="font-semibold text-neutral-200 tracking-wide uppercase text-[11px]">
+              <Bug className="w-3.5 h-3.5 text-clay-primary" />
+              <span className="font-semibold text-clay-ink tracking-wide uppercase text-[11px]">
                 Live Bug Tree
               </span>
-              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-[#181818] text-neutral-400 border border-[#262626]">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-clay-pill bg-clay-surface-card text-clay-muted border border-clay-hairline">
                 {tasks.length}
               </span>
             </div>
 
             <div className="flex items-center gap-1.5">
               {awaitingCount > 0 && (
-                <span className="px-2 py-0.5 rounded-full bg-amber-950/70 border border-amber-500/50 text-amber-300 font-mono text-[10px] font-medium animate-pulse flex items-center gap-1">
-                  <Lock className="w-2.5 h-2.5 text-amber-400" />
+                <span className="px-2 py-0.5 rounded-clay-pill bg-clay-peach/25 border border-clay-peach/50 text-[#9a4b18] font-mono text-[10px] font-semibold flex items-center gap-1">
+                  <Lock className="w-2.5 h-2.5 text-[#9a4b18]" />
                   <span>{awaitingCount} Gate</span>
                 </span>
               )}
@@ -389,7 +389,7 @@ export function BugTree({
               <button
                 onClick={onNewBugClick}
                 title="Report New Bug"
-                className="p-1 rounded text-neutral-400 hover:text-[#f54e00] hover:bg-[#181818] transition-colors cursor-pointer"
+                className="p-1 rounded-clay-md text-clay-muted hover:text-clay-ink hover:bg-clay-surface-card transition-colors cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
               </button>
@@ -397,27 +397,29 @@ export function BugTree({
           </div>
 
           {/* Search Input & Filter Chips */}
-          <div className="p-2 border-b border-[#1e1e1e] bg-[#080808]">
-            <div className="flex items-center gap-1.5 px-2 py-1.5 bg-[#121212] rounded-md border border-[#222222] focus-within:border-[#f54e00]/70 transition-colors">
-              <Search className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
+          <div className="p-2 border-b border-clay-hairline bg-clay-surface-soft">
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white rounded-clay-md border border-clay-hairline focus-within:border-clay-primary shadow-clay-soft transition-colors">
+              <Search className="w-3.5 h-3.5 text-clay-muted shrink-0" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Filter bugs, files, lines..."
-                className="w-full bg-transparent outline-none text-[11px] text-white placeholder-neutral-500 font-mono"
+                aria-label="Filter bugs, files, and lines"
+                className="w-full bg-transparent outline-none text-[11px] text-clay-ink placeholder-clay-muted font-mono"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="text-neutral-500 hover:text-white cursor-pointer"
+                  aria-label="Clear filter query"
+                  className="text-clay-muted hover:text-clay-ink cursor-pointer"
                 >
                   <X className="w-3 h-3" />
                 </button>
               )}
             </div>
 
-            <div className="flex items-center gap-1 mt-2 overflow-x-auto scrollbar-none">
+            <div className="flex items-center gap-1.5 mt-2 overflow-x-auto scrollbar-none" role="group" aria-label="Bug status filter">
               {(
                 [
                   { id: "all", label: "All" },
@@ -429,10 +431,11 @@ export function BugTree({
                 <button
                   key={chip.id}
                   onClick={() => setFilterMode(chip.id)}
-                  className={`px-2 py-0.5 rounded text-[10px] font-mono transition-colors cursor-pointer whitespace-nowrap ${
+                  aria-pressed={filterMode === chip.id}
+                  className={`px-2.5 py-0.5 rounded-clay-pill text-[10px] font-mono transition-colors cursor-pointer whitespace-nowrap ${
                     filterMode === chip.id
-                      ? "bg-[#f54e00]/20 text-[#f54e00] border border-[#f54e00]/50 font-medium"
-                      : "bg-transparent text-neutral-400 hover:text-white border border-transparent hover:border-[#222222]"
+                      ? "bg-clay-primary text-white font-medium shadow-clay-soft"
+                      : "bg-clay-surface-card text-clay-muted hover:text-clay-ink hover:bg-clay-surface-strong border border-clay-hairline"
                   }`}
                 >
                   {chip.label}
@@ -444,8 +447,8 @@ export function BugTree({
           {/* Bug Tree Body */}
           <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5 font-mono text-[11px]">
             {isLoading && (
-              <div className="p-4 text-center text-neutral-500 font-mono text-xs flex items-center justify-center gap-2">
-                <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#f54e00]" />
+              <div className="p-4 text-center text-clay-muted font-mono text-xs flex items-center justify-center gap-2">
+                <RefreshCw className="w-3.5 h-3.5 animate-spin text-clay-primary" />
                 <span>Loading bug tree...</span>
               </div>
             )}
@@ -459,17 +462,17 @@ export function BugTree({
       {/* ========================================================================= */}
       {activeActivityTab === "explorer" && (
         <>
-          <div className="h-9 px-3 flex items-center justify-between border-b border-[#1e1e1e] bg-[#050505]">
+          <div className="h-9 px-3 flex items-center justify-between border-b border-clay-hairline bg-clay-canvas">
             <div className="flex items-center gap-2">
-              <Files className="w-3.5 h-3.5 text-[#f54e00]" />
-              <span className="font-semibold text-neutral-200 tracking-wide uppercase text-[11px]">
+              <Files className="w-3.5 h-3.5 text-clay-primary" />
+              <span className="font-semibold text-clay-ink tracking-wide uppercase text-[11px]">
                 Explorer
               </span>
             </div>
             <button
               onClick={() => setIsCreatingFile(true)}
               title="Create New File"
-              className="p-1 rounded text-neutral-400 hover:text-[#f54e00] hover:bg-[#181818] transition-colors cursor-pointer"
+              className="p-1 rounded-clay-md text-clay-muted hover:text-clay-ink hover:bg-clay-surface-card transition-colors cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
             </button>
@@ -477,8 +480,8 @@ export function BugTree({
 
           <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5 font-mono text-xs">
             {isCreatingFile && (
-              <div className="p-1.5 flex items-center gap-1.5 bg-[#141414] rounded-md border border-[#f54e00]/60 mb-1">
-                <FileCode className="w-3.5 h-3.5 text-neutral-300 shrink-0" />
+              <div className="p-1.5 flex items-center gap-1.5 bg-white rounded-clay-md border border-clay-primary shadow-clay-soft mb-1">
+                <FileCode className="w-3.5 h-3.5 text-clay-muted shrink-0" />
                 <input
                   type="text"
                   value={newFileNameInput}
@@ -495,7 +498,7 @@ export function BugTree({
                   }}
                   placeholder="filename.py"
                   autoFocus
-                  className="w-full bg-transparent outline-none text-xs text-white font-mono placeholder-neutral-500"
+                  className="w-full bg-transparent outline-none text-xs text-clay-ink font-mono placeholder-clay-muted"
                 />
                 <button
                   onClick={() => {
@@ -505,7 +508,7 @@ export function BugTree({
                     setIsCreatingFile(false);
                     setNewFileNameInput("");
                   }}
-                  className="p-0.5 text-emerald-400 hover:text-emerald-300 cursor-pointer"
+                  className="p-0.5 text-clay-success hover:text-clay-success cursor-pointer"
                 >
                   <Check className="w-3 h-3" />
                 </button>
@@ -514,7 +517,7 @@ export function BugTree({
                     setIsCreatingFile(false);
                     setNewFileNameInput("");
                   }}
-                  className="p-0.5 text-neutral-500 hover:text-white cursor-pointer"
+                  className="p-0.5 text-clay-muted hover:text-clay-ink cursor-pointer"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -530,25 +533,25 @@ export function BugTree({
                 <div
                   key={fileName}
                   onClick={() => onSelectFile(fileName)}
-                  className={`flex items-center justify-between px-2.5 py-1.5 rounded-md cursor-pointer transition-colors ${
+                  className={`flex items-center justify-between px-2.5 py-1.5 rounded-clay-md cursor-pointer transition-colors ${
                     isCurrent
-                      ? "bg-[#181818] text-white border border-[#2a2a2a] font-medium shadow-xs"
-                      : "text-neutral-400 hover:bg-[#121212] hover:text-neutral-200"
+                      ? "bg-white text-clay-ink border border-clay-hairline font-medium shadow-clay-soft"
+                      : "text-clay-body hover:bg-clay-surface-card hover:text-clay-ink"
                   }`}
                 >
                   <div className="flex items-center gap-2 truncate">
                     <FileCode
                       className={`w-3.5 h-3.5 shrink-0 ${
-                        isCurrent ? "text-white" : isModified ? "text-[#e5c07b]" : "text-neutral-500"
+                        isCurrent ? "text-clay-primary" : isModified ? "text-clay-ochre" : "text-clay-muted"
                       }`}
                     />
                     <span className="truncate">{fileName}</span>
                   </div>
 
                   <div className="flex items-center gap-1.5 shrink-0 font-mono text-[10px]">
-                    <span className="text-neutral-500">{lineCount}L</span>
+                    <span className="text-clay-muted">{lineCount}L</span>
                     {isModified && (
-                      <span className="text-[#e5c07b] bg-[#e5c07b]/10 px-1 rounded border border-[#e5c07b]/30">
+                      <span className="text-[#946200] bg-clay-ochre/20 px-1.5 rounded-clay-sm border border-clay-ochre/30">
                         M
                       </span>
                     )}
@@ -565,33 +568,33 @@ export function BugTree({
       {/* ========================================================================= */}
       {activeActivityTab === "search" && (
         <>
-          <div className="h-9 px-3 flex items-center justify-between border-b border-[#1e1e1e] bg-[#050505]">
+          <div className="h-9 px-3 flex items-center justify-between border-b border-clay-hairline bg-clay-canvas">
             <div className="flex items-center gap-2">
-              <Search className="w-3.5 h-3.5 text-[#f54e00]" />
-              <span className="font-semibold text-neutral-200 tracking-wide uppercase text-[11px]">
+              <Search className="w-3.5 h-3.5 text-clay-primary" />
+              <span className="font-semibold text-clay-ink tracking-wide uppercase text-[11px]">
                 Search Codebase
               </span>
             </div>
-            <span className="text-[10px] font-mono text-neutral-500">
+            <span className="text-[10px] font-mono text-clay-muted">
               {searchResults.length} matches
             </span>
           </div>
 
-          <div className="p-2 border-b border-[#1e1e1e] bg-[#080808]">
-            <div className="flex items-center gap-1.5 px-2 py-1.5 bg-[#121212] rounded-md border border-[#222222] focus-within:border-[#f54e00]/70">
-              <Search className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
+          <div className="p-2 border-b border-clay-hairline bg-clay-surface-soft">
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white rounded-clay-md border border-clay-hairline focus-within:border-clay-primary shadow-clay-soft">
+              <Search className="w-3.5 h-3.5 text-clay-muted shrink-0" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search functions, tokens, lines..."
                 autoFocus
-                className="w-full bg-transparent outline-none text-xs text-white placeholder-neutral-500 font-mono"
+                className="w-full bg-transparent outline-none text-xs text-clay-ink placeholder-clay-muted font-mono"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="text-neutral-500 hover:text-white cursor-pointer"
+                  className="text-clay-muted hover:text-clay-ink cursor-pointer"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -604,24 +607,24 @@ export function BugTree({
               <div
                 key={idx}
                 onClick={() => onNavigateToLine(res.file, res.line)}
-                className="p-2 rounded-md hover:bg-[#141414] border border-transparent hover:border-[#222222] cursor-pointer transition-colors group"
+                className="p-2 rounded-clay-md hover:bg-white border border-transparent hover:border-clay-hairline cursor-pointer transition-colors group shadow-clay-soft"
               >
-                <div className="flex items-center justify-between text-neutral-400 group-hover:text-[#f54e00]">
-                  <span className="font-semibold text-xs text-white">{res.file}</span>
-                  <span className="text-[10px] text-neutral-500">Ln {res.line}</span>
+                <div className="flex items-center justify-between text-clay-body group-hover:text-clay-primary">
+                  <span className="font-semibold text-xs text-clay-ink">{res.file}</span>
+                  <span className="text-[10px] text-clay-muted">Ln {res.line}</span>
                 </div>
-                <div className="text-neutral-300 truncate text-[11px] mt-0.5 font-mono">
+                <div className="text-clay-muted group-hover:text-clay-body truncate text-[11px] mt-0.5 font-mono">
                   {res.text}
                 </div>
               </div>
             ))}
             {searchQuery && searchResults.length === 0 && (
-              <div className="p-4 text-center text-xs text-neutral-500">
+              <div className="p-4 text-center text-xs text-clay-muted">
                 No matching code found across workspace files.
               </div>
             )}
             {!searchQuery && (
-              <div className="p-4 text-center text-neutral-500 text-[11px]">
+              <div className="p-4 text-center text-clay-muted text-[11px]">
                 Type a symbol name to search across the codebase.
               </div>
             )}
@@ -634,25 +637,25 @@ export function BugTree({
       {/* ========================================================================= */}
       {activeActivityTab === "git" && (
         <>
-          <div className="h-9 px-3 flex items-center justify-between border-b border-[#1e1e1e] bg-[#050505]">
+          <div className="h-9 px-3 flex items-center justify-between border-b border-clay-hairline bg-clay-canvas">
             <div className="flex items-center gap-2">
-              <GitBranch className="w-3.5 h-3.5 text-[#f54e00]" />
-              <span className="font-semibold text-neutral-200 tracking-wide uppercase text-[11px]">
+              <GitBranch className="w-3.5 h-3.5 text-clay-primary" />
+              <span className="font-semibold text-clay-ink tracking-wide uppercase text-[11px]">
                 Source Control
               </span>
             </div>
-            <span className="text-[10px] font-mono text-[#f54e00]">
+            <span className="text-[10px] font-mono text-clay-primary font-medium">
               feature/ayush-backend
             </span>
           </div>
 
-          <div className="p-2 border-b border-[#1e1e1e] space-y-2">
+          <div className="p-2 border-b border-clay-hairline space-y-2 bg-clay-surface-soft">
             <input
               type="text"
               value={gitCommitMessage}
               onChange={(e) => setGitCommitMessage(e.target.value)}
               placeholder="Commit message (⌘Enter)..."
-              className="w-full px-2.5 py-1.5 rounded-md bg-[#121212] border border-[#242424] text-xs font-mono text-white placeholder-neutral-500 outline-none focus:border-[#f54e00]"
+              className="w-full px-2.5 py-1.5 rounded-clay-md bg-white border border-clay-hairline text-xs font-mono text-clay-ink placeholder-clay-muted outline-none focus:border-clay-primary shadow-clay-soft"
             />
             <button
               onClick={() => {
@@ -662,25 +665,25 @@ export function BugTree({
                 }
               }}
               disabled={!gitCommitMessage.trim()}
-              className="w-full py-1.5 rounded-md bg-transparent hover:bg-[#f54e00]/10 border border-[#f54e00]/80 text-[#f54e00] disabled:opacity-40 text-xs font-mono font-medium cursor-pointer transition-colors"
+              className="w-full py-1.5 rounded-clay-md bg-clay-primary hover:bg-clay-primary-active text-white disabled:opacity-40 text-xs font-mono font-medium cursor-pointer transition-colors shadow-clay-soft"
             >
               Commit to branch ({committedCount})
             </button>
           </div>
 
           <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5 font-mono text-xs">
-            <div className="text-[10px] font-semibold text-neutral-400 uppercase tracking-wider px-2 py-1">
+            <div className="text-[10px] font-semibold text-clay-muted uppercase tracking-wider px-2 py-1">
               Modified Files (1)
             </div>
             <div
               onClick={() => onSelectFile("calculator.py")}
-              className="flex items-center justify-between px-2.5 py-1.5 rounded-md hover:bg-[#141414] cursor-pointer transition-colors text-neutral-300"
+              className="flex items-center justify-between px-2.5 py-1.5 rounded-clay-md hover:bg-white border border-transparent hover:border-clay-hairline cursor-pointer transition-colors text-clay-ink shadow-clay-soft"
             >
               <div className="flex items-center gap-2 truncate">
-                <FileCode className="w-3.5 h-3.5 text-[#e5c07b] shrink-0" />
+                <FileCode className="w-3.5 h-3.5 text-clay-ochre shrink-0" />
                 <span className="truncate">calculator.py</span>
               </div>
-              <span className="text-[10px] text-[#e5c07b] font-mono px-1 rounded bg-[#e5c07b]/10">
+              <span className="text-[10px] text-[#946200] font-mono px-1.5 rounded-clay-sm bg-clay-ochre/20 border border-clay-ochre/30">
                 M
               </span>
             </div>
@@ -693,48 +696,60 @@ export function BugTree({
       {/* ========================================================================= */}
       {activeActivityTab === "agents" && (
         <>
-          <div className="h-9 px-3 flex items-center justify-between border-b border-[#1e1e1e] bg-[#050505]">
+          <div className="h-9 px-3 flex items-center justify-between border-b border-clay-hairline bg-clay-canvas">
             <div className="flex items-center gap-2">
-              <Bot className="w-3.5 h-3.5 text-[#f54e00]" />
-              <span className="font-semibold text-neutral-200 tracking-wide uppercase text-[11px]">
+              <Bot className="w-3.5 h-3.5 text-clay-primary" />
+              <span className="font-semibold text-clay-ink tracking-wide uppercase text-[11px]">
                 Switch Agents
               </span>
             </div>
-            <span className="text-[10px] font-mono text-emerald-400">Online</span>
+            <span className="text-[10px] font-mono text-clay-success font-semibold flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-clay-success animate-pulse" />
+              Online
+            </span>
           </div>
 
           <div className="flex-1 overflow-y-auto p-2 space-y-2 font-mono text-xs">
-            <div className="p-2.5 rounded-lg bg-[#0e0e0e] border border-[#1e1e1e] flex flex-col gap-1">
+            <div className="p-2.5 rounded-clay-lg bg-white border border-clay-hairline shadow-clay-soft flex flex-col gap-1">
               <div className="flex items-center justify-between">
-                <span className="text-white font-medium">shipdev-triager</span>
-                <span className="text-[10px] text-blue-400">Triage</span>
+                <span className="text-clay-ink font-semibold">shipdev-triager</span>
+                <span className="text-[10px] text-clay-teal font-medium bg-clay-teal/10 px-1.5 py-0.5 rounded-clay-pill">
+                  Triage
+                </span>
               </div>
-              <span className="text-[10px] text-neutral-500">UUID: bd717264-f0ac-4651</span>
+              <span className="text-[10px] text-clay-muted">UUID: bd717264-f0ac-4651</span>
             </div>
 
-            <div className="p-2.5 rounded-lg bg-[#0e0e0e] border border-[#1e1e1e] flex flex-col gap-1">
+            <div className="p-2.5 rounded-clay-lg bg-white border border-clay-hairline shadow-clay-soft flex flex-col gap-1">
               <div className="flex items-center justify-between">
-                <span className="text-white font-medium">Reproduction Agent</span>
-                <span className="text-[10px] text-purple-400">Sandbox</span>
+                <span className="text-clay-ink font-semibold">Reproduction Agent</span>
+                <span className="text-[10px] text-clay-lavender font-medium bg-clay-lavender/25 px-1.5 py-0.5 rounded-clay-pill">
+                  Sandbox
+                </span>
               </div>
-              <span className="text-[10px] text-neutral-500">pytest isolated runner</span>
+              <span className="text-[10px] text-clay-muted">pytest isolated runner</span>
             </div>
 
-            <div className="p-2.5 rounded-lg bg-[#0e0e0e] border border-[#1e1e1e] flex flex-col gap-1">
+            <div className="p-2.5 rounded-clay-lg bg-white border border-clay-hairline shadow-clay-soft flex flex-col gap-1">
               <div className="flex items-center justify-between">
-                <span className="text-white font-medium">shipdev-verifier</span>
-                <span className="text-[10px] text-emerald-400">Verifier</span>
+                <span className="text-clay-ink font-semibold">shipdev-verifier</span>
+                <span className="text-[10px] text-[#136149] font-medium bg-clay-mint/25 px-1.5 py-0.5 rounded-clay-pill">
+                  Verifier
+                </span>
               </div>
-              <span className="text-[10px] text-neutral-500">UUID: 7dc5d295-a3c3-4168</span>
+              <span className="text-[10px] text-clay-muted">UUID: 7dc5d295-a3c3-4168</span>
             </div>
           </div>
         </>
       )}
 
       {/* Footer Status */}
-      <div className="h-7 px-3 border-t border-[#1e1e1e] bg-[#050505] flex items-center justify-between text-[10px] font-mono text-neutral-500 shrink-0">
+      <div className="h-7 px-3 border-t border-clay-hairline bg-clay-canvas flex items-center justify-between text-[10px] font-mono text-clay-muted shrink-0">
         <span>Workspace Sync</span>
-        <span className="text-[#f54e00] font-medium">Live</span>
+        <span className="text-clay-success font-semibold flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-clay-success" />
+          Live
+        </span>
       </div>
     </div>
   );
@@ -749,6 +764,9 @@ export function BugTree({
       <div key={node.id} className="flex flex-col">
         {/* Node Label Row */}
         <div
+          role="button"
+          tabIndex={0}
+          aria-expanded={isFolder ? isExpanded : undefined}
           onClick={() => {
             if (isFolder) {
               toggleFolder(node.id);
@@ -756,17 +774,27 @@ export function BugTree({
               onSelectFile(node.fileName);
             }
           }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              if (isFolder) {
+                toggleFolder(node.id);
+              } else if (node.fileName) {
+                onSelectFile(node.fileName);
+              }
+            }
+          }}
           style={{ paddingLeft: `${depth * 14 + 6}px` }}
-          className={`group flex items-center justify-between py-1 px-2 rounded-md cursor-pointer transition-colors ${
+          className={`group flex items-center justify-between py-1 px-2 rounded-clay-md cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-clay-primary ${
             isCurrentFile
-              ? "bg-[#181818] text-white border border-[#282828] font-medium"
-              : "text-neutral-400 hover:text-neutral-200 hover:bg-[#121212]"
+              ? "bg-white text-clay-ink border border-clay-hairline font-medium shadow-clay-soft"
+              : "text-clay-body hover:text-clay-ink hover:bg-clay-surface-card"
           }`}
         >
           <div className="flex items-center gap-1.5 truncate">
             {isFolder ? (
               <>
-                <span className="text-neutral-500 group-hover:text-neutral-300">
+                <span className="text-clay-muted group-hover:text-clay-ink">
                   {isExpanded ? (
                     <ChevronDown className="w-3 h-3" />
                   ) : (
@@ -774,11 +802,11 @@ export function BugTree({
                   )}
                 </span>
                 {isExpanded ? (
-                  <FolderOpen className="w-3.5 h-3.5 text-[#f54e00] shrink-0" />
+                  <FolderOpen className="w-3.5 h-3.5 text-clay-primary shrink-0" />
                 ) : (
-                  <Folder className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
+                  <Folder className="w-3.5 h-3.5 text-clay-muted shrink-0" />
                 )}
-                <span className="truncate text-neutral-300 group-hover:text-white">
+                <span className="truncate text-clay-ink group-hover:text-clay-primary">
                   {node.name}
                 </span>
               </>
@@ -786,10 +814,10 @@ export function BugTree({
               <>
                 <FileCode
                   className={`w-3.5 h-3.5 shrink-0 ${
-                    isCurrentFile ? "text-white" : "text-neutral-500"
+                    isCurrentFile ? "text-clay-primary" : "text-clay-muted"
                   }`}
                 />
-                <span className={`truncate ${isCurrentFile ? "text-white" : "text-neutral-300"}`}>
+                <span className={`truncate ${isCurrentFile ? "text-clay-ink font-semibold" : "text-clay-body"}`}>
                   {node.name}
                 </span>
               </>
@@ -799,11 +827,7 @@ export function BugTree({
           {/* Bug Count on Folder/File */}
           {bugCount > 0 && (
             <span
-              className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full border shrink-0 ${
-                bugCount > 0
-                  ? "bg-rose-950/60 text-rose-300 border-rose-800/60"
-                  : "bg-neutral-900 text-neutral-500 border-neutral-800"
-              }`}
+              className="text-[10px] font-mono px-1.5 py-0.5 rounded-clay-pill border shrink-0 bg-clay-pink/15 text-clay-pink-ink border-clay-pink/30 font-semibold"
             >
               {bugCount} {bugCount === 1 ? "bug" : "bugs"}
             </span>
@@ -828,33 +852,43 @@ export function BugTree({
               return (
                 <div
                   key={task.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={isSelected}
                   onClick={(e) => {
                     e.stopPropagation();
                     onSelectBug(task, location.fileName, location.lineNumber);
                   }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onSelectBug(task, location.fileName, location.lineNumber);
+                    }
+                  }}
                   style={{ paddingLeft: `${(depth + 1) * 14 + 10}px` }}
-                  className={`group relative p-2 mr-1 rounded-lg cursor-pointer border transition-all ${
+                  className={`group relative p-2 mr-1 rounded-clay-lg cursor-pointer border transition-all focus-visible:outline-2 focus-visible:outline-clay-primary ${
                     isSelected
-                      ? "bg-[#161616] border-[#f54e00] shadow-[0_0_12px_rgba(245,78,0,0.15)] text-white"
-                      : "bg-[#0b0b0b] hover:bg-[#121212] border-[#1e1e1e] hover:border-[#2a2a2a] text-neutral-300"
+                      ? "bg-white border-2 border-clay-primary shadow-clay-card text-clay-ink"
+                      : "bg-white hover:bg-clay-surface-card border-clay-hairline text-clay-body shadow-clay-soft"
                   }`}
                 >
                   {/* Top Line: Severity Dot & Line Number */}
                   <div className="flex items-center justify-between gap-1.5 mb-1">
                     <div className="flex items-center gap-1.5">
                       <span className={`w-2 h-2 rounded-full ${sev.dot} shrink-0`} />
-                      <span className={`text-[10px] font-semibold uppercase ${sev.text}`}>
+                      <span className={`text-[10px] ${sev.text}`}>
                         {location.severity}
                       </span>
-                      <span className="text-neutral-600">•</span>
-                      <span className="text-[10px] font-mono text-neutral-400 bg-[#161616] px-1 rounded border border-[#222222]">
+                      <span className="text-clay-hairline">•</span>
+                      <span className="text-[10px] font-mono text-clay-muted bg-clay-surface-soft px-1 rounded-clay-xs border border-clay-hairline">
                         Ln {location.lineNumber}
                       </span>
                     </div>
 
                     {/* Status Pill */}
                     <div
-                      className={`flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] border font-mono ${statusPill.classes}`}
+                      className={`flex items-center gap-1 px-1.5 py-0.5 rounded-clay-pill text-[9px] border font-mono ${statusPill.classes}`}
                     >
                       {statusPill.icon}
                       <span>{statusPill.label}</span>
@@ -862,16 +896,16 @@ export function BugTree({
                   </div>
 
                   {/* Bug Title */}
-                  <div className="text-[11px] font-sans font-medium text-neutral-200 group-hover:text-white leading-snug line-clamp-2">
+                  <div className="text-[11px] font-sans font-semibold text-clay-ink group-hover:text-clay-primary leading-snug line-clamp-2">
                     {task.title}
                   </div>
 
                   {/* Symbol Target */}
-                  <div className="mt-1 flex items-center justify-between text-[10px] text-neutral-500 font-mono">
-                    <span className="truncate text-neutral-400">
+                  <div className="mt-1 flex items-center justify-between text-[10px] text-clay-muted font-mono">
+                    <span className="truncate text-clay-muted font-mono">
                       @{location.symbolName}()
                     </span>
-                    <span className="text-[9px] text-neutral-600">
+                    <span className="text-[9px] text-clay-muted">
                       ID: {task.id.slice(-6)}
                     </span>
                   </div>

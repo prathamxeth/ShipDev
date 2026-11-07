@@ -5,7 +5,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "ShipDev — Human-Supervised AI Engineering IDE",
-  description: "Autonomous multi-agent bug triage and verification workspace powered by Switch",
+  description: "Autonomous multi-agent bug triage and verification workspace powered by Switch and Clay design system",
 };
 
 export default function RootLayout({
@@ -14,11 +14,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable} dark`}>
-      <body className="bg-oled-black text-slate-100 font-sans antialiased min-h-screen overflow-hidden selection:bg-blue-600/30 selection:text-blue-200">
+    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+      <body className="bg-clay-canvas text-clay-ink font-sans antialiased min-h-screen overflow-hidden selection:bg-clay-lavender/40 selection:text-clay-ink">
         {children}
       </body>
     </html>
   );
 }
-

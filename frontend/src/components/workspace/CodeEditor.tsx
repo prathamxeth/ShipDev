@@ -18,7 +18,7 @@ import { WorkspaceFile } from "@/lib/workspaceFiles";
 const Editor = dynamic(() => import("@monaco-editor/react"), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-full flex items-center justify-center bg-[#000000] text-xs font-mono text-neutral-500">
+    <div className="w-full h-full flex items-center justify-center bg-white text-xs font-mono text-clay-muted">
       Loading Monaco Editor...
     </div>
   ),
@@ -29,7 +29,7 @@ const DiffEditor = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full flex items-center justify-center bg-[#000000] text-xs font-mono text-neutral-500">
+      <div className="w-full h-full flex items-center justify-center bg-white text-xs font-mono text-clay-muted">
         Loading Side-by-Side Diff...
       </div>
     ),
@@ -113,10 +113,10 @@ export function CodeEditor({
           range: new monaco.Range(targetHighlightLine, 1, targetHighlightLine, 1),
           options: {
             isWholeLine: true,
-            className: "bg-rose-950/40 border-l-2 border-rose-500",
+            className: "bg-clay-pink/15 border-l-4 border-clay-pink",
             glyphMarginClassName: "bug-glyph-marker",
             overviewRuler: {
-              color: "#f43f5e",
+              color: "#ff4d8b",
               position: monaco.editor.OverviewRulerLane.Right,
             },
           },
@@ -126,9 +126,9 @@ export function CodeEditor({
   }, [targetHighlightLine, activeFileName]);
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-[#000000]">
-      {/* TABS BAR MATCHING NEXUS IDE */}
-      <div className="h-9 px-2 bg-[#080808] border-b border-[#1e1e1e] flex items-center justify-between overflow-x-auto select-none shrink-0 scrollbar-none">
+    <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-white">
+      {/* TABS BAR MATCHING CLAY DESIGN SYSTEM */}
+      <div className="h-9 px-2 bg-clay-surface-soft border-b border-clay-hairline flex items-center justify-between overflow-x-auto select-none shrink-0 scrollbar-none">
         <div className="flex items-center gap-1 min-w-0">
           {openTabs.map((tab) => {
             const isActive = activeFileName === tab;
@@ -140,35 +140,35 @@ export function CodeEditor({
               <div
                 key={tab}
                 onClick={() => onSelectTab(tab)}
-                className={`group flex items-center gap-1.5 px-3 py-1.5 rounded-t-md text-xs font-mono border-t border-x cursor-pointer transition-colors shrink-0 max-w-48 ${
+                className={`group flex items-center gap-1.5 px-3 py-1.5 rounded-t-clay-md text-xs font-mono border-t border-x cursor-pointer transition-colors shrink-0 max-w-48 ${
                   isActive
-                    ? "bg-[#000000] border-[#262626] text-white font-medium shadow-xs"
+                    ? "bg-white border-t-2 border-t-clay-primary border-x-clay-hairline text-clay-ink font-semibold shadow-clay-soft"
                     : isFileModified
-                    ? "bg-[#080808] border-transparent text-[#e5c07b] hover:text-[#f3d38c]"
-                    : "bg-[#080808] border-transparent text-neutral-400 hover:text-neutral-200"
+                    ? "bg-clay-surface-card border-transparent text-[#946200] hover:text-clay-ink"
+                    : "bg-clay-surface-card border-transparent text-clay-muted hover:text-clay-ink"
                 }`}
               >
                 <FileCode
                   className={`w-3 h-3 shrink-0 ${
                     isActive
-                      ? "text-white"
+                      ? "text-clay-primary"
                       : isFileModified
-                      ? "text-[#e5c07b]"
-                      : "text-neutral-500"
+                      ? "text-clay-ochre"
+                      : "text-clay-muted"
                   }`}
                 />
                 <span className="truncate">{tab}</span>
 
                 {hasBug && (
                   <span
-                    className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"
+                    className="w-1.5 h-1.5 rounded-full bg-clay-pink shrink-0"
                     title="Bug detected in this file"
                   />
                 )}
 
                 {isFileModified && (
                   <span
-                    className="w-1.5 h-1.5 rounded-full bg-[#e5c07b] shrink-0"
+                    className="w-1.5 h-1.5 rounded-full bg-clay-ochre shrink-0"
                     title="Modified file"
                   />
                 )}
@@ -178,7 +178,7 @@ export function CodeEditor({
                     e.stopPropagation();
                     onCloseTab(tab);
                   }}
-                  className="p-0.5 rounded hover:bg-[#1f1f1f] text-neutral-500 hover:text-white shrink-0 ml-1.5 opacity-60 group-hover:opacity-100 transition-opacity"
+                  className="p-0.5 rounded-clay-xs hover:bg-clay-surface-strong text-clay-muted hover:text-clay-ink shrink-0 ml-1.5 opacity-60 group-hover:opacity-100 transition-opacity"
                   title="Close Tab"
                 >
                   <X className="w-2.5 h-2.5" />
@@ -198,7 +198,7 @@ export function CodeEditor({
               }
             }}
             title="Open file in tab"
-            className="p-1 rounded hover:bg-[#1a1a1a] text-neutral-500 hover:text-neutral-200 border border-transparent hover:border-[#262626] transition-colors cursor-pointer shrink-0 ml-1"
+            className="p-1 rounded-clay-md hover:bg-clay-surface-strong text-clay-muted hover:text-clay-ink border border-clay-hairline transition-colors cursor-pointer shrink-0 ml-1"
           >
             <Plus className="w-3 h-3" />
           </button>
@@ -208,10 +208,10 @@ export function CodeEditor({
         <div className="flex items-center gap-1.5 shrink-0 pl-2">
           <button
             onClick={() => onToggleDiffMode(!isDiffMode)}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-mono border transition-colors cursor-pointer ${
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-clay-md text-[11px] font-mono border transition-colors cursor-pointer ${
               isDiffMode
-                ? "bg-[#f54e00]/20 border-[#f54e00] text-[#f54e00] font-semibold"
-                : "bg-transparent border-[#262626] hover:border-[#383838] text-neutral-400 hover:text-white"
+                ? "bg-clay-primary text-white border-clay-primary font-semibold shadow-clay-soft"
+                : "bg-white border-clay-hairline hover:bg-clay-surface-card text-clay-body hover:text-clay-ink shadow-clay-soft"
             }`}
           >
             <SplitSquareVertical className="w-3 h-3" />
@@ -222,24 +222,24 @@ export function CodeEditor({
 
       {/* INLINE BUG NOTIFICATION BANNER (IF BUG ANNOTATED ON ACTIVE FILE) */}
       {bugAnnotation && !isDiffMode && (
-        <div className="h-7 px-3 bg-rose-950/30 border-b border-rose-900/40 flex items-center justify-between text-[11px] font-mono text-rose-300 shrink-0">
+        <div className="h-7 px-3 bg-clay-peach/25 border-b border-clay-peach/40 flex items-center justify-between text-[11px] font-mono text-clay-ink shrink-0">
           <div className="flex items-center gap-2 truncate">
-            <Bug className="w-3 h-3 text-rose-400 shrink-0" />
-            <span className="font-semibold text-rose-200">
+            <Bug className="w-3 h-3 text-clay-pink shrink-0" />
+            <span className="font-semibold text-clay-ink">
               Line {bugAnnotation.lineNumber}:
             </span>
-            <span className="truncate text-rose-300">
+            <span className="truncate text-clay-body">
               {bugAnnotation.description}
             </span>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <span className="text-[10px] font-semibold uppercase px-1.5 py-0.2 rounded bg-rose-900/60 text-rose-200 border border-rose-700/60">
+            <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded-clay-pill bg-clay-pink/20 text-clay-pink-ink border border-clay-pink/40">
               {bugAnnotation.severity}
             </span>
             <button
               onClick={() => onToggleDiffMode(true)}
-              className="text-[10px] text-white underline hover:text-[#f54e00] cursor-pointer"
+              className="text-[10px] text-clay-primary font-semibold underline hover:text-clay-primary-active cursor-pointer"
             >
               Preview Fix Diff ➔
             </button>
@@ -252,10 +252,10 @@ export function CodeEditor({
         {isDiffMode ? (
           <div className="w-full h-full flex flex-col">
             {/* Diff Toolbar */}
-            <div className="h-8 px-3 bg-[#0a0a0a] border-b border-[#202020] flex items-center justify-between text-[11px] font-mono text-neutral-300 shrink-0">
+            <div className="h-8 px-3 bg-clay-surface-soft border-b border-clay-hairline flex items-center justify-between text-[11px] font-mono text-clay-ink shrink-0">
               <div className="flex items-center gap-2 truncate">
-                <span className="text-[#f54e00] font-semibold">Diff View:</span>
-                <span className="text-neutral-400 truncate">
+                <span className="text-clay-primary font-semibold">Diff View:</span>
+                <span className="text-clay-muted truncate">
                   Original Baseline (Left) vs Proposed Fix (Right)
                 </span>
               </div>
@@ -263,14 +263,14 @@ export function CodeEditor({
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={onAcceptDiff}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-500/80 text-emerald-400 cursor-pointer text-[11px] font-mono font-medium transition-colors"
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-clay-md bg-clay-mint/25 hover:bg-clay-mint/40 border border-clay-mint/60 text-[#136149] cursor-pointer text-[11px] font-mono font-semibold transition-colors shadow-clay-soft"
                 >
                   <Check className="w-3 h-3" />
                   <span>Accept Fix (⌘Y)</span>
                 </button>
                 <button
                   onClick={onRejectDiff}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded bg-rose-950/60 hover:bg-rose-900/60 border border-rose-500/80 text-rose-400 cursor-pointer text-[11px] font-mono transition-colors"
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-clay-md bg-clay-coral/15 hover:bg-clay-coral/25 border border-clay-coral/50 text-clay-coral cursor-pointer text-[11px] font-mono font-semibold transition-colors shadow-clay-soft"
                   title="Reject fix and return task for agent re-attempt"
                 >
                   <X className="w-3 h-3" />
@@ -278,7 +278,7 @@ export function CodeEditor({
                 </button>
                 <button
                   onClick={() => onToggleDiffMode(false)}
-                  className="px-2.5 py-1 rounded bg-transparent hover:bg-[#1a1a1a] border border-[#2a2a2a] hover:border-[#383838] text-neutral-400 hover:text-white cursor-pointer text-[11px] font-mono transition-colors"
+                  className="px-2.5 py-1 rounded-clay-md bg-white hover:bg-clay-surface-card border border-clay-hairline text-clay-body hover:text-clay-ink cursor-pointer text-[11px] font-mono transition-colors shadow-clay-soft"
                 >
                   Exit Diff (Esc)
                 </button>
@@ -292,7 +292,7 @@ export function CodeEditor({
                 original={originalCodeForDiff}
                 modified={modifiedCodeForDiff}
                 language={activeFile.language}
-                theme="nexus-dark-clean"
+                theme="clay-studio-light"
                 options={{
                   readOnly: true,
                   minimap: { enabled: true },
@@ -310,37 +310,37 @@ export function CodeEditor({
           <Editor
             height="100%"
             language={activeFile.language}
-            theme="nexus-dark-clean"
+            theme="clay-studio-light"
             value={activeFile.code}
             onChange={(val) => onCodeChange(val || "")}
             onMount={(editor, monaco) => {
               editorRef.current = editor as unknown as MonacoEditorInstance;
               monacoRef.current = monaco;
 
-              // Define custom clean OLED Monaco theme matching Nexus IDE
-              monaco.editor.defineTheme("nexus-dark-clean", {
-                base: "vs-dark",
+              // Define custom clean Clay Studio Light Monaco theme
+              monaco.editor.defineTheme("clay-studio-light", {
+                base: "vs",
                 inherit: true,
                 rules: [
-                  { token: "comment", foreground: "666666", fontStyle: "italic" },
-                  { token: "keyword", foreground: "f54e00" },
-                  { token: "string", foreground: "9fc9a2" },
-                  { token: "number", foreground: "dfa88f" },
-                  { token: "type", foreground: "9fbbe0" },
-                  { token: "function", foreground: "f8fafc" },
+                  { token: "comment", foreground: "7a7a7a", fontStyle: "italic" },
+                  { token: "keyword", foreground: "ff4d8b", fontStyle: "bold" },
+                  { token: "string", foreground: "136149" },
+                  { token: "number", foreground: "ff6b5a" },
+                  { token: "type", foreground: "7c5cb7" },
+                  { token: "function", foreground: "1a3a3a", fontStyle: "bold" },
                 ],
                 colors: {
-                  "editor.background": "#000000",
-                  "editorCursor.foreground": "#888888",
-                  "editor.lineHighlightBackground": "#0c0c0c",
-                  "editorLineNumber.foreground": "#444444",
-                  "editorLineNumber.activeForeground": "#f54e00",
-                  "editor.selectionBackground": "#222222",
-                  "editorGutter.background": "#000000",
-                  "minimap.background": "#000000",
+                  "editor.background": "#ffffff",
+                  "editorCursor.foreground": "#0a0a0a",
+                  "editor.lineHighlightBackground": "#faf5e8",
+                  "editorLineNumber.foreground": "#8a8a8a",
+                  "editorLineNumber.activeForeground": "#0a0a0a",
+                  "editor.selectionBackground": "#b8a4ed44",
+                  "editorGutter.background": "#ffffff",
+                  "minimap.background": "#ffffff",
                 },
               });
-              monaco.editor.setTheme("nexus-dark-clean");
+              monaco.editor.setTheme("clay-studio-light");
 
               // Bind Save shortcut
               if (onSaveFile) {

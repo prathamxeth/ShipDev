@@ -19,6 +19,18 @@ export function SettingsModal({
   const [sandboxTimeout, setSandboxTimeout] = useState("30");
   const [autoOpenDiff, setAutoOpenDiff] = useState(true);
 
+  // Close on Escape key
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleSave = (e: React.FormEvent) => {
@@ -28,19 +40,25 @@ export function SettingsModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm select-none animate-in fade-in duration-150">
-      <div className="w-full max-w-md rounded-xl bg-[#0c0c0c] border border-[#262626] shadow-2xl flex flex-col overflow-hidden">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="settings-dialog-title"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs select-none animate-in fade-in duration-150"
+    >
+      <div className="w-full max-w-md rounded-clay-xl bg-clay-canvas border border-clay-hairline shadow-clay-elevated flex flex-col overflow-hidden text-clay-ink">
         {/* Header */}
-        <div className="h-11 px-4 border-b border-[#1e1e1e] flex items-center justify-between bg-[#080808]">
+        <div className="h-11 px-4 border-b border-clay-hairline flex items-center justify-between bg-white">
           <div className="flex items-center gap-2">
-            <Settings className="w-4 h-4 text-[#f54e00]" />
-            <h2 className="text-xs font-semibold text-white uppercase tracking-wider font-mono">
+            <Settings className="w-4 h-4 text-clay-primary" />
+            <h2 id="settings-dialog-title" className="text-xs font-semibold text-clay-ink uppercase tracking-wider font-mono">
               ShipDev Settings
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="text-neutral-500 hover:text-white p-1 rounded hover:bg-[#1a1a1a] transition-colors"
+            aria-label="Close dialog"
+            className="text-clay-muted hover:text-clay-ink p-1 rounded-clay-xs hover:bg-clay-surface-card transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -49,45 +67,45 @@ export function SettingsModal({
         {/* Body */}
         <form onSubmit={handleSave} className="p-4 flex flex-col gap-4 text-xs font-mono">
           <div className="flex flex-col gap-1.5">
-            <label className="text-neutral-400 text-[11px]">
+            <label className="text-clay-muted text-[11px]">
               Switch Agent Controller Endpoint
             </label>
             <input
               type="text"
               value={controllerUrl}
               onChange={(e) => setControllerUrl(e.target.value)}
-              className="w-full px-2.5 py-1.5 rounded-lg bg-[#141414] border border-[#262626] text-white focus:border-[#f54e00] outline-none text-xs"
+              className="w-full px-2.5 py-1.5 rounded-clay-md bg-white border border-clay-hairline text-clay-ink focus:border-clay-primary outline-none text-xs shadow-clay-soft"
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-neutral-400 text-[11px]">
+            <label className="text-clay-muted text-[11px]">
               Switch Incident Room UUID
             </label>
             <input
               type="text"
               value={roomId}
               onChange={(e) => setRoomId(e.target.value)}
-              className="w-full px-2.5 py-1.5 rounded-lg bg-[#141414] border border-[#262626] text-white focus:border-[#f54e00] outline-none text-xs"
+              className="w-full px-2.5 py-1.5 rounded-clay-md bg-white border border-clay-hairline text-clay-ink focus:border-clay-primary outline-none text-xs shadow-clay-soft"
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-neutral-400 text-[11px]">
+            <label className="text-clay-muted text-[11px]">
               Sandbox Subprocess Timeout (seconds)
             </label>
             <input
               type="number"
               value={sandboxTimeout}
               onChange={(e) => setSandboxTimeout(e.target.value)}
-              className="w-full px-2.5 py-1.5 rounded-lg bg-[#141414] border border-[#262626] text-white focus:border-[#f54e00] outline-none text-xs"
+              className="w-full px-2.5 py-1.5 rounded-clay-md bg-white border border-clay-hairline text-clay-ink focus:border-clay-primary outline-none text-xs shadow-clay-soft"
             />
           </div>
 
-          <div className="p-3 rounded-lg bg-[#121212] border border-[#202020] flex items-center justify-between">
+          <div className="p-3 rounded-clay-lg bg-clay-surface-card border border-clay-hairline flex items-center justify-between">
             <div className="flex flex-col">
-              <span className="text-white font-medium">Auto-open Diff Preview</span>
-              <span className="text-[10px] text-neutral-500 font-sans">
+              <span className="text-clay-ink font-semibold">Auto-open Diff Preview</span>
+              <span className="text-[10px] text-clay-muted font-sans">
                 Automatically opens split diff view when fix is proposed
               </span>
             </div>
@@ -95,21 +113,21 @@ export function SettingsModal({
               type="checkbox"
               checked={autoOpenDiff}
               onChange={(e) => setAutoOpenDiff(e.target.checked)}
-              className="rounded accent-[#f54e00] cursor-pointer"
+              className="rounded accent-clay-primary cursor-pointer w-4 h-4"
             />
           </div>
 
-          <div className="pt-2 border-t border-[#1e1e1e] flex items-center justify-end gap-2">
+          <div className="pt-2 border-t border-clay-hairline flex items-center justify-end gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-1.5 rounded-md border border-[#262626] text-neutral-400 hover:text-white transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-clay-md border border-clay-hairline bg-white hover:bg-clay-surface-card text-clay-muted hover:text-clay-ink transition-colors cursor-pointer shadow-clay-soft"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-1.5 rounded-md bg-[#f54e00] hover:bg-[#ff6a26] text-white font-medium transition-colors cursor-pointer flex items-center gap-1.5"
+              className="px-4 py-1.5 rounded-clay-md bg-clay-primary hover:bg-clay-primary-active text-white font-medium transition-colors cursor-pointer flex items-center gap-1.5 shadow-clay-soft"
             >
               <Check className="w-3.5 h-3.5" />
               <span>Save Settings</span>
