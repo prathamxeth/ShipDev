@@ -142,6 +142,19 @@ async def stream_task_events(
                 if await request.is_disconnected():
                     break
 
+                # Explicit subscriber overflow: notify client and close stream for persistent replay
+                if getattr(queue, "overflowed", False):
+                    yield format_sse(
+                        event_type="stream_overflow",
+                        data={
+                            "error": "queue_overflow",
+                            "message": "Subscriber event buffer overflowed. Reconnect using Last-Event-ID to replay persistent history.",
+                            "task_id": task_id,
+                            "missed_from_event_id": getattr(queue, "overflow_event_id", None),
+                        },
+                    )
+                    break
+
                 if timeout is not None:
                     elapsed = loop.time() - start_time
                     if elapsed >= timeout:

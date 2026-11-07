@@ -38,8 +38,9 @@ async def approve_task(
             ),
         )
 
+    # Authenticated reviewer identity from caller_auth. Payload reviewer_id cannot override it.
     verified_request = ApprovalRequest(
-        reviewer_id=reviewer_id if reviewer_id != "anonymous" else payload.reviewer_id,
+        reviewer_id=reviewer_id,
         comments=payload.comments,
     )
     return repo.record_human_approval(task_id, verified_request, actor_type=caller_type)
@@ -69,8 +70,9 @@ async def reject_task(
             ),
         )
 
+    # Authenticated reviewer identity from caller_auth. Payload reviewer_id cannot override it.
     verified_request = RejectionRequest(
-        reviewer_id=reviewer_id if reviewer_id != "anonymous" else payload.reviewer_id,
+        reviewer_id=reviewer_id,
         feedback=payload.feedback,
         return_to=payload.return_to,
     )

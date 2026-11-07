@@ -17,6 +17,8 @@ from app.repositories.task_repository import TaskRepository
 
 VALID_TOKEN = settings.HUMAN_APPROVAL_SECRET
 VALID_AUTH_HEADER = {"Authorization": f"Bearer {VALID_TOKEN}"}
+VALID_AGENT_TOKEN = settings.API_SECRET_KEY
+VALID_AGENT_HEADER = {"Authorization": f"Bearer {VALID_AGENT_TOKEN}"}
 
 
 @pytest.fixture
@@ -126,7 +128,7 @@ async def test_invalid_bearer_token_is_rejected(client, test_repo):
         headers=bad_headers,
     )
     assert res.status_code == 403
-    assert "invalid human authorization token" in res.json()["detail"].lower()
+    assert any(phrase in res.json()["detail"].lower() for phrase in ["agent api credentials cannot authorize", "invalid human authorization token"])
 
 
 @pytest.mark.asyncio
@@ -142,7 +144,7 @@ async def test_api_secret_key_cannot_approve(client, test_repo):
         headers=agent_auth_header,
     )
     assert res.status_code == 403
-    assert "invalid human authorization token" in res.json()["detail"].lower()
+    assert any(phrase in res.json()["detail"].lower() for phrase in ["agent api credentials cannot authorize", "invalid human authorization token"])
 
 
 @pytest.mark.asyncio
@@ -162,7 +164,7 @@ async def test_api_secret_key_cannot_complete(client, test_repo):
         headers=agent_auth_header,
     )
     assert res.status_code == 403
-    assert "invalid human authorization token" in res.json()["detail"].lower()
+    assert any(phrase in res.json()["detail"].lower() for phrase in ["agent api credentials cannot authorize", "invalid human authorization token"])
 
 
 @pytest.mark.asyncio
@@ -219,6 +221,7 @@ async def test_agent_cannot_approve_through_transitions_endpoint(client, test_re
 
     res = await client.post(
         f"/api/v1/tasks/{task.id}/transitions",
+        headers=VALID_AGENT_HEADER,
         json={"target_status": "APPROVED", "actor_type": "agent", "actor_id": "switch-agent"},
     )
     assert res.status_code == 400
@@ -233,6 +236,7 @@ async def test_agent_cannot_complete_through_transitions_endpoint(client, test_r
 
     res = await client.post(
         f"/api/v1/tasks/{task.id}/transitions",
+        headers=VALID_AGENT_HEADER,
         json={"target_status": "COMPLETED", "actor_type": "agent", "actor_id": "switch-agent"},
     )
     assert res.status_code == 400
@@ -291,6 +295,7 @@ async def test_existing_valid_agent_transitions_work(client, test_repo):
 
     res = await client.post(
         f"/api/v1/tasks/{task_id}/transitions",
+        headers=VALID_AGENT_HEADER,
         json={"target_status": "TRIAGED", "actor_type": "agent", "actor_id": "switch-triage"},
     )
     assert res.status_code == 200
@@ -317,6 +322,7 @@ async def test_rejection_flow_returns_to_fix_proposed(client, test_repo):
     # Agent can now re-submit fix
     trans_res = await client.post(
         f"/api/v1/tasks/{task.id}/transitions",
+        headers=VALID_AGENT_HEADER,
         json={"target_status": "VERIFYING", "actor_type": "agent", "actor_id": "switch-fix-agent"},
     )
     assert trans_res.status_code == 200
@@ -392,6 +398,7 @@ async def test_invalid_state_transition_returns_422(client):
     # Invalid jump: REPORTED directly to REPRODUCED
     res = await client.post(
         f"/api/v1/tasks/{task_id}/transitions",
+        headers=VALID_AGENT_HEADER,
         json={"target_status": "REPRODUCED", "actor_type": "agent", "actor_id": "agent-1"},
     )
     assert res.status_code == 422

@@ -257,6 +257,7 @@ async def test_sse_uncommitted_transition_not_broadcast(sse_repo, sse_client):
     # Attempt an illegal transition (REPORTED -> APPROVED directly) via API
     resp = await sse_client.post(
         f"/api/v1/tasks/{task_id}/transitions",
+        headers={"Authorization": f"Bearer {settings.API_SECRET_KEY}"},
         json={"target_status": "APPROVED", "actor_type": "agent", "actor_id": "bad-agent"},
     )
     assert resp.status_code in [400, 422]
@@ -309,7 +310,8 @@ async def test_sse_no_secrets_exposed_in_human_approval_event(sse_repo, sse_clie
     ev_data = events[0]["data"]
     assert ev_data["to_status"] == "APPROVED"
     assert ev_data["actor_type"] == "human"
-    assert ev_data["actor_id"] == "ayush_sec"
+    assert "demo-human-proxy" in ev_data["actor_id"]
+    assert "ayush_sec" in ev_data["actor_id"]
 
     # Verify strict absence of secrets
     assert VALID_TOKEN not in raw_text
