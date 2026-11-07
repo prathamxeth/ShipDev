@@ -21,21 +21,21 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const baseStyles =
-      "inline-flex items-center justify-center font-medium rounded-md transition-all duration-150 select-none focus:outline-none focus:ring-1 focus:ring-slate-400 disabled:opacity-40 disabled:cursor-not-allowed";
+      "inline-flex items-center justify-center font-medium rounded-clay-md transition-all duration-150 select-none focus:outline-none focus:ring-2 focus:ring-clay-primary/20 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer";
 
     const variantStyles = {
       primary:
-        "bg-blue-600 text-white hover:bg-blue-500 active:bg-blue-700 border border-blue-500/40 shadow-sm",
+        "bg-clay-primary text-white hover:bg-clay-primary-active active:bg-clay-primary border border-transparent shadow-clay-soft",
       secondary:
-        "bg-oled-elevated hover:bg-oled-hover text-slate-200 border border-oled-border active:bg-zinc-800",
+        "bg-clay-surface-card hover:bg-clay-surface-strong text-clay-ink border border-clay-hairline shadow-clay-soft",
       outline:
-        "bg-transparent hover:bg-zinc-900/60 text-slate-300 border border-oled-border hover:border-zinc-700",
+        "bg-white hover:bg-clay-surface-card text-clay-body hover:text-clay-ink border border-clay-hairline shadow-clay-soft",
       ghost:
-        "bg-transparent hover:bg-zinc-900/60 text-slate-400 hover:text-slate-200 border-transparent",
+        "bg-transparent hover:bg-clay-surface-card text-clay-muted hover:text-clay-ink border-transparent",
       danger:
-        "bg-rose-950/60 text-rose-300 hover:bg-rose-900/80 active:bg-rose-900 border border-rose-800/80",
+        "bg-clay-coral/15 text-clay-coral hover:bg-clay-coral/25 active:bg-clay-coral/30 border border-clay-coral/40 font-semibold",
       success:
-        "bg-emerald-950/60 text-emerald-300 hover:bg-emerald-900/80 active:bg-emerald-900 border border-emerald-800/80",
+        "bg-clay-mint/25 text-[#136149] hover:bg-clay-mint/40 active:bg-clay-mint/50 border border-clay-mint/60 font-semibold",
     }[variant];
 
     const sizeStyles = {

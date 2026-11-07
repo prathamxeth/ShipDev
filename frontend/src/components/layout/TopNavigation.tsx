@@ -2,19 +2,14 @@
 
 import React, { useEffect, useState } from "react";
 import {
-  Boxes,
   Check,
-  CheckCircle2,
-  Copy,
   GitBranch,
   Info,
   Plus,
   RefreshCw,
   Search,
   Settings,
-  ShieldCheck,
   SplitSquareVertical,
-  XCircle,
 } from "lucide-react";
 import { checkBackendHealth } from "@/lib/api";
 import { BackendHealth } from "@/types";
@@ -63,42 +58,42 @@ export function TopNavigation({
   };
 
   return (
-    <header className="h-10 border-b border-[#1e1e1e] bg-[#050505] flex items-center justify-between px-3 shrink-0 select-none text-xs font-mono z-30">
+    <header className="h-12 border-b border-clay-hairline bg-clay-canvas flex items-center justify-between px-3.5 shrink-0 select-none text-xs font-sans z-30 shadow-xs">
       {/* Left: Branding, Workspace & Git Branch */}
       <div className="flex items-center gap-3 min-w-0">
         {/* ShipDev Wordmark */}
-        <div className="flex items-center gap-2 pr-3 border-r border-[#1e1e1e]">
-          <div className="w-5 h-5 rounded-md bg-[#f54e00]/20 border border-[#f54e00]/60 flex items-center justify-center">
-            <span className="w-2 h-2 rounded-full bg-[#f54e00]" />
+        <div className="flex items-center gap-2 pr-3 border-r border-clay-hairline">
+          <div className="w-6 h-6 rounded-clay-md bg-clay-primary flex items-center justify-center text-white shadow-clay-soft">
+            <span className="w-2.5 h-2.5 rounded-full bg-clay-pink" />
           </div>
-          <span className="font-semibold text-white tracking-wider text-xs">
+          <span className="font-semibold text-clay-ink tracking-tight text-[13px]">
             ShipDev
           </span>
-          <span className="text-[10px] text-neutral-500 font-sans hidden sm:inline">
+          <span className="text-[10px] text-clay-muted bg-clay-surface-card border border-clay-hairline px-1.5 py-0.2 rounded-clay-pill font-mono hidden sm:inline">
             IDE
           </span>
         </div>
 
         {/* Current Project / Repo */}
-        <div className="flex items-center gap-1.5 text-neutral-400 truncate">
-          <span className="text-white font-medium">demo-calculator</span>
-          <span className="text-neutral-600">/</span>
-          <span className="text-neutral-400 truncate hidden md:inline">ShipDev</span>
+        <div className="flex items-center gap-1.5 text-clay-muted truncate">
+          <span className="text-clay-body-strong font-medium">demo-calculator</span>
+          <span className="text-clay-hairline">/</span>
+          <span className="text-clay-muted truncate hidden md:inline">ShipDev</span>
         </div>
 
         {/* Git Branch & Change Status */}
-        <div className="flex items-center gap-2 pl-2 border-l border-[#1e1e1e] text-[11px]">
+        <div className="flex items-center gap-2 pl-2 border-l border-clay-hairline text-[11px]">
           <button
             onClick={handleCopyBranch}
             title="Click to copy branch name"
-            className="flex items-center gap-1 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+            className="flex items-center gap-1 text-clay-body hover:text-clay-ink px-2 py-0.5 rounded-clay-md hover:bg-clay-surface-soft transition-colors cursor-pointer font-mono"
           >
-            <GitBranch className="w-3.5 h-3.5 text-[#f54e00]" />
+            <GitBranch className="w-3.5 h-3.5 text-clay-teal" />
             <span className="truncate max-w-28">feature/ayush-backend</span>
-            {copiedBranch && <Check className="w-3 h-3 text-emerald-400" />}
+            {copiedBranch && <Check className="w-3 h-3 text-clay-success" />}
           </button>
-          <span className="text-[10px] text-[#e5c07b] bg-[#e5c07b]/10 px-1 rounded border border-[#e5c07b]/30">
-            1 mod
+          <span className="text-[10px] text-clay-ink bg-clay-surface-card px-1.5 py-0.2 rounded-clay-pill border border-clay-hairline font-mono font-medium">
+            1 modified
           </span>
         </div>
       </div>
@@ -107,13 +102,13 @@ export function TopNavigation({
       <div className="flex-1 max-w-md mx-4 hidden md:flex items-center justify-center">
         <button
           onClick={onOpenCommandPalette}
-          className="w-full flex items-center justify-between px-3 py-1 rounded-lg bg-[#0e0e0e] hover:bg-[#141414] border border-[#222222] hover:border-[#333333] text-neutral-400 hover:text-neutral-200 transition-colors cursor-pointer text-[11px]"
+          className="w-full flex items-center justify-between px-3 py-1.5 rounded-clay-md bg-clay-surface-soft hover:bg-clay-surface-card border border-clay-hairline text-clay-muted hover:text-clay-ink transition-colors cursor-pointer text-xs"
         >
           <div className="flex items-center gap-2">
-            <Search className="w-3.5 h-3.5 text-neutral-500" />
+            <Search className="w-3.5 h-3.5 text-clay-muted" />
             <span>Search files, bugs, or commands...</span>
           </div>
-          <kbd className="px-1.5 py-0.2 rounded bg-[#1c1c1c] border border-[#2c2c2c] text-[10px] text-neutral-400 font-mono">
+          <kbd className="px-1.5 py-0.5 rounded-clay-xs bg-clay-surface-card border border-clay-hairline text-[10px] text-clay-body font-mono">
             ⌘K
           </kbd>
         </button>
@@ -124,36 +119,36 @@ export function TopNavigation({
         {/* Switch Agent Connection Pill */}
         <div
           title="Switch Agent Controller (:53640) & Room: #shipdev-command-center"
-          className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#0e0e0e] border border-[#222222] text-[11px]"
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-clay-pill bg-clay-surface-soft border border-clay-hairline text-[11px] font-mono shadow-xs"
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#22c55e]" />
-          <span className="text-neutral-400 hidden lg:inline">Switch:</span>
-          <span className="text-emerald-400 font-medium">Live</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-clay-success" />
+          <span className="text-clay-muted hidden lg:inline">Switch:</span>
+          <span className="text-clay-ink font-semibold">Live</span>
         </div>
 
         {/* Backend Health indicator */}
         <div
           title={health?.ok ? "FastAPI backend healthy" : "FastAPI backend check"}
-          className="flex items-center gap-1 text-[11px] text-neutral-400"
+          className="flex items-center gap-1 text-[11px] text-clay-muted font-mono"
         >
           <span
             className={`w-1.5 h-1.5 rounded-full ${
-              health?.ok ? "bg-emerald-400" : "bg-amber-400"
+              health?.ok ? "bg-clay-success" : "bg-clay-warning"
             }`}
           />
-          <span className="hidden xl:inline text-neutral-500">API</span>
+          <span className="hidden xl:inline text-clay-muted">API</span>
         </div>
 
         {/* Diff View Toggle Button */}
         <button
           onClick={() => onToggleDiffMode(!isDiffMode)}
-          className={`flex items-center gap-1 px-2.5 py-1 rounded text-[11px] border transition-colors cursor-pointer ${
+          className={`flex items-center gap-1 px-3 py-1 rounded-clay-md text-xs font-medium border transition-colors cursor-pointer ${
             isDiffMode
-              ? "bg-[#f54e00]/20 border-[#f54e00] text-[#f54e00] font-semibold"
-              : "bg-transparent border-[#262626] hover:border-[#383838] text-neutral-300 hover:text-white"
+              ? "bg-clay-peach/30 border-clay-peach text-clay-ink shadow-xs"
+              : "bg-clay-surface-soft hover:bg-clay-surface-card border-clay-hairline text-clay-body hover:text-clay-ink"
           }`}
         >
-          <SplitSquareVertical className="w-3 h-3" />
+          <SplitSquareVertical className="w-3.5 h-3.5 text-clay-teal" />
           <span className="hidden sm:inline">{isDiffMode ? "Exit Diff" : "Diff View"}</span>
         </button>
 
@@ -161,15 +156,15 @@ export function TopNavigation({
         <button
           onClick={onRefreshClick}
           title="Refresh task queue and evidence"
-          className="p-1.5 text-neutral-400 hover:text-white rounded hover:bg-[#181818] border border-transparent hover:border-[#262626] transition-colors cursor-pointer"
+          className="p-1.5 text-clay-muted hover:text-clay-ink rounded-clay-md hover:bg-clay-surface-soft border border-transparent hover:border-clay-hairline transition-colors cursor-pointer"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-[#f54e00]" : ""}`} />
+          <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-clay-teal" : ""}`} />
         </button>
 
         {/* New Bug Button */}
         <button
           onClick={onNewBugClick}
-          className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#f54e00] hover:bg-[#ff6a26] text-white text-[11px] font-medium transition-colors cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-clay-md bg-clay-primary hover:bg-clay-primary-active text-white text-xs font-semibold transition-colors cursor-pointer shadow-clay-soft"
         >
           <Plus className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">Report Issue</span>
@@ -179,18 +174,18 @@ export function TopNavigation({
         <button
           onClick={onOpenAbout}
           title="About ShipDev"
-          className="p-1.5 text-neutral-400 hover:text-white rounded hover:bg-[#181818] border border-transparent hover:border-[#262626] transition-colors cursor-pointer"
+          className="p-1.5 text-clay-muted hover:text-clay-ink rounded-clay-md hover:bg-clay-surface-soft border border-transparent hover:border-clay-hairline transition-colors cursor-pointer"
         >
-          <Info className="w-3.5 h-3.5 text-[#f54e00]" />
+          <Info className="w-4 h-4 text-clay-teal" />
         </button>
 
         {/* Settings Button */}
         <button
           onClick={onOpenSettings}
           title="Settings (⌘,)"
-          className="p-1.5 text-neutral-400 hover:text-white rounded hover:bg-[#181818] border border-transparent hover:border-[#262626] transition-colors cursor-pointer"
+          className="p-1.5 text-clay-muted hover:text-clay-ink rounded-clay-md hover:bg-clay-surface-soft border border-transparent hover:border-clay-hairline transition-colors cursor-pointer"
         >
-          <Settings className="w-3.5 h-3.5" />
+          <Settings className="w-4 h-4" />
         </button>
       </div>
     </header>

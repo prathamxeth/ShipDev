@@ -403,7 +403,7 @@ export default function ShipDevIDE() {
   }, [selectedTask, activeFileName]);
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#000000] text-slate-100 font-sans select-none">
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-clay-canvas text-clay-ink font-sans select-none">
       {/* Top Bar Navigation */}
       <TopNavigation
         onNewBugClick={() => setIsNewBugModalOpen(true)}
@@ -419,7 +419,7 @@ export default function ShipDevIDE() {
 
       {/* Main IDE Workspace Shell */}
       <div className="flex-1 flex min-h-0 overflow-hidden relative">
-        {/* Left Activity Bar (44px) */}
+        {/* Left Activity Bar (48px) */}
         <LeftActivityBar
           activeTab={activeActivityTab}
           onSelectTab={(tab) => {
@@ -438,7 +438,7 @@ export default function ShipDevIDE() {
 
         {/* Left Sidebar: Live Bug Tree / Explorer / Search / Git / Agents */}
         {isSidebarOpen && (
-          <div className="w-64 lg:w-72 shrink-0 h-full border-r border-[#1e1e1e]">
+          <div className="w-64 lg:w-72 shrink-0 h-full border-r border-clay-hairline">
             <BugTree
               tasks={tasks}
               selectedTaskId={selectedTaskId}
@@ -510,32 +510,32 @@ export default function ShipDevIDE() {
         />
       </div>
 
-      {/* Cursor / Nexus IDE Status Bar */}
-      <div className="h-6 bg-[#050505] border-t border-[#1e1e1e] px-3 flex items-center justify-between text-[11px] font-mono text-neutral-400 shrink-0 select-none z-30">
+      {/* Cursor / Clay IDE Status Bar */}
+      <div className="h-6 bg-clay-surface-soft border-t border-clay-hairline px-3 flex items-center justify-between text-[11px] font-mono text-clay-muted shrink-0 select-none z-30">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="flex items-center gap-1.5 text-neutral-400">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#f54e00]" />
-            <span className="text-white font-medium">ShipDev</span>
+          <div className="flex items-center gap-1.5 text-clay-ink">
+            <span className="w-1.5 h-1.5 rounded-full bg-clay-primary" />
+            <span className="font-semibold text-clay-ink">ShipDev</span>
           </div>
-          <span className="text-neutral-600">•</span>
-          <div className="flex items-center gap-1 text-emerald-400">
-            <CheckCircle2 className="w-3 h-3" />
+          <span className="text-clay-hairline">•</span>
+          <div className="flex items-center gap-1 text-clay-success font-medium">
+            <CheckCircle2 className="w-3 h-3 text-clay-success" />
             <span>0 syntax errors</span>
           </div>
-          <span className="text-neutral-600">•</span>
-          <span className="text-neutral-400">
+          <span className="text-clay-hairline">•</span>
+          <span className="text-clay-muted">
             {tasks.length} {tasks.length === 1 ? "bug tracked" : "bugs tracked"}
           </span>
         </div>
 
-        <div className="flex items-center gap-3 text-neutral-500">
-          <span className="text-neutral-400 uppercase text-[10px] px-1 py-0.2 rounded bg-[#141414] border border-[#222222]">
+        <div className="flex items-center gap-3 text-clay-muted">
+          <span className="text-clay-muted uppercase text-[10px] px-1.5 py-0.2 rounded-clay-xs bg-clay-surface-card border border-clay-hairline font-medium">
             {workspaceFiles[activeFileName]?.language || "python"}
           </span>
-          <span className="text-neutral-300">
+          <span className="text-clay-body">
             Ln {cursorPosition.lineNumber}, Col {cursorPosition.column}
           </span>
-          <span className="text-[#f54e00] font-semibold hidden md:inline">
+          <span className="text-clay-primary font-semibold hidden md:inline">
             Switch Supervised
           </span>
         </div>
@@ -581,8 +581,8 @@ export default function ShipDevIDE() {
 
       {/* Global Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-9 left-1/2 -translate-x-1/2 z-50 px-3.5 py-1.5 rounded-lg bg-[#141414] border border-[#2e2e2e] text-xs font-mono text-white shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2">
-          <CheckCircle2 className="w-3.5 h-3.5 text-[#f54e00]" />
+        <div className="fixed bottom-9 left-1/2 -translate-x-1/2 z-50 px-3.5 py-1.5 rounded-clay-md bg-clay-primary text-white text-xs font-mono shadow-clay-elevated flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2">
+          <CheckCircle2 className="w-3.5 h-3.5 text-white" />
           <span>{toastMessage}</span>
         </div>
       )}

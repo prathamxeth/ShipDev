@@ -276,11 +276,11 @@ export function CommandPalette({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-24 p-4 bg-black/80 backdrop-blur-sm select-none animate-in fade-in duration-100">
-      <div className="w-full max-w-xl rounded-xl bg-[#0c0c0c] border border-[#262626] shadow-2xl flex flex-col overflow-hidden text-xs font-mono">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-24 p-4 bg-black/40 backdrop-blur-xs select-none animate-in fade-in duration-100">
+      <div className="w-full max-w-xl rounded-clay-xl bg-clay-canvas border border-clay-hairline shadow-clay-elevated flex flex-col overflow-hidden text-xs font-mono text-clay-ink">
         {/* Search Input Bar */}
-        <div className="h-12 px-4 border-b border-[#1e1e1e] flex items-center gap-3 bg-[#080808]">
-          <Search className="w-4 h-4 text-[#f54e00] shrink-0" />
+        <div className="h-12 px-4 border-b border-clay-hairline flex items-center gap-3 bg-white">
+          <Search className="w-4 h-4 text-clay-primary shrink-0" />
           <input
             ref={inputRef}
             type="text"
@@ -290,25 +290,25 @@ export function CommandPalette({
               setSelectedIndex(0);
             }}
             placeholder="Type a file name, bug description, or command..."
-            className="w-full bg-transparent outline-none text-white placeholder-neutral-500 text-xs font-mono"
+            className="w-full bg-transparent outline-none text-clay-ink placeholder-clay-muted text-xs font-mono"
           />
           {query && (
             <button
               onClick={() => setQuery("")}
-              className="text-neutral-500 hover:text-white p-1 rounded cursor-pointer"
+              className="text-clay-muted hover:text-clay-ink p-1 rounded-clay-xs cursor-pointer"
             >
               <X className="w-3.5 h-3.5" />
             </button>
           )}
-          <kbd className="px-1.5 py-0.5 rounded bg-[#181818] border border-[#2a2a2a] text-[10px] text-neutral-400">
+          <kbd className="px-1.5 py-0.5 rounded-clay-xs bg-clay-surface-card border border-clay-hairline text-[10px] text-clay-muted">
             Esc
           </kbd>
         </div>
 
         {/* Results List */}
-        <div ref={listRef} className="max-h-80 overflow-y-auto p-1.5 space-y-0.5">
+        <div ref={listRef} className="max-h-80 overflow-y-auto p-2 space-y-0.5 bg-clay-canvas">
           {filteredItems.length === 0 ? (
-            <div className="p-6 text-center text-neutral-500 text-xs">
+            <div className="p-6 text-center text-clay-muted text-xs">
               No matching files, bugs, or actions found for &quot;{query}&quot;
             </div>
           ) : (
@@ -320,23 +320,23 @@ export function CommandPalette({
                   key={item.id}
                   onClick={() => item.perform()}
                   onMouseEnter={() => setSelectedIndex(idx)}
-                  className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors ${
+                  className={`flex items-center justify-between p-2 rounded-clay-md cursor-pointer transition-colors ${
                     isSelected
-                      ? "bg-[#181818] border border-[#2e2e2e] text-white"
-                      : "text-neutral-300 hover:bg-[#121212] border border-transparent"
+                      ? "bg-white border border-clay-hairline text-clay-ink shadow-clay-soft"
+                      : "text-clay-body hover:bg-clay-surface-card border border-transparent"
                   }`}
                 >
                   <div className="flex items-center gap-2.5 truncate">
                     <span className="shrink-0">{item.icon}</span>
                     <div className="flex flex-col truncate">
                       <div className="flex items-center gap-2 truncate">
-                        <span className="font-medium text-white truncate">
+                        <span className="font-semibold text-clay-ink truncate">
                           {item.title}
                         </span>
                         {item.badge && (
                           <span
-                            className={`text-[9px] px-1.5 py-0.2 rounded border font-mono ${
-                              item.badgeColor || "bg-[#1f1f1f] text-neutral-400 border-[#2f2f2f]"
+                            className={`text-[9px] px-1.5 py-0.2 rounded-clay-pill border font-mono ${
+                              item.badgeColor || "bg-clay-surface-card text-clay-muted border-clay-hairline"
                             }`}
                           >
                             {item.badge}
@@ -344,7 +344,7 @@ export function CommandPalette({
                         )}
                       </div>
                       {item.subtitle && (
-                        <span className="text-[10px] text-neutral-500 truncate font-sans">
+                        <span className="text-[10px] text-clay-muted truncate font-sans">
                           {item.subtitle}
                         </span>
                       )}
@@ -352,7 +352,7 @@ export function CommandPalette({
                   </div>
 
                   {item.shortcut && (
-                    <span className="text-[10px] text-neutral-500 font-mono px-1.5 py-0.2 rounded bg-[#161616] border border-[#242424] shrink-0 ml-2">
+                    <span className="text-[10px] text-clay-muted font-mono px-1.5 py-0.2 rounded-clay-xs bg-clay-surface-soft border border-clay-hairline shrink-0 ml-2">
                       {item.shortcut}
                     </span>
                   )}
@@ -363,7 +363,7 @@ export function CommandPalette({
         </div>
 
         {/* Footer */}
-        <div className="h-7 px-3 border-t border-[#1e1e1e] bg-[#060606] flex items-center justify-between text-[10px] text-neutral-500">
+        <div className="h-7 px-3 border-t border-clay-hairline bg-clay-surface-soft flex items-center justify-between text-[10px] text-clay-muted">
           <div className="flex items-center gap-2">
             <span>↑↓ Navigate</span>
             <span>•</span>
@@ -371,7 +371,7 @@ export function CommandPalette({
             <span>•</span>
             <span>Esc Close</span>
           </div>
-          <span className="text-[#f54e00]">ShipDev Palette</span>
+          <span className="text-clay-primary font-semibold">ShipDev Palette</span>
         </div>
       </div>
     </div>
