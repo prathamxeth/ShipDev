@@ -323,11 +323,11 @@ export function BugGraphCanvas({
       color: "#f54e00",
     });
 
-    // LEVEL 4: Active Bug Tasks & Smart Assistants - ALL ON THE SAME LEVEL (y: 350)
+    // LEVEL 4: Active Bug Tasks & Smart Assistants - ALL ON THE EXACT SAME LEVEL (y: 350)
     tasks.forEach((task, index) => {
       const loc = resolveBugLocation(task);
       const bugNodeId = `bug_${task.id}`;
-      const xOffset = 30 + index * 145;
+      const xOffset = 30 + index * 155;
       const isResolved = task.status === "COMPLETED" || task.status === "APPROVED";
       const isAwaiting = task.status === "AWAITING_HUMAN_APPROVAL";
 
@@ -374,13 +374,14 @@ export function BugGraphCanvas({
       });
     });
 
-    // Smart Assistants - ON THE SAME LEVEL (y: 350)
+    // Smart Assistants - ON THE EXACT SAME LEVEL (y: 350)
+    const assistantStartX = 30 + Math.max(tasks.length, 1) * 155;
     rawNodes.push({
       id: "agent_triager",
       label: "Diagnosis Assistant",
       sublabel: "Pinpoints defect",
       type: "agent",
-      x: 465,
+      x: assistantStartX,
       y: 350,
       level: 4,
     });
@@ -390,7 +391,7 @@ export function BugGraphCanvas({
       label: "Quality Reviewer",
       sublabel: "Validates fix",
       type: "agent",
-      x: 610,
+      x: assistantStartX + 155,
       y: 350,
       level: 4,
     });
@@ -504,7 +505,7 @@ export function BugGraphCanvas({
     const targetZoom = Math.min(Math.max(Math.min(scaleX, scaleY), 0.52), 1.0);
 
     const targetPanX = (clientWidth - graphWidth * targetZoom) / 2 - minX * targetZoom;
-    const targetPanY = 24 - minY * targetZoom;
+    const targetPanY = 32 - minY * targetZoom;
 
     setZoom(targetZoom);
     setPan({ x: targetPanX, y: targetPanY });
@@ -815,11 +816,21 @@ export function BugGraphCanvas({
                 const dx = target.x - source.x;
                 const dy = target.y - source.y;
                 const isSameLevel = Math.abs(dy) < 15;
-                const midY = isSameLevel ? source.y + 42 : source.y + dy * 0.5;
 
-                const pathData = isSameLevel
-                  ? `M ${source.x + 78} ${source.y + 46} C ${source.x + 78} ${source.y + 68}, ${target.x + 78} ${target.y + 68}, ${target.x + 78} ${target.y + 46}`
-                  : `M ${source.x + 78} ${source.y + 23} C ${source.x + 78} ${midY}, ${target.x + 78} ${midY}, ${target.x + 78} ${target.y}`;
+                let pathData: string;
+                if (isSameLevel) {
+                  // Both on same horizontal row: loop neatly underneath
+                  pathData = `M ${source.x + 78} ${source.y + 46} C ${source.x + 78} ${source.y + 70}, ${target.x + 78} ${target.y + 70}, ${target.x + 78} ${target.y + 46}`;
+                } else if (dy < -15) {
+                  // Source is below target: connect top of source to bottom of target
+                  const midY = (source.y + target.y + 46) / 2;
+                  pathData = `M ${source.x + 78} ${source.y} C ${source.x + 78} ${midY}, ${target.x + 78} ${midY}, ${target.x + 78} ${target.y + 46}`;
+                } else {
+                  // Source is above target: connect bottom of source to top of target
+                  const midY = (source.y + 46 + target.y) / 2;
+                  pathData = `M ${source.x + 78} ${source.y + 46} C ${source.x + 78} ${midY}, ${target.x + 78} ${midY}, ${target.x + 78} ${target.y}`;
+                }
+
                 const isRed = edge.color?.includes("ef4444") || edge.color?.includes("f87171");
                 const isGreen = edge.color?.includes("10b981");
 
@@ -837,7 +848,7 @@ export function BugGraphCanvas({
                     {edge.label && (
                       <text
                         x={(source.x + target.x) / 2 + 78}
-                        y={isSameLevel ? source.y + 65 : midY}
+                        y={isSameLevel ? source.y + 68 : (source.y + target.y + 46) / 2}
                         fill="#64748b"
                         fontSize="9"
                         fontFamily="monospace"

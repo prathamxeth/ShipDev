@@ -199,39 +199,42 @@ export default function ShipDevIDE() {
         getTaskApprovals(taskId).catch(() => []),
       ]);
 
-      setSelectedTask(taskData);
       setEvidenceList(evidenceData);
       setHistory(historyData);
       setApprovals(approvalsData);
 
       // Auto-focus the affected file in the editor
-      if (taskData) {
-        const isResolved = taskData.status === "APPROVED" || taskData.status === "COMPLETED";
-        const loc = resolveBugLocation(taskData);
-        if (loc.fileName) {
-          setActiveFileName(loc.fileName);
-          setTargetHighlightLine(isResolved ? null : loc.lineNumber);
-          setOpenTabs((prev) => (prev.includes(loc.fileName) ? prev : [...prev, loc.fileName]));
+      setSelectedTask((prev) => {
+        const effectiveTask = taskData || prev;
+        if (effectiveTask) {
+          const isResolved = effectiveTask.status === "APPROVED" || effectiveTask.status === "COMPLETED";
+          const loc = resolveBugLocation(effectiveTask);
+          if (loc.fileName) {
+            setActiveFileName(loc.fileName);
+            setTargetHighlightLine(isResolved ? null : loc.lineNumber);
+            setOpenTabs((tabs) => (tabs.includes(loc.fileName) ? tabs : [...tabs, loc.fileName]));
 
-          // If task is resolved, update file code to the fixed version
-          if (isResolved && loc.fileName === "calculator.py") {
-            setWorkspaceFiles((prev) => {
-              const currentCode = prev[loc.fileName]?.code;
-              if (!currentCode) return prev;
-              const patched = getPatchedCode(loc.fileName, currentCode, null);
-              if (currentCode === patched) return prev;
-              return {
-                ...prev,
-                [loc.fileName]: {
-                  ...prev[loc.fileName],
-                  code: patched,
-                  bugLine: undefined,
-                },
-              };
-            });
+            // If task is resolved, update file code to the fixed version
+            if (isResolved && loc.fileName === "calculator.py") {
+              setWorkspaceFiles((prevFiles) => {
+                const currentCode = prevFiles[loc.fileName]?.code;
+                if (!currentCode) return prevFiles;
+                const patched = getPatchedCode(loc.fileName, currentCode, null);
+                if (currentCode === patched) return prevFiles;
+                return {
+                  ...prevFiles,
+                  [loc.fileName]: {
+                    ...prevFiles[loc.fileName],
+                    code: patched,
+                    bugLine: undefined,
+                  },
+                };
+              });
+            }
           }
         }
-      }
+        return effectiveTask;
+      });
     } catch {
       // Handled in individual promises
     } finally {
@@ -247,6 +250,8 @@ export default function ShipDevIDE() {
   // When selectedTaskId changes, reload details
   useEffect(() => {
     if (selectedTaskId) {
+      // Immediately seed selectedTask from tasks list to prevent any skeleton or blank flash
+      setSelectedTask((prev) => (prev?.id === selectedTaskId ? prev : tasks.find((t) => t.id === selectedTaskId) || null));
       loadTaskDetails(selectedTaskId);
     } else {
       setSelectedTask(null);
@@ -254,7 +259,7 @@ export default function ShipDevIDE() {
       setHistory([]);
       setApprovals([]);
     }
-  }, [selectedTaskId, loadTaskDetails]);
+  }, [selectedTaskId, loadTaskDetails, tasks]);
 
   // Real-time SSE subscription for selected task
   useEffect(() => {

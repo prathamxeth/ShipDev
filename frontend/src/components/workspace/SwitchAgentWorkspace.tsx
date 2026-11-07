@@ -41,22 +41,12 @@ export function SwitchAgentWorkspace({
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [selectedAgentDetail, setSelectedAgentDetail] = useState<AgentIdentifier | null>(null);
 
-  if (isLoading && !task) {
-    return (
-      <aside className="w-80 lg:w-92 border-l border-clay-hairline bg-clay-surface-soft p-4 flex flex-col gap-3 shrink-0">
-        <div className="h-4 w-1/2 bg-clay-surface-card rounded-clay-md animate-pulse" />
-        <div className="h-24 w-full bg-clay-surface-card rounded-clay-lg animate-pulse" />
-        <div className="h-32 w-full bg-clay-surface-card rounded-clay-lg animate-pulse" />
-      </aside>
-    );
-  }
-
   if (!task) {
     return (
       <aside className="w-80 lg:w-92 border-l border-clay-hairline bg-clay-surface-soft p-6 flex flex-col items-center justify-center text-center text-clay-muted shrink-0 select-none">
         <Bot className="w-8 h-8 mb-2 text-clay-muted" />
         <span className="text-xs font-sans">
-          Select an issue to inspect the automated solution team
+          {isLoading ? "Connecting to AI Engineering Team..." : "Select an issue to inspect the automated solution team"}
         </span>
       </aside>
     );
@@ -220,9 +210,9 @@ export function SwitchAgentWorkspace({
         </div>
 
         <div className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-clay-success" />
+          <span className={`w-1.5 h-1.5 rounded-full ${isLoading ? "bg-amber-400 animate-pulse" : "bg-clay-success"}`} />
           <span className="text-[10px] font-sans text-clay-muted font-medium">
-            Active
+            {isLoading ? "Syncing..." : "Active"}
           </span>
         </div>
       </div>
