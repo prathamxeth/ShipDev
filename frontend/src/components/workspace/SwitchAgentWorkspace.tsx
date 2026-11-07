@@ -67,6 +67,16 @@ export function SwitchAgentWorkspace({
   const isApproved = task.status === "APPROVED";
   const isCompleted = task.status === "COMPLETED";
 
+  const originatingPlatform = task.reported_by?.toLowerCase().includes("slack")
+    ? { name: "Slack", icon: "💬", color: "bg-[#4A154B]/10 text-[#4A154B] border-[#4A154B]/30" }
+    : task.reported_by?.toLowerCase().includes("teams")
+    ? { name: "MS Teams", icon: "👥", color: "bg-[#5B5FC7]/10 text-[#5B5FC7] border-[#5B5FC7]/30" }
+    : task.reported_by?.toLowerCase().includes("discord")
+    ? { name: "Discord", icon: "🎮", color: "bg-[#5865F2]/10 text-[#5865F2] border-[#5865F2]/30" }
+    : task.reported_by?.toLowerCase().includes("telegram")
+    ? { name: "Telegram", icon: "✈️", color: "bg-[#229ED9]/10 text-[#229ED9] border-[#229ED9]/30" }
+    : null;
+
   // Decision Handlers
   const handleApprove = async () => {
     setIsSubmitting(true);
@@ -230,6 +240,17 @@ export function SwitchAgentWorkspace({
               : "bg-white border-clay-hairline text-clay-ink"
           }`}
         >
+          {originatingPlatform && (
+            <div className={`flex items-center justify-between px-2 py-0.5 rounded-clay-md border text-[10px] font-sans font-medium ${originatingPlatform.color} mb-0.5`}>
+              <span className="flex items-center gap-1.5 font-semibold">
+                <span>{originatingPlatform.icon}</span>
+                <span>{originatingPlatform.name} Origin</span>
+              </span>
+              <span className="font-mono text-[9px] truncate max-w-[130px]">
+                {task.reported_by}
+              </span>
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <h3 className={`text-xs ${statusInfo.color}`}>
               {statusInfo.title}

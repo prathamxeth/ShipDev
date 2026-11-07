@@ -66,6 +66,43 @@ CREATE TABLE IF NOT EXISTS approval_records (
 );
 
 CREATE INDEX IF NOT EXISTS idx_approval_task_id ON approval_records(task_id);
+
+CREATE TABLE IF NOT EXISTS conversation_task_mappings (
+    id TEXT PRIMARY KEY,
+    platform TEXT NOT NULL,
+    conversation_id TEXT NOT NULL,
+    thread_id TEXT,
+    user_id TEXT NOT NULL,
+    user_display_name TEXT,
+    task_id TEXT NOT NULL,
+    intent_category TEXT,
+    status TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_conv_task_plat_conv ON conversation_task_mappings(platform, conversation_id);
+CREATE INDEX IF NOT EXISTS idx_conv_task_id ON conversation_task_mappings(task_id);
+CREATE INDEX IF NOT EXISTS idx_conv_task_plat_thread ON conversation_task_mappings(platform, thread_id);
+
+CREATE TABLE IF NOT EXISTS reviewer_role_assignments (
+    id TEXT PRIMARY KEY,
+    platform TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    user_handle TEXT,
+    role TEXT NOT NULL,
+    assigned_by TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_rev_roles_plat_user ON reviewer_role_assignments(platform, user_id, role);
+
+CREATE TABLE IF NOT EXISTS processed_chat_events (
+    event_id TEXT PRIMARY KEY,
+    platform TEXT NOT NULL,
+    processed_at TEXT NOT NULL
+);
 """
 
 

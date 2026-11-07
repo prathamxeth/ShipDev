@@ -55,6 +55,22 @@ class Settings(BaseModel):
     PROJECT_NAME: str = "ShipDev Backend"
     VERSION: str = "0.1.0"
 
+    # Platform Integration Credentials
+    SLACK_BOT_TOKEN: Optional[str] = os.getenv("SLACK_BOT_TOKEN")
+    SLACK_SIGNING_SECRET: Optional[str] = os.getenv("SLACK_SIGNING_SECRET")
+
+    TEAMS_APP_ID: Optional[str] = os.getenv("TEAMS_APP_ID")
+    TEAMS_APP_PASSWORD: Optional[str] = os.getenv("TEAMS_APP_PASSWORD")
+    TEAMS_WEBHOOK_SECRET: Optional[str] = os.getenv("TEAMS_WEBHOOK_SECRET")
+    TEAMS_INCOMING_WEBHOOK_URL: Optional[str] = os.getenv("TEAMS_INCOMING_WEBHOOK_URL")
+
+    DISCORD_BOT_TOKEN: Optional[str] = os.getenv("DISCORD_BOT_TOKEN")
+    DISCORD_PUBLIC_KEY: Optional[str] = os.getenv("DISCORD_PUBLIC_KEY")
+    DISCORD_WEBHOOK_URL: Optional[str] = os.getenv("DISCORD_WEBHOOK_URL")
+
+    TELEGRAM_BOT_TOKEN: Optional[str] = os.getenv("TELEGRAM_BOT_TOKEN")
+    TELEGRAM_WEBHOOK_SECRET: Optional[str] = os.getenv("TELEGRAM_WEBHOOK_SECRET")
+
     @model_validator(mode="after")
     def validate_security_credentials(self) -> "Settings":
         env = (self.ENVIRONMENT or "development").strip().lower()

@@ -39,4 +39,14 @@ async def transition_task(
         reason=payload.reason,
         evidence_id=payload.evidence_id,
     )
-    return repo.record_transition(task_id, verified_request)
+    transition_result = repo.record_transition(task_id, verified_request)
+
+    # If the task reached AWAITING_HUMAN_APPROVAL and is conversation-linked, dispatch review card
+    if payload.target_status == TaskStatus.AWAITING_HUMAN_APPROVAL:
+        try:
+            from app.services.review_dispatcher import ReviewDispatcher
+            ReviewDispatcher(task_repo=repo).dispatch_review_request(task_id)
+        except Exception:
+            pass
+
+    return transition_result

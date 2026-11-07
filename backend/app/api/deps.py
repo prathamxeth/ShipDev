@@ -178,3 +178,41 @@ def require_human_caller(
     """
     actor_id = settings.HUMAN_OPERATOR_IDENTITY
     return CallerType.HUMAN, actor_id
+
+
+def get_api_key_or_human_secret(
+    credentials: Annotated[Optional[HTTPAuthorizationCredentials], Depends(http_bearer)] = None,
+    x_api_key: Annotated[Optional[str], Header(alias="X-API-Key")] = None,
+) -> str:
+    """Authorize administration or role assignment using either API_SECRET_KEY or HUMAN_APPROVAL_SECRET."""
+    token = (
+        credentials.credentials.strip()
+        if credentials and credentials.credentials and credentials.credentials.strip()
+        else None
+    ) or (x_api_key.strip() if x_api_key and x_api_key.strip() else None)
+
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication Required: Provide valid Bearer token or X-API-Key.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    is_human = bool(
+        settings.HUMAN_APPROVAL_SECRET
+        and not is_insecure_placeholder(token)
+        and secrets.compare_digest(token, settings.HUMAN_APPROVAL_SECRET.strip())
+    )
+    is_agent = bool(
+        settings.API_SECRET_KEY
+        and not is_insecure_placeholder(token)
+        and secrets.compare_digest(token, settings.API_SECRET_KEY.strip())
+    )
+
+    if not (is_human or is_agent):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Security Violation: Invalid administration credentials.",
+        )
+
+    return token

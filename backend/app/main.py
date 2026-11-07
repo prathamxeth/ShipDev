@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 
 from app.api.v1.approval import router as approval_router
 from app.api.v1.evidence import router as evidence_router
+from app.api.v1.platforms import router as platforms_router
 from app.api.v1.tasks import router as tasks_router
 from app.api.v1.transitions import router as transitions_router
 from app.core.config import settings
@@ -53,6 +54,7 @@ app.include_router(tasks_router, prefix="/api/v1")
 app.include_router(evidence_router, prefix="/api/v1")
 app.include_router(transitions_router, prefix="/api/v1")
 app.include_router(approval_router, prefix="/api/v1")
+app.include_router(platforms_router, prefix="/api/v1")
 
 
 # Custom exception handlers for clean HTTP status mapping

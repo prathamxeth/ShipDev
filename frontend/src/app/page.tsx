@@ -8,6 +8,7 @@ import { BugGraphCanvas } from "@/components/workspace/BugGraphCanvas";
 import { CodeEditor } from "@/components/workspace/CodeEditor";
 import { SwitchAgentWorkspace } from "@/components/workspace/SwitchAgentWorkspace";
 import { BottomWorkspacePanel } from "@/components/workspace/BottomWorkspacePanel";
+import { PlatformsManagementPanel } from "@/components/workspace/PlatformsManagementPanel";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { NewBugModal } from "@/components/modals/NewBugModal";
 import { SettingsModal } from "@/components/modals/SettingsModal";
@@ -485,7 +486,7 @@ export default function ShipDevIDE() {
           </div>
         )}
 
-        {/* Center: Main Workspace (Code Editor or Full System Architecture Map) */}
+        {/* Center: Main Workspace (Code Editor, System Architecture Map, or Platforms Gateway) */}
         <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
           {activeActivityTab === "graph" ? (
             <div className="flex-1 min-h-0 relative flex flex-col h-full bg-clay-canvas">
@@ -498,11 +499,9 @@ export default function ShipDevIDE() {
                   workspaceFiles={workspaceFiles}
                   onSelectBug={(task, fileName, lineNumber) => {
                     handleSelectBug(task, fileName, lineNumber);
-                    setActiveActivityTab("bugtree");
                   }}
                   onSelectFile={(fileName) => {
                     handleSelectFile(fileName);
-                    setActiveActivityTab("bugtree");
                   }}
                   onNavigateToLine={(fileName, lineNumber) => {
                     handleNavigateToLine(fileName, lineNumber);
@@ -518,6 +517,15 @@ export default function ShipDevIDE() {
                   }}
                 />
               </div>
+            </div>
+          ) : activeActivityTab === "platforms" ? (
+            <div className="flex-1 min-h-0 relative flex flex-col h-full bg-clay-canvas">
+              <PlatformsManagementPanel
+                onSelectTask={(id) => {
+                  setSelectedTaskId(id);
+                  setActiveActivityTab("bugtree");
+                }}
+              />
             </div>
           ) : (
             <div className="flex-1 min-h-0 relative">

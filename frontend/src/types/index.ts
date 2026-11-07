@@ -129,3 +129,36 @@ export interface TaskTransitionEvent {
   evidence_id?: string | null;
   timestamp: string;
 }
+
+export type PlatformType = "slack" | "teams" | "discord" | "telegram";
+
+export interface PlatformHealthItem {
+  platform: PlatformType;
+  configured: boolean;
+  status: string;
+  webhook_endpoint: string;
+}
+
+export interface PlatformMapping {
+  id: string;
+  platform: PlatformType;
+  conversation_id: string;
+  thread_id?: string | null;
+  user_id: string;
+  user_display_name?: string | null;
+  task_id: string;
+  intent_category?: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReviewerRole {
+  id: string;
+  platform: PlatformType;
+  user_id: string;
+  user_handle?: string | null;
+  role: string;
+  assigned_by: string;
+  created_at: string;
+}

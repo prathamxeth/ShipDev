@@ -500,32 +500,45 @@ export function BugGraphCanvas({
     const graphWidth = maxX - minX;
     const graphHeight = maxY - minY;
 
-    const scaleX = availableWidth / (graphWidth + 40);
-    const scaleY = availableHeight / (graphHeight + 40);
-    const targetZoom = Math.min(Math.max(Math.min(scaleX, scaleY), 0.52), 1.0);
+    const scaleX = availableWidth / (graphWidth + 60);
+    const scaleY = availableHeight / (graphHeight + 60);
+    const targetZoom = Math.min(Math.max(Math.min(scaleX, scaleY), 0.55), 1.0);
 
     const targetPanX = (clientWidth - graphWidth * targetZoom) / 2 - minX * targetZoom;
-    const targetPanY = 32 - minY * targetZoom;
+    // Vertically center so nodes are always comfortably centered at eye level
+    const targetPanY = Math.max(16, (availableHeight - graphHeight * targetZoom) / 2 - minY * targetZoom + 10);
 
     setZoom(targetZoom);
     setPan({ x: targetPanX, y: targetPanY });
   }, [nodes, filteredNodeIds]);
 
-  // Fit to view on mount, window resize, and filter change
+  // Fit to view on mount, container resize, and filter change
   useEffect(() => {
     fitToView();
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined" && containerRef.current) {
+      resizeObserver = new ResizeObserver(() => {
+        fitToView();
+      });
+      resizeObserver.observe(containerRef.current);
+    }
+
     const handleResize = () => {
       fitToView();
     };
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      if (resizeObserver) resizeObserver.disconnect();
+    };
   }, [fitToView]);
 
   const resetView = () => {
     fitToView();
   };
 
-  // Node Click Handlers
+  // Node Click Handlers: Select node without kicking user out of graph view
   const handleNodeClick = (node: GraphNode) => {
     setSelectedNodeId(node.id);
 
@@ -533,14 +546,11 @@ export function BugGraphCanvas({
       toggleFolderCollapse(node.id);
     } else if (node.type === "file" && node.fileName) {
       onSelectFile(node.fileName);
-      if (onReturnToCode) onReturnToCode();
     } else if (node.type === "function" && node.fileName && node.lineNumber) {
       onNavigateToLine(node.fileName, node.lineNumber);
-      if (onReturnToCode) onReturnToCode();
     } else if (node.type === "bug" && node.task) {
       const loc = resolveBugLocation(node.task);
       onSelectBug(node.task, loc.fileName, loc.lineNumber);
-      if (onReturnToCode) onReturnToCode();
     } else if (node.type === "agent" && onSelectAgent) {
       if (node.id === "agent_triager") {
         onSelectAgent("shipdev-triager");

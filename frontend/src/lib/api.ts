@@ -11,7 +11,11 @@ import {
   BackendHealth,
   Evidence,
   EvidenceCreate,
+  PlatformHealthItem,
+  PlatformMapping,
+  PlatformType,
   RejectionRequest,
+  ReviewerRole,
   Task,
   TaskCreatePayload,
   TaskStatus,
@@ -258,5 +262,46 @@ export async function completeTaskViaBFF(taskId: string): Promise<Task> {
     body: JSON.stringify({
       taskId,
     }),
+  });
+}
+
+/* =========================================================================
+ * 3. Multi-Platform Gateways & Reviewer Role Management (Phase 2)
+ * ========================================================================= */
+
+/**
+ * Fetch connection health and webhook endpoints for all platforms
+ */
+export async function getPlatformHealth(): Promise<{ platforms: PlatformHealthItem[] }> {
+  return request<{ platforms: PlatformHealthItem[] }>(`${API_BASE_URL}/platforms/health`);
+}
+
+/**
+ * Fetch active conversation-to-task correlations
+ */
+export async function getPlatformMappings(): Promise<PlatformMapping[]> {
+  return request<PlatformMapping[]>(`${API_BASE_URL}/platforms/mappings`);
+}
+
+/**
+ * Fetch authorized reviewer roles across platforms
+ */
+export async function getPlatformRoles(): Promise<ReviewerRole[]> {
+  return request<ReviewerRole[]>(`${API_BASE_URL}/platforms/roles`);
+}
+
+/**
+ * Assign an authorized reviewer role to a chat user
+ */
+export async function assignPlatformRole(payload: {
+  platform: PlatformType;
+  user_id: string;
+  role: string;
+  user_handle?: string;
+}): Promise<ReviewerRole> {
+  return request<ReviewerRole>(`${API_BASE_URL}/platforms/roles`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
   });
 }

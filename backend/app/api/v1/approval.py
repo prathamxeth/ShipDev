@@ -117,4 +117,12 @@ async def complete_task(
             reason="Human verified final release and completed task.",
         ),
     )
+
+    # If task is conversation-linked, dispatch completion notice
+    try:
+        from app.services.review_dispatcher import ReviewDispatcher
+        ReviewDispatcher(task_repo=repo).dispatch_completion_notice(task_id, reviewer_id)
+    except Exception:
+        pass
+
     return repo.get_task(task_id)

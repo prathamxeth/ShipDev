@@ -10,9 +10,10 @@ import {
   Settings,
   Info,
   Network,
+  Share2,
 } from "lucide-react";
 
-export type ActivityTab = "explorer" | "bugtree" | "graph" | "git" | "agents" | "search";
+export type ActivityTab = "explorer" | "bugtree" | "graph" | "git" | "agents" | "search" | "platforms";
 
 interface LeftActivityBarProps {
   activeTab: ActivityTab;
@@ -43,6 +44,7 @@ export function LeftActivityBar({
     { id: "search", label: "Search Codebase", icon: Search },
     { id: "git", label: "Changes", icon: GitBranch },
     { id: "agents", label: "Smart Assistants", icon: Bot },
+    { id: "platforms", label: "Connected Platforms", icon: Share2 },
   ];
 
   return (
