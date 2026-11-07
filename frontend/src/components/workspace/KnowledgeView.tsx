@@ -108,15 +108,19 @@ export function KnowledgeView({ activeWorkspaceType }: KnowledgeViewProps) {
 
     try {
       // 1. Preview boundary check via BFF
-      await previewShareResource(selectedItemToShare.id, "ws_team_default", "kn_resource");
+      await previewShareResource({
+        resource_type: "memory",
+        resource_id: selectedItemToShare.id,
+        target_workspace_id: "ws_team_default",
+      });
 
       // 2. Execute boundary transfer
-      await executeShareResource(
-        selectedItemToShare.id,
-        "ws_team_default",
-        shareReason.trim() || "Explicit team share",
-        "kn_resource"
-      );
+      await executeShareResource({
+        resource_type: "memory",
+        resource_id: selectedItemToShare.id,
+        target_workspace_id: "ws_team_default",
+        confirmed: true,
+      });
 
       // Add cloned item to team workspace list
       const teamClone: KnowledgeItem = {

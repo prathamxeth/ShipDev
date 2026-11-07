@@ -9,6 +9,15 @@ import { CodeEditor } from "@/components/workspace/CodeEditor";
 import { SwitchAgentWorkspace } from "@/components/workspace/SwitchAgentWorkspace";
 import { BottomWorkspacePanel } from "@/components/workspace/BottomWorkspacePanel";
 import { PlatformsManagementPanel } from "@/components/workspace/PlatformsManagementPanel";
+import { PersonalHomeView } from "@/components/workspace/PersonalHomeView";
+import { PersonalAssistantView } from "@/components/workspace/PersonalAssistantView";
+import { TeamHomeView } from "@/components/workspace/TeamHomeView";
+import { TeamRoomsView } from "@/components/workspace/TeamRoomsView";
+import { ProjectsView } from "@/components/workspace/ProjectsView";
+import { ReviewsApprovalView } from "@/components/workspace/ReviewsApprovalView";
+import { KnowledgeView } from "@/components/workspace/KnowledgeView";
+import { AgentsRosterView } from "@/components/workspace/AgentsRosterView";
+import { MembersRolesView } from "@/components/workspace/MembersRolesView";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { NewBugModal } from "@/components/modals/NewBugModal";
 import { SettingsModal } from "@/components/modals/SettingsModal";
@@ -59,7 +68,7 @@ export default function ShipDevIDE() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Navigation & Panel Layout
-  const [activeActivityTab, setActiveActivityTab] = useState<ActivityTab>("bugtree");
+  const [activeActivityTab, setActiveActivityTab] = useState<ActivityTab>("home");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [bottomDockHeight, setBottomDockHeight] = useState(200);
   const [isBottomDockCollapsed, setIsBottomDockCollapsed] = useState(false);
@@ -208,6 +217,7 @@ export default function ShipDevIDE() {
     setHistory([]);
     setApprovals([]);
     setIsDiffMode(false);
+    setActiveActivityTab("home");
 
     showToast(`Switched to ${newType === "PERSONAL" ? "🔒 Personal Workspace" : "👥 Team Workspace"}`);
   }, [showToast]);
@@ -504,36 +514,153 @@ export default function ShipDevIDE() {
           onOpenSettings={() => setIsSettingsOpen(true)}
           onOpenAbout={() => setIsAboutOpen(true)}
           bugCount={tasks.length}
+          activeWorkspaceType={activeWorkspaceType}
         />
 
-        {/* Left Sidebar: Sleek Standard Width (Always w-64 lg:w-72 - Never squishes code editor) */}
-        {isSidebarOpen && (
-          <div className="w-64 lg:w-72 shrink-0 h-full border-r border-clay-hairline">
-            <BugTree
-              tasks={tasks}
-              selectedTaskId={selectedTaskId}
-              activeFileName={activeFileName}
-              activeActivityTab={activeActivityTab}
-              workspaceFiles={workspaceFiles}
-              onSelectBug={handleSelectBug}
-              onSelectFile={handleSelectFile}
-              onNavigateToLine={handleNavigateToLine}
-              onCreateFile={handleCreateFile}
-              onSelectAgent={(id) => setSelectedAgentModal(id)}
-              isLoading={isLoadingTasks}
-              onNewBugClick={() => setIsNewBugModalOpen(true)}
-              onRefreshClick={handleRefresh}
-              onSwitchToGraphView={() => setActiveActivityTab("graph")}
+        {/* 1. PERSONAL / TEAM HOME VIEWS */}
+        {activeActivityTab === "home" && (
+          <div className="flex-1 min-w-0 h-full overflow-hidden flex flex-col">
+            {activeWorkspaceType === "PERSONAL" ? (
+              <PersonalHomeView
+                tasks={tasks}
+                onSelectTask={(id) => {
+                  setSelectedTaskId(id);
+                  setActiveActivityTab("studio");
+                }}
+                onOpenAssistant={() => setActiveActivityTab("assistant")}
+                onOpenStudio={() => setActiveActivityTab("studio")}
+                onOpenTasks={() => setActiveActivityTab("studio")}
+                onNewTaskClick={() => setIsNewBugModalOpen(true)}
+              />
+            ) : (
+              <TeamHomeView
+                tasks={tasks}
+                onSelectTask={(id) => {
+                  setSelectedTaskId(id);
+                  setActiveActivityTab("studio");
+                }}
+                onOpenReviews={() => setActiveActivityTab("reviews")}
+                onOpenRooms={() => setActiveActivityTab("rooms")}
+                onOpenStudio={() => setActiveActivityTab("studio")}
+                onNewTaskClick={() => setIsNewBugModalOpen(true)}
+              />
+            )}
+          </div>
+        )}
+
+        {/* 2. PERSONAL ASSISTANT CHAT VIEW */}
+        {activeActivityTab === "assistant" && (
+          <div className="flex-1 min-w-0 h-full overflow-hidden flex flex-col">
+            <PersonalAssistantView
+              onTaskCreated={(id: string) => {
+                setSelectedTaskId(id);
+                setActiveActivityTab("studio");
+                loadTasks(true);
+              }}
             />
           </div>
         )}
 
-        {/* Center: Main Workspace (Code Editor, System Architecture Map, or Platforms Gateway) */}
-        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-          {activeActivityTab === "graph" ? (
-            <div className="flex-1 min-h-0 relative flex flex-col h-full bg-clay-canvas">
-              {/* Full Central Canvas */}
-              <div className="flex-1 min-h-0 relative">
+        {/* 3. TEAM ROOMS & CONVERSATIONS VIEW */}
+        {activeActivityTab === "rooms" && (
+          <div className="flex-1 min-w-0 h-full overflow-hidden flex flex-col">
+            <TeamRoomsView
+              tasks={tasks}
+              onSelectTask={(id) => {
+                setSelectedTaskId(id);
+                setActiveActivityTab("studio");
+              }}
+              onOpenStudio={() => setActiveActivityTab("studio")}
+            />
+          </div>
+        )}
+
+        {/* 4. TEAM PROJECTS VIEW */}
+        {activeActivityTab === "projects" && (
+          <div className="flex-1 min-w-0 h-full overflow-hidden flex flex-col">
+            <ProjectsView
+              onOpenStudio={() => setActiveActivityTab("studio")}
+            />
+          </div>
+        )}
+
+        {/* 5. TEAM REVIEWS & HUMAN GATE CONSOLE */}
+        {activeActivityTab === "reviews" && (
+          <div className="flex-1 min-w-0 h-full overflow-hidden flex flex-col">
+            <ReviewsApprovalView
+              tasks={tasks}
+              onOpenDiffMode={() => {
+                setIsDiffMode(true);
+                setActiveActivityTab("studio");
+              }}
+              onSelectTask={(id: string) => {
+                setSelectedTaskId(id);
+                setActiveActivityTab("studio");
+              }}
+              onRefresh={() => handleRefresh()}
+            />
+          </div>
+        )}
+
+        {/* 6. DUAL-SCOPED KNOWLEDGE VIEW */}
+        {activeActivityTab === "knowledge" && (
+          <div className="flex-1 min-w-0 h-full overflow-hidden flex flex-col">
+            <KnowledgeView activeWorkspaceType={activeWorkspaceType} />
+          </div>
+        )}
+
+        {/* 7. AGENTS ROSTER VIEW */}
+        {activeActivityTab === "agents" && (
+          <div className="flex-1 min-w-0 h-full overflow-hidden flex flex-col">
+            <AgentsRosterView activeWorkspaceType={activeWorkspaceType} />
+          </div>
+        )}
+
+        {/* 8. MEMBERS & RBAC ROLES VIEW */}
+        {activeActivityTab === "members" && (
+          <div className="flex-1 min-w-0 h-full overflow-hidden flex flex-col">
+            <MembersRolesView />
+          </div>
+        )}
+
+        {/* 9. CONNECTED PLATFORMS PANEL (Slack, Teams, Discord, Telegram) */}
+        {activeActivityTab === "platforms" && (
+          <div className="flex-1 min-w-0 h-full overflow-hidden flex flex-col bg-clay-canvas">
+            <PlatformsManagementPanel
+              activeWorkspaceType={activeWorkspaceType}
+              onSelectTask={(id) => {
+                setSelectedTaskId(id);
+                setActiveActivityTab("studio");
+              }}
+            />
+          </div>
+        )}
+
+        {/* 10. SYSTEM ARCHITECTURE MAP VIEW */}
+        {activeActivityTab === "graph" && (
+          <>
+            {isSidebarOpen && (
+              <div className="w-64 lg:w-72 shrink-0 h-full border-r border-clay-hairline">
+                <BugTree
+                  tasks={tasks}
+                  selectedTaskId={selectedTaskId}
+                  activeFileName={activeFileName}
+                  activeActivityTab={activeActivityTab}
+                  workspaceFiles={workspaceFiles}
+                  onSelectBug={handleSelectBug}
+                  onSelectFile={handleSelectFile}
+                  onNavigateToLine={handleNavigateToLine}
+                  onCreateFile={handleCreateFile}
+                  onSelectAgent={(id) => setSelectedAgentModal(id)}
+                  isLoading={isLoadingTasks}
+                  onNewBugClick={() => setIsNewBugModalOpen(true)}
+                  onRefreshClick={handleRefresh}
+                  onSwitchToGraphView={() => setActiveActivityTab("graph")}
+                />
+              </div>
+            )}
+            <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+              <div className="flex-1 min-h-0 relative flex flex-col h-full bg-clay-canvas">
                 <BugGraphCanvas
                   tasks={tasks}
                   selectedTaskId={selectedTaskId}
@@ -547,99 +674,140 @@ export default function ShipDevIDE() {
                   }}
                   onNavigateToLine={(fileName, lineNumber) => {
                     handleNavigateToLine(fileName, lineNumber);
-                    setActiveActivityTab("bugtree");
+                    setActiveActivityTab("studio");
                   }}
                   onSelectAgent={(id) => setSelectedAgentModal(id)}
                   compact={false}
                   onReturnToCode={() => {
-                    setActiveActivityTab("bugtree");
+                    setActiveActivityTab("studio");
                     if (!activeFileName && openTabs.length > 0) {
                       setActiveFileName(openTabs[0]);
                     }
                   }}
                 />
               </div>
-            </div>
-          ) : activeActivityTab === "platforms" ? (
-            <div className="flex-1 min-h-0 relative flex flex-col h-full bg-clay-canvas">
-              <PlatformsManagementPanel
-                activeWorkspaceType={activeWorkspaceType}
-                onSelectTask={(id) => {
-                  setSelectedTaskId(id);
-                  setActiveActivityTab("bugtree");
-                }}
+              <BottomWorkspacePanel
+                task={selectedTask}
+                evidenceList={evidenceList}
+                history={history}
+                patchDiff={latestPatchDiff}
+                onNavigateToLine={handleNavigateToLine}
+                height={bottomDockHeight}
+                onHeightChange={setBottomDockHeight}
+                isCollapsed={isBottomDockCollapsed}
+                onToggleCollapse={() => setIsBottomDockCollapsed((prev) => !prev)}
               />
             </div>
-          ) : (
-            <div className="flex-1 min-h-0 relative">
-              <CodeEditor
-                workspaceFiles={workspaceFiles}
-                openTabs={openTabs}
-                activeFileName={activeFileName}
-                onSelectTab={handleSelectFile}
-                onCloseTab={handleCloseTab}
-                onCodeChange={handleCodeChange}
-                isDiffMode={isDiffMode}
-                onToggleDiffMode={() => setIsDiffMode((prev) => !prev)}
-                originalCodeForDiff={activeOriginalCode}
-                modifiedCodeForDiff={activePatchedCode}
-                onAcceptDiff={handleAcceptDiff}
-                onRejectDiff={handleRejectDiff}
-                targetHighlightLine={targetHighlightLine}
-                bugAnnotation={currentBugAnnotation}
-                cursorPosition={cursorPosition}
-                onCursorPositionChange={setCursorPosition}
-                onSaveFile={handleSaveFile}
-                onOpenSystemMap={() => setActiveActivityTab("graph")}
+            <SwitchAgentWorkspace
+              task={selectedTask}
+              evidenceList={evidenceList}
+              approvals={approvals}
+              isLoading={isLoadingDetails}
+              onTaskUpdated={(updatedTask) => {
+                setSelectedTask(updatedTask);
+                setTasks((prev) => prev.map((t) => (t.id === updatedTask.id ? updatedTask : t)));
+                loadTaskDetails(updatedTask.id);
+              }}
+              onToggleDiffMode={() => setIsDiffMode(true)}
+            />
+          </>
+        )}
+
+        {/* 11. FULL ENGINEERING STUDIO VIEW (Monaco Editor, BugTree, Bottom Dock, Smart Assistants) */}
+        {["studio", "bugtree", "explorer", "search", "git"].includes(activeActivityTab) && (
+          <>
+            {isSidebarOpen && (
+              <div className="w-64 lg:w-72 shrink-0 h-full border-r border-clay-hairline">
+                <BugTree
+                  tasks={tasks}
+                  selectedTaskId={selectedTaskId}
+                  activeFileName={activeFileName}
+                  activeActivityTab={activeActivityTab}
+                  workspaceFiles={workspaceFiles}
+                  onSelectBug={handleSelectBug}
+                  onSelectFile={handleSelectFile}
+                  onNavigateToLine={handleNavigateToLine}
+                  onCreateFile={handleCreateFile}
+                  onSelectAgent={(id) => setSelectedAgentModal(id)}
+                  isLoading={isLoadingTasks}
+                  onNewBugClick={() => setIsNewBugModalOpen(true)}
+                  onRefreshClick={handleRefresh}
+                  onSwitchToGraphView={() => setActiveActivityTab("graph")}
+                />
+              </div>
+            )}
+
+            <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+              <div className="flex-1 min-h-0 relative">
+                <CodeEditor
+                  workspaceFiles={workspaceFiles}
+                  openTabs={openTabs}
+                  activeFileName={activeFileName}
+                  onSelectTab={handleSelectFile}
+                  onCloseTab={handleCloseTab}
+                  onCodeChange={handleCodeChange}
+                  isDiffMode={isDiffMode}
+                  onToggleDiffMode={() => setIsDiffMode((prev) => !prev)}
+                  originalCodeForDiff={activeOriginalCode}
+                  modifiedCodeForDiff={activePatchedCode}
+                  onAcceptDiff={handleAcceptDiff}
+                  onRejectDiff={handleRejectDiff}
+                  targetHighlightLine={targetHighlightLine}
+                  bugAnnotation={currentBugAnnotation}
+                  cursorPosition={cursorPosition}
+                  onCursorPositionChange={setCursorPosition}
+                  onSaveFile={handleSaveFile}
+                  onOpenSystemMap={() => setActiveActivityTab("graph")}
+                />
+              </div>
+
+              {/* Resizable Bottom Dock */}
+              <BottomWorkspacePanel
+                task={selectedTask}
+                evidenceList={evidenceList}
+                history={history}
+                patchDiff={latestPatchDiff}
+                onNavigateToLine={handleNavigateToLine}
+                height={bottomDockHeight}
+                onHeightChange={setBottomDockHeight}
+                isCollapsed={isBottomDockCollapsed}
+                onToggleCollapse={() => setIsBottomDockCollapsed((prev) => !prev)}
               />
             </div>
-          )}
 
-          {/* Resizable Bottom Dock */}
-          <BottomWorkspacePanel
-            task={selectedTask}
-            evidenceList={evidenceList}
-            history={history}
-            patchDiff={latestPatchDiff}
-            onNavigateToLine={handleNavigateToLine}
-            height={bottomDockHeight}
-            onHeightChange={setBottomDockHeight}
-            isCollapsed={isBottomDockCollapsed}
-            onToggleCollapse={() => setIsBottomDockCollapsed((prev) => !prev)}
-          />
-        </div>
-
-        {/* Right: Smart Assistants Workspace */}
-        <SwitchAgentWorkspace
-          task={selectedTask}
-          evidenceList={evidenceList}
-          approvals={approvals}
-          isLoading={isLoadingDetails}
-          onTaskUpdated={(updatedTask) => {
-            setSelectedTask(updatedTask);
-            setTasks((prev) => prev.map((t) => (t.id === updatedTask.id ? updatedTask : t)));
-            const isResolved = updatedTask.status === "APPROVED" || updatedTask.status === "COMPLETED";
-            if (isResolved) {
-              const loc = resolveBugLocation(updatedTask);
-              if (loc.fileName && workspaceFiles[loc.fileName]) {
-                const patched = getPatchedCode(loc.fileName, workspaceFiles[loc.fileName].code, null);
-                setWorkspaceFiles((prev) => ({
-                  ...prev,
-                  [loc.fileName]: {
-                    ...prev[loc.fileName],
-                    code: patched,
-                    bugLine: undefined,
-                    modified: false,
-                  },
-                }));
-                setTargetHighlightLine(null);
-                showToast(`✓ Solution deployed to ${loc.fileName}! Bug fixed.`);
-              }
-            }
-            loadTaskDetails(updatedTask.id);
-          }}
-          onToggleDiffMode={() => setIsDiffMode(true)}
-        />
+            {/* Right: Smart Assistants Workspace */}
+            <SwitchAgentWorkspace
+              task={selectedTask}
+              evidenceList={evidenceList}
+              approvals={approvals}
+              isLoading={isLoadingDetails}
+              onTaskUpdated={(updatedTask) => {
+                setSelectedTask(updatedTask);
+                setTasks((prev) => prev.map((t) => (t.id === updatedTask.id ? updatedTask : t)));
+                const isResolved = updatedTask.status === "APPROVED" || updatedTask.status === "COMPLETED";
+                if (isResolved) {
+                  const loc = resolveBugLocation(updatedTask);
+                  if (loc.fileName && workspaceFiles[loc.fileName]) {
+                    const patched = getPatchedCode(loc.fileName, workspaceFiles[loc.fileName].code, null);
+                    setWorkspaceFiles((prev) => ({
+                      ...prev,
+                      [loc.fileName]: {
+                        ...prev[loc.fileName],
+                        code: patched,
+                        bugLine: undefined,
+                        modified: false,
+                      },
+                    }));
+                    setTargetHighlightLine(null);
+                    showToast(`✓ Solution deployed to ${loc.fileName}! Bug fixed.`);
+                  }
+                }
+                loadTaskDetails(updatedTask.id);
+              }}
+              onToggleDiffMode={() => setIsDiffMode(true)}
+            />
+          </>
+        )}
       </div>
 
       {/* Cursor / Clay IDE Status Bar */}

@@ -18,7 +18,12 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
-export type AgentIdentifier = "shipdev-triager" | "shipdev-verifier" | "shipdev-fixer";
+export type AgentIdentifier =
+  | "shipdev-triager"
+  | "shipdev-verifier"
+  | "shipdev-fixer"
+  | "shipdev-researcher"
+  | "shipdev-planner";
 
 interface AgentDetailModalProps {
   isOpen: boolean;
@@ -127,6 +132,56 @@ const AGENT_CONFIGS: Record<
     invariants: [
       "Strict minimal blast radius: never touch unrelated files.",
       "No auto-commit permissions.",
+    ],
+  },
+  "shipdev-researcher": {
+    name: "shipdev-researcher",
+    title: "Codebase & Dependency Researcher",
+    uuid: "a9314de2-18bc-4672-91f8-0f01b7a2d338",
+    role: "Context Analysis & Dependency Exploration",
+    color: "text-clay-lavender-ink",
+    badgeBg: "bg-clay-lavender/20",
+    badgeText: "text-clay-lavender-ink",
+    objective:
+      "Explore codebase architecture, trace dependencies, and discover relevant context across repositories for complex tasks.",
+    instructions: [
+      "Scan codebase symbols, imports, and cross-file references.",
+      "Analyze historical git blame logs and dependency versions.",
+      "Provide summarized contextual evidence to fix and review agents.",
+    ],
+    capabilities: [
+      "AST & symbol reference indexing",
+      "Git commit & diff history inspection",
+      "Dependency graph analysis",
+    ],
+    invariants: [
+      "Strict read-only analysis: zero file mutation permitted.",
+      "Fail-closed on unindexed external references.",
+    ],
+  },
+  "shipdev-planner": {
+    name: "shipdev-planner",
+    title: "Task Workflow Planner",
+    uuid: "f4281bc9-93e1-4512-8d77-c9927b841a02",
+    role: "Task Decomposition & Invariant Planning",
+    color: "text-clay-peach-ink",
+    badgeBg: "bg-clay-peach/25",
+    badgeText: "text-clay-peach-ink",
+    objective:
+      "Decompose complex user requests into verifiable sub-tasks and enforce sequential lifecycle state transitions.",
+    instructions: [
+      "Parse user task request and classify domain intent.",
+      "Generate structured execution steps and assign specialist agents.",
+      "Verify prerequisite stage evidence before advancing task state.",
+    ],
+    capabilities: [
+      "DAG planning and capability mapping",
+      "Lifecycle state machine coordination",
+      "Human gate checkpoint scheduling",
+    ],
+    invariants: [
+      "Never bypass required evidence checkpoints.",
+      "Human gate approval mandatory for COMPLETED state.",
     ],
   },
 };
