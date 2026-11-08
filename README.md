@@ -9,6 +9,7 @@ Built for the **WeMakeDevs Flip the Switch Hackathon 2026** — delivering the *
 
 <br/>
 
+[![Frontend Live](https://img.shields.io/badge/Vercel_App-Live_Production-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://shipdev-frontend.vercel.app)
 [![Backend Live](https://img.shields.io/badge/Render_API-Live_Production-00b894?style=for-the-badge&logo=render&logoColor=white)](https://shipdev.onrender.com)
 [![OpenAPI Docs](https://img.shields.io/badge/OpenAPI_Docs-Interactive_Swagger-0984e3?style=for-the-badge&logo=fastapi&logoColor=white)](https://shipdev.onrender.com/docs)
 [![API Health](https://img.shields.io/badge/Health_Check-200_OK-22c55e?style=for-the-badge&logo=statuspal&logoColor=white)](https://shipdev.onrender.com/health)
@@ -18,9 +19,10 @@ Built for the **WeMakeDevs Flip the Switch Hackathon 2026** — delivering the *
 <br/>
 
 [![Switch](https://img.shields.io/badge/Agent_Mesh-Switch_AI_(Agent_Controller_:53640)-f54e00.svg)](https://switch.ai)
+[![Google Gemini](https://img.shields.io/badge/AI_Brain-Google_Gemini_2.0_Flash-4285F4.svg?logo=google)](https://ai.google.dev)
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI_+_SQLite_State_Machine-059669.svg)](backend)
 [![Next.js 14](https://img.shields.io/badge/Frontend-Next.js_14_+_Monaco_+_Clay-000000.svg)](frontend)
-[![Pytest](https://img.shields.io/badge/Test_Suite-116%2F116_Passing-22c55e.svg)](backend/tests)
+[![Pytest](https://img.shields.io/badge/Test_Suite-168%2F168_Passing-22c55e.svg)](backend/tests)
 [![Security](https://img.shields.io/badge/Security_Audit-14%2F14_Guards_Passed-22c55e.svg)](frontend/tests)
 
 <br/>
@@ -30,6 +32,7 @@ Built for the **WeMakeDevs Flip the Switch Hackathon 2026** — delivering the *
  │  🎬 3-MINUTE INTERACTIVE LIVE WORKFLOW                                 │
  │  Watch autonomous triage, clean-room reproduction, independent         │
  │  verification, and cryptographically enforced human sign-off:          │
+ │  👉 Live Production Frontend: https://shipdev-frontend.vercel.app      │
  │  👉 Live Production API: https://shipdev.onrender.com                  │
  │  👉 Interactive Swagger Docs: https://shipdev.onrender.com/docs        │
  └────────────────────────────────────────────────────────────────────────┘
@@ -190,12 +193,45 @@ graph LR
     class AGENT_T,AGENT_V l5;
 ```
 
-### Interactive Graph Capabilities:
-* **Fully Clickable**: Click any file to open in Monaco Editor; click any function or bug to jump directly to the target line in code.
-* **Pan & Zoom**: Smooth mouse dragging, wheel zoom, zoom controls, and fit-to-screen reset.
-* **Enlarge / Expand Modal**: Click the `Maximize2` button to expand the canvas into a full-screen interactive inspection view.
-* **Live Search & Filter**: Real-time search highlighting and layer filters (`All`, `Folder`, `File`, `Function`, `Bug`, `Agent`).
-* **Switch Agent Profile Inspector**: Click any agent node or card to open its full profile modal detailing UUID, prompt guidelines, and sandbox telemetry.
+### Interactive Graph Capabilities & Synchronized Code Viewer:
+* **Side-by-Side Code Viewer**: View source files alongside the interactive system architecture graph in a synchronized desktop split-view.
+* **Fully Clickable Navigation**: Click any file node to open its contents in the Monaco Code Editor; click any function, symbol, or defect node to jump directly to the target line in code.
+* **Pan & Zoom Controls**: Smooth canvas dragging, mouse wheel zoom, zoom controls, and fit-to-screen reset.
+* **Enlarge / Expand Modal**: Expand the architecture graph canvas into a full-screen interactive inspection view with a single click.
+* **Live Search & Filter**: Real-time symbol search highlighting and layer filters (`All`, `Folder`, `File`, `Function`, `Bug`, `Agent`).
+* **Switch Agent Profile Inspector**: Inspect agent nodes to review instructions, assigned UUIDs, prompt policies, and telemetry.
+
+---
+
+## 🧠 Google Gemini Conversational Brain & Switch Orchestration
+
+ShipDev integrates **Google Gemini 2.0 Flash** directly with the Switch multi-agent pipeline as an active conversational engineering teammate:
+
+```mermaid
+graph TD
+    USER["👨‍💻 Developer Prompt"] --> GEMINI["🧠 Google Gemini 2.0 Flash Coordinator"]
+    
+    subgraph Tools["🛠️ Controlled Backend Tool Calling"]
+        GEMINI -->|"analyze_project_repository"| ANALYZE["🔍 AST & Source Inspection (demo/buggy_app/calculator.py)"]
+        GEMINI -->|"execute_switch_task"| SWITCH_MESH["🤖 Switch Multi-Agent Specialist Pipeline"]
+        GEMINI -->|"get_task_evidence_and_progress"| EVIDENCE_LOOKUP["📊 Sandbox Logs, Diffs & Verification Results"]
+        GEMINI -->|"get_workspace_tasks"| WS_TASKS["📦 Workspace Task Queue & Context"]
+    end
+
+    subgraph SwitchAgents["🏢 Switch Specialist Execution Mesh"]
+        SWITCH_MESH --> TRIAGER["🕵️ shipdev-triager (Repro in isolated sandbox: Exit 1)"]
+        TRIAGER --> FIXER["🛠️ shipdev-fixer (Surgical minimal patch synthesis)"]
+        FIXER --> VERIFIER["🛡️ shipdev-verifier (Clean-room regression: Exit 0)"]
+    end
+
+    VERIFIER --> HUMAN_GATE{"🛡️ Immutable Human Gate (AWAITING_HUMAN_APPROVAL)"}
+    HUMAN_GATE -->|"✅ Human Approves via BFF"| PROD["🚀 Mainline Production Commit"]
+```
+
+* **Grounding & Precision**: Distinguishes casual conversation and capabilities questions from actual engineering tasks. Never creates fake tasks for greetings.
+* **File-Grounded Findings**: Pinpoints actual source paths (e.g. `demo/buggy_app/calculator.py:22`), separating verified logic bugs from architectural recommendations.
+* **Multi-Tenant Isolation**: Scopes project memory and task execution strictly by workspace (`ws_personal_default` vs `ws_team_default`).
+* **Real Verification Evidence**: Executes authentic `pytest` suites inside isolated sandboxes to capture verified exit codes, stdout logs, and unified git diffs.
 
 ---
 
@@ -255,8 +291,8 @@ Docker / VM Containers    : ~600MB [██████████████�
 ShipDev Subprocess Scratch: <1MB   [▏]  ◄── Instant clean workspace cloning (<50ms)
 
 TEST SUITE RIGOR (Automated Test Count)
-Backend State Machine     : 116 tests passed in 1.73s (pytest)
-Frontend Security Audit   : 14 tests passed (CSRF, same-origin, anti-spoofing)
+Backend State Machine & Mesh : 168 tests passed in 2.83s (pytest)
+Frontend Security Audit      : 14 tests passed (CSRF, same-origin, anti-spoofing)
 ```
 
 ---
@@ -264,19 +300,24 @@ Frontend Security Audit   : 14 tests passed (CSRF, same-origin, anti-spoofing)
 ## 🔍 Interactive Verification & Audit Deep Dives
 
 <details>
-<summary><b>🧪 1. View 116 Backend Automated Tests (State Machine, Persistence & Security)</b></summary>
+<summary><b>🧪 1. View 168 Backend Automated Tests (State Machine, Multi-Tenancy, Persistence & Security)</b></summary>
 
 ```text
-backend/tests/test_api.py ...................................            [ 30%]
-backend/tests/test_demo_pipeline.py ........                             [ 37%]
-backend/tests/test_harden.py ..............................              [ 62%]
-backend/tests/test_health.py ..                                          [ 64%]
-backend/tests/test_persistence.py .......                                [ 70%]
-backend/tests/test_phase3_security.py .................                  [ 85%]
-backend/tests/test_sse.py ........                                       [ 92%]
-backend/tests/test_state_machine.py .........                            [100%]
+backend/tests/test_api.py ...................................            [ 21%]
+backend/tests/test_conversation_and_gemini.py ...                        [ 23%]
+backend/tests/test_demo_pipeline.py ........                             [ 28%]
+backend/tests/test_harden.py ..............................              [ 46%]
+backend/tests/test_health.py ..                                          [ 47%]
+backend/tests/test_persistence.py .......                                [ 51%]
+backend/tests/test_phase2_p1_gateway.py ...........                      [ 58%]
+backend/tests/test_phase2_p3_memory.py .....                             [ 61%]
+backend/tests/test_phase2_p5_e2e.py ......                               [ 65%]
+backend/tests/test_phase3_security.py .................                  [ 75%]
+backend/tests/test_sse.py ........                                       [ 80%]
+backend/tests/test_state_machine.py .........                            [ 85%]
+backend/tests/test_workspace_isolation.py ..........................    [100%]
 
-============================= 116 passed in 1.73s ==============================
+============================= 168 passed in 2.83s ==============================
 ```
 </details>
 
@@ -361,6 +402,22 @@ python3 scripts/switch_bridge.py \
   --api-base http://127.0.0.1:8000/api/v1 \
   --agent-secret <API_SECRET_KEY>
 ```
+
+---
+
+## 🔐 Environment Variables & Deployment Settings
+
+| Variable | Scope | Description | Default / Production Value |
+| :--- | :--- | :--- | :--- |
+| `API_SECRET_KEY` | Backend, Bridge | Switch agent bearer secret for claiming tasks and attaching evidence | Auto-configured shared key |
+| `HUMAN_APPROVAL_SECRET` | Backend, Frontend BFF | 32-byte secret authorizing human approval / rejection gate actions | `human-gate-key-092dad4bd98666850024de1e1dc8ae95` |
+| `GEMINI_API_KEY` | Backend | Google AI Studio API key powering Gemini 2.0 conversational coordinator | Configured AI Studio key |
+| `GEMINI_MODEL` | Backend | Google Gemini model identifier | `gemini-2.5-flash-lite` / `gemini-2.0-flash` |
+| `NEXT_PUBLIC_API_URL` | Frontend | Target backend API base URL | `https://shipdev.onrender.com` (prod) or `http://127.0.0.1:8000` (dev) |
+| `APP_ORIGIN` | Frontend BFF | Authorized human interface deployment origin | `https://shipdev-frontend.vercel.app` |
+
+> [!NOTE]
+> **Vercel & Preview URL Origin Handling**: The backend and frontend BFF enforce strict origin validation while allowing canonical production (`https://shipdev-frontend.vercel.app`) and legitimate Vercel git preview deployments (`https://shipdev-frontend-*-asurxeths-projects.vercel.app`). Wildcard origins are rejected to prevent cross-site request forgery.
 
 ---
 

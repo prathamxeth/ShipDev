@@ -11,6 +11,8 @@ from app.models.task import (
     TransitionRequest,
 )
 from app.repositories.task_repository import TaskRepository
+from app.repositories.workspace_repository import WorkspaceRepository
+from app.models.workspace import WorkspaceType
 
 router = APIRouter(prefix="/tasks", tags=["Approval"])
 
@@ -32,6 +34,20 @@ async def approve_task(
     """
     caller_type, reviewer_id = caller_auth
     task = repo.get_task(task_id, workspace_id=x_workspace_id)
+
+    target_ws = (x_workspace_id or task.workspace_id or "ws_personal_default").strip()
+    ws_resolver = WorkspaceRepository(db_path=repo.db_path) if repo.db_path else WorkspaceRepository()
+    try:
+        ws = ws_resolver.get_workspace(target_ws)
+        if ws.workspace_type == WorkspaceType.TEAM and not ws_resolver.get_member(target_ws, reviewer_id):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access Denied: User '{reviewer_id}' is not an authorized member of team workspace '{target_ws}'.",
+            )
+    except HTTPException:
+        raise
+    except Exception:
+        pass
 
     if task.status != TaskStatus.AWAITING_HUMAN_APPROVAL:
         raise HTTPException(
@@ -68,6 +84,20 @@ async def reject_task(
     caller_type, reviewer_id = caller_auth
     task = repo.get_task(task_id, workspace_id=x_workspace_id)
 
+    target_ws = (x_workspace_id or task.workspace_id or "ws_personal_default").strip()
+    ws_resolver = WorkspaceRepository(db_path=repo.db_path) if repo.db_path else WorkspaceRepository()
+    try:
+        ws = ws_resolver.get_workspace(target_ws)
+        if ws.workspace_type == WorkspaceType.TEAM and not ws_resolver.get_member(target_ws, reviewer_id):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access Denied: User '{reviewer_id}' is not an authorized member of team workspace '{target_ws}'.",
+            )
+    except HTTPException:
+        raise
+    except Exception:
+        pass
+
     if task.status != TaskStatus.AWAITING_HUMAN_APPROVAL:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -102,6 +132,20 @@ async def complete_task(
     """
     caller_type, reviewer_id = caller_auth
     task = repo.get_task(task_id, workspace_id=x_workspace_id)
+
+    target_ws = (x_workspace_id or task.workspace_id or "ws_personal_default").strip()
+    ws_resolver = WorkspaceRepository(db_path=repo.db_path) if repo.db_path else WorkspaceRepository()
+    try:
+        ws = ws_resolver.get_workspace(target_ws)
+        if ws.workspace_type == WorkspaceType.TEAM and not ws_resolver.get_member(target_ws, reviewer_id):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access Denied: User '{reviewer_id}' is not an authorized member of team workspace '{target_ws}'.",
+            )
+    except HTTPException:
+        raise
+    except Exception:
+        pass
 
     if task.status != TaskStatus.APPROVED:
         raise HTTPException(

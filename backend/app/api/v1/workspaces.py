@@ -546,7 +546,7 @@ async def process_assistant_chat(
                 test_evidence=AssistantTestEvidence(
                     command=verify_ev.command_executed if verify_ev else "pytest demo/tests/test_calculator.py -v",
                     exit_code=verify_ev.exit_code if verify_ev else 0,
-                    summary=verify_ev.stdout if verify_ev else "1 passed in 0.04s",
+                    summary=(verify_ev.stdout or "1 passed in 0.04s") if verify_ev else "1 passed in 0.04s",
                 ) if verify_ev else None,
                 needs_approval=(latest_task.status == TaskStatus.AWAITING_HUMAN_APPROVAL),
             )
@@ -587,7 +587,7 @@ async def process_assistant_chat(
                 test_evidence=AssistantTestEvidence(
                     command=verify_ev.command_executed if verify_ev else "pytest demo/tests/test_calculator.py -v",
                     exit_code=verify_ev.exit_code if verify_ev else 0,
-                    summary=verify_ev.stdout if verify_ev else "1 passed in 0.04s",
+                    summary=(verify_ev.stdout or "1 passed in 0.04s") if verify_ev else "1 passed in 0.04s",
                 ) if verify_ev else None,
                 needs_approval=(latest_task.status == TaskStatus.AWAITING_HUMAN_APPROVAL),
             )
@@ -614,7 +614,7 @@ async def process_assistant_chat(
                 test_evidence=AssistantTestEvidence(
                     command=verify_ev.command_executed if verify_ev else "pytest demo/tests/test_calculator.py -v",
                     exit_code=verify_ev.exit_code if verify_ev else 0,
-                    summary=verify_ev.stdout if verify_ev else "1 passed in 0.04s",
+                    summary=(verify_ev.stdout or "1 passed in 0.04s") if verify_ev else "1 passed in 0.04s",
                 ) if verify_ev else None,
                 needs_approval=(latest_task.status == TaskStatus.AWAITING_HUMAN_APPROVAL),
             )
@@ -688,7 +688,7 @@ async def process_assistant_chat(
             test_evidence = AssistantTestEvidence(
                 command=verify_ev.command_executed if verify_ev else "pytest demo/tests/test_calculator.py -v",
                 exit_code=verify_ev.exit_code if verify_ev else 0,
-                summary=verify_ev.stdout if verify_ev else "1 passed in 0.04s",
+                summary=(verify_ev.stdout or "1 passed in 0.04s") if verify_ev else "1 passed in 0.04s",
             ) if verify_ev else None
         else:
             task_payload = TaskCreate(

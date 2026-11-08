@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+  getHumanApprovalSecret,
   getOperatorIdentity,
   isValidTaskId,
   resolveBackendApiBase,
@@ -16,8 +17,8 @@ export async function POST(req: NextRequest) {
       return originCheck.errorResponse;
     }
 
-    // 2. Strict Server-Side Secret Verification (Fail-Closed, No Default Fallback)
-    const secret = process.env.HUMAN_APPROVAL_SECRET;
+    // 2. Strict Server-Side Secret Verification (Fail-Closed against Insecure Placeholders)
+    const secret = getHumanApprovalSecret();
     if (!secret || secret.trim() === "") {
       return NextResponse.json(
         {

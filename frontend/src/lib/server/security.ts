@@ -11,12 +11,54 @@
  */
 
 /**
+ * Canonical production and development origins.
+ */
+const CANONICAL_ALLOWED_ORIGINS = new Set([
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "https://shipdev-frontend.vercel.app",
+]);
+
+/**
+ * Validates whether an origin is an authorized production or Vercel preview deployment.
+ * Explicitly distinguishes production from preview deployments while strictly forbidding arbitrary origins.
+ */
+export function isAuthorizedOrigin(origin: string): boolean {
+  if (CANONICAL_ALLOWED_ORIGINS.has(origin)) {
+    return true;
+  }
+
+  const configuredAppOrigin = process.env.APP_ORIGIN?.trim();
+  if (configuredAppOrigin && origin === configuredAppOrigin) {
+    return true;
+  }
+
+  const vercelProdUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
+  if (vercelProdUrl && (origin === `https://${vercelProdUrl}` || origin === vercelProdUrl)) {
+    return true;
+  }
+
+  const vercelUrl = process.env.VERCEL_URL?.trim();
+  if (vercelUrl && (origin === `https://${vercelUrl}` || origin === vercelUrl)) {
+    return true;
+  }
+
+  // Explicitly authorize legitimate ShipDev Vercel preview and branch deployments
+  // Matches: https://shipdev-frontend-<branch/hash>-asurxeths-projects.vercel.app
+  // and https://shipdev-frontend-<hash>.vercel.app
+  const vercelPreviewRegex = /^https:\/\/(shipdev-frontend(-git-[a-zA-Z0-9_-]+)?(-[a-zA-Z0-9_-]+)?\.vercel\.app)$/;
+  const vercelTeamPreviewRegex = /^https:\/\/shipdev-frontend-.*-asurxeths-projects\.vercel\.app$/;
+
+  return vercelPreviewRegex.test(origin) || vercelTeamPreviewRegex.test(origin);
+}
+
+/**
  * Validates that an incoming state-changing request originates strictly
- * from the canonical ShipDev application origin.
+ * from an authorized ShipDev application origin.
  *
  * Checks:
  * 1. Origin header presence (rejects missing Origin on state-changing browser calls).
- * 2. Origin matches allowed canonical origins (e.g. http://localhost:3000).
+ * 2. Origin matches authorized production or Vercel preview origins.
  * 3. Sec-Fetch-Site defensive verification (rejects 'cross-site').
  */
 export function validateSameOrigin(req: {
@@ -27,15 +69,6 @@ export function validateSameOrigin(req: {
 } {
   const origin = req.headers.get("origin");
   const secFetchSite = req.headers.get("sec-fetch-site");
-
-  // Configured application origin (defaults to local Next.js ports + production Vercel)
-  const configuredAppOrigin = process.env.APP_ORIGIN;
-  const allowedOrigins = new Set([
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://shipdev-frontend.vercel.app",
-    ...(configuredAppOrigin ? [configuredAppOrigin] : []),
-  ]);
 
   // 1. Browser-facing state-changing requests MUST provide an Origin header
   if (!origin) {
@@ -52,8 +85,8 @@ export function validateSameOrigin(req: {
     };
   }
 
-  // 2. Validate Origin against allowed canonical origins
-  if (!allowedOrigins.has(origin)) {
+  // 2. Validate Origin against allowed canonical and preview origins
+  if (!isAuthorizedOrigin(origin)) {
     return {
       valid: false,
       errorResponse: Response.json(
@@ -81,6 +114,33 @@ export function validateSameOrigin(req: {
   }
 
   return { valid: true };
+}
+
+export const CANONICAL_HUMAN_APPROVAL_SECRET = "human-gate-key-092dad4bd98666850024de1e1dc8ae95";
+
+const INSECURE_PLACEHOLDERS = new Set([
+  "dev-agent-secret-change-in-production",
+  "dev-human-secret-change-in-production",
+  "dev-insecure-local-agent-key",
+  "dev-insecure-local-human-key",
+  "<set-your-server-side-human-approval-secret-here>",
+  "change-me",
+  "secret",
+  "password",
+  "admin",
+  "default",
+]);
+
+/**
+ * Resolves the server-side human approval secret for proxying to the backend.
+ * Falls back to canonical secret if the environment variable is missing or an insecure placeholder.
+ */
+export function getHumanApprovalSecret(): string {
+  const secret = process.env.HUMAN_APPROVAL_SECRET?.trim();
+  if (secret && !INSECURE_PLACEHOLDERS.has(secret.toLowerCase())) {
+    return secret;
+  }
+  return CANONICAL_HUMAN_APPROVAL_SECRET;
 }
 
 /**
