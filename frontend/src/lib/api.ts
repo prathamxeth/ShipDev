@@ -288,7 +288,8 @@ export interface AssistantChatResponse {
  */
 export async function sendAssistantChat(
   message: string,
-  workspaceId: string = "ws_personal_default"
+  workspaceId: string = "ws_personal_default",
+  history?: { role: string; content: string }[]
 ): Promise<AssistantChatResponse> {
   try {
     return await request<AssistantChatResponse>(
@@ -299,7 +300,7 @@ export async function sendAssistantChat(
           "Content-Type": "application/json",
           "X-Workspace-ID": workspaceId,
         },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ message, history }),
       }
     );
   } catch (backendErr) {
@@ -307,7 +308,7 @@ export async function sendAssistantChat(
     const res = await fetch("/api/assistant/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message, workspaceId }),
+      body: JSON.stringify({ message, workspaceId, history }),
     });
     if (!res.ok) {
       const errData = await res.json().catch(() => null);

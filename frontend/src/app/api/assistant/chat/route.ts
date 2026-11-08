@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
         Accept: "application/json",
         "X-Workspace-ID": workspaceId,
       },
-      body: JSON.stringify({ message: body.message }),
+      body: JSON.stringify({ message: body.message, history: body.history }),
       cache: "no-store",
     });
 

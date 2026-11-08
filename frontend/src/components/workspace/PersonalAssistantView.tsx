@@ -331,7 +331,11 @@ export function PersonalAssistantView({
     setActionError(null);
 
     try {
-      const resp = await sendAssistantChat(userPrompt, workspaceId);
+      const historyPayload = messages.slice(-6).map((m) => ({
+        role: m.sender === "user" ? "user" : "assistant",
+        content: m.text,
+      }));
+      const resp = await sendAssistantChat(userPrompt, workspaceId, historyPayload);
 
       const reply: Message = {
         id: `ast_${Date.now()}`,

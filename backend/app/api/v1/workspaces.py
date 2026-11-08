@@ -1,8 +1,11 @@
 """Workspace management, membership, memory, and explicit cross-workspace sharing REST routes."""
 
 import json
+import logging
 import os
 import re
+
+logger = logging.getLogger("shipdev.workspaces")
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
@@ -363,6 +366,7 @@ async def get_companion_summary(
 
 class AssistantChatRequest(BaseModel):
     message: str = Field(..., min_length=1)
+    history: Optional[List[Dict[str, str]]] = None
 
 
 class AssistantStage(BaseModel):
@@ -430,6 +434,46 @@ async def process_assistant_chat(
     classifier = UniversalIntentClassifier()
     classification = classifier.classify(raw_prompt)
     gemini_runtime = GeminiAgentRuntime()
+
+    # Route conversational turn through Google Gemini if available
+    if gemini_runtime.is_configured() and os.getenv("ENABLE_GEMINI_ASSISTANT", "true").lower() in ("true", "1"):
+        try:
+            gemini_res = gemini_runtime.process_conversation_turn(
+                user_message=raw_prompt,
+                workspace_id=target_ws,
+                history=payload.history,
+                task_repo=task_repo,
+            )
+            if gemini_res.get("success"):
+                test_ev_data = gemini_res.get("test_evidence")
+                test_ev = (
+                    AssistantTestEvidence(
+                        command=test_ev_data["command"],
+                        exit_code=test_ev_data["exit_code"],
+                        summary=test_ev_data["summary"],
+                    )
+                    if test_ev_data
+                    else None
+                )
+                stages_data = gemini_res.get("stages")
+                stages = (
+                    [AssistantStage(name=s["name"], status=s["status"]) for s in stages_data]
+                    if stages_data
+                    else None
+                )
+                return AssistantChatResponse(
+                    category=gemini_res.get("category", "conversation"),
+                    reply_text=gemini_res.get("reply_text", ""),
+                    task=gemini_res.get("task"),
+                    improvements=gemini_res.get("improvements"),
+                    pipeline_executed=gemini_res.get("pipeline_executed", False),
+                    patch_diff=gemini_res.get("patch_diff"),
+                    test_evidence=test_ev,
+                    needs_approval=gemini_res.get("needs_approval", False),
+                    stages=stages,
+                )
+        except Exception as e:
+            logger.warning(f"Gemini turn failed, falling back to deterministic handler: {e}")
 
     # 1. Follow-up / Task Inspection Requests (Execution Progress, Evidence & Verification, Final Results, Task Status)
     is_show_execution = bool(
