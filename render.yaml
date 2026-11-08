@@ -11,7 +11,7 @@ services:
       - key: DATABASE_URL
         value: sqlite:///./shipdev.db
       - key: GEMINI_MODEL
-        value: gemini-3.5-flash-lite
+        value: gemini-2.0-flash
       - key: GEMINI_API_BASE
         value: https://generativelanguage.googleapis.com/v1beta/openai
       - key: HUMAN_APPROVAL_SECRET

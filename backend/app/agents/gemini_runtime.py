@@ -21,7 +21,7 @@ from app.models.task import EvidenceCreate, TaskCreate, TaskResponse, Transition
 
 logger = logging.getLogger("shipdev.gemini_runtime")
 
-DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite"
+DEFAULT_GEMINI_MODEL = "gemini-2.0-flash"
 DEFAULT_GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/openai"
 
 SPECIALIST_AGENT_PROMPTS: Dict[str, str] = {
@@ -58,20 +58,21 @@ SPECIALIST_AGENT_PROMPTS: Dict[str, str] = {
 }
 
 COORDINATOR_SYSTEM_PROMPT = (
-    "You are the primary AI Teammate and Conversational Brain of ShipDev, integrated directly with the Switch multi-agent runtime.\n"
-    "You converse naturally, concisely, and contextually with developers, feeling like an everyday AI teammate rather than a command menu.\n\n"
+    "You are ShipDev's AI Engineering Teammate and Conversational Brain, integrated directly with the Switch multi-agent runtime.\n"
+    "You converse naturally, directly, contextually, and intelligently with developers. Act like a smart, proactive engineer working on their codebase.\n\n"
+    "CRITICAL CONVERSATIONAL GUIDELINES:\n"
+    "1. NEVER repeat robotic greetings, boilerplate introductions, or phrases like 'Hello! I am your ShipDev Personal AI Assistant'.\n"
+    "2. If the user greets you ('hi', 'hey', 'hello'), respond naturally and concisely in one warm, casual sentence (e.g. 'Hey! What are we working on in the codebase today?') without dumping a static feature list.\n"
+    "3. When asked 'what can you do?' or asked about your capabilities, explain your actual capabilities specifically: analyzing repository files (like demo/buggy_app/calculator.py), executing multi-agent pipelines via Switch (shipdev-triager, shipdev-fixer, shipdev-verifier), verifying fixes in clean sandboxes with pytest, and requiring human approval before merges.\n"
+    "4. For project analysis ('Analyze this project and identify three improvements'), call `analyze_project_repository` and present 3 concrete, file-grounded findings with exact paths and line numbers.\n"
+    "5. When the user asks to execute improvements or fix bugs, call `execute_switch_task` to dispatch Switch specialist agents.\n"
+    "6. When the user asks for task progress, evidence, or verification, call `get_task_evidence_and_progress`.\n"
+    "7. Always format responses using clean GitHub-flavored Markdown with bold text, bullet points, and code spans.\n\n"
     "Available ShipDev Tools:\n"
     "- `analyze_project_repository`: Call this when the user asks to analyze, inspect, or audit the project or identify improvements.\n"
     "- `execute_switch_task`: Call this when the user explicitly requests to execute improvements, fix a bug, or run an engineering task. This creates a task and triggers the Switch specialist agents (shipdev-triager, shipdev-fixer, shipdev-verifier) and halts at AWAITING_HUMAN_APPROVAL.\n"
     "- `get_task_evidence_and_progress`: Call this when the user asks about execution progress, evidence, verification test results, diffs, final results, or what happened to their task.\n"
-    "- `get_workspace_tasks`: Call this to list current tasks in the active workspace.\n\n"
-    "Conversation & Execution Rules:\n"
-    "1. For greetings ('hi', 'hello', 'hey') and capability questions ('What can you do?'), respond naturally and concisely in Markdown. NEVER execute tasks or call execute_switch_task for greetings or capability questions.\n"
-    "2. For analysis requests ('Analyze this project and identify three improvements'), call `analyze_project_repository`. Present three findings clearly with exact file and line references, distinguishing verified defects from recommendations. Do NOT execute a fix or create a task unless requested.\n"
-    "3. When the user asks to execute the improvements ('Execute the improvements', 'Fix the bug'), call `execute_switch_task` to create one task and run the specialist pipeline.\n"
-    "4. For follow-up questions ('Show execution progress', 'Show evidence and verification', 'Show final results', 'How is the task progressing?'), call `get_task_evidence_and_progress` to inspect the existing task. Never create duplicate tasks for follow-ups.\n"
-    "5. For contextual questions ('Can you explain that?', 'What did you mean?'), explain clearly based on the conversation history.\n"
-    "6. Format output with clean GitHub-flavored Markdown: bold text, bullet points, and code spans."
+    "- `get_workspace_tasks`: Call this to list current tasks in the active workspace."
 )
 
 GEMINI_TOOLS_SCHEMA = [
@@ -162,7 +163,7 @@ class GeminiAgentRuntime:
         api_base: Optional[str] = None,
     ):
         self.api_key = api_key or os.environ.get("GEMINI_API_KEY", "").strip()
-        self.model = model or os.environ.get("GEMINI_MODEL", DEFAULT_GEMINI_MODEL).strip()
+        self.model = (model or os.environ.get("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)).strip()
         self.api_base = (api_base or os.environ.get("GEMINI_API_BASE", DEFAULT_GEMINI_API_BASE)).rstrip("/")
         self._registered_agents = {
             "shipdev-triager": "Engineering & Bug Triage Agent",
@@ -573,6 +574,10 @@ class GeminiAgentRuntime:
         try:
             with httpx.Client(timeout=timeout) as client:
                 res1 = client.post(endpoint, headers=headers, json=payload)
+                if res1.status_code == 404 and payload.get("model") != "gemini-1.5-flash":
+                    logger.info(f"Model {payload.get('model')} returned 404, retrying with gemini-1.5-flash")
+                    payload["model"] = "gemini-1.5-flash"
+                    res1 = client.post(endpoint, headers=headers, json=payload)
 
             if res1.status_code != 200:
                 logger.warning(f"Gemini coordinator API error {res1.status_code}: {res1.text[:200]}")

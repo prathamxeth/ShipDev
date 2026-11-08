@@ -4,6 +4,7 @@
 ### The Human-Supervised AI Engineering IDE Powered by Switch
 
 **Deterministic, sandbox-verified multi-agent software engineering with an immutable human approval boundary.**  
+ShipDev provides workspace-aware, file-grounded AI assistance that understands project context, identifies and edits relevant files, executes specialist-agent workflows, verifies changes with sandbox evidence, and presents actionable diffs with human approval before applying fixes.  
 Built for the **WeMakeDevs Flip the Switch Hackathon 2026** — delivering the **Best Business Workflow**.
 
 <br/>
@@ -69,7 +70,7 @@ While isolated agents can generate code snippets, **enterprise software engineer
 
 ## ⚡ The ShipDev Solution: Collaborative Multi-Agent Architecture
 
-ShipDev transitions isolated agents into collaborative engineering teammates connected through **Switch Incident Rooms** and governed by an **Immutable Human Approval Gate**:
+ShipDev transitions isolated agents into collaborative engineering teammates connected through **Switch Incident Rooms** and governed by an **Immutable Human Approval Gate**. ShipDev provides workspace-aware, file-grounded AI assistance that understands project context, identifies and edits relevant files, executes specialist-agent workflows, verifies changes with sandbox evidence, and presents actionable diffs with human approval before applying fixes.
 
 ```mermaid
 graph TD

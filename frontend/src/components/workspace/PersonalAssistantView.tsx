@@ -204,8 +204,8 @@ export function PersonalAssistantView({
     id: `msg_init_${workspaceId}`,
     sender: "assistant",
     text: isTeam
-      ? "Hello! I am your ShipDev Team AI Assistant, connected to your organization workspace memory and the Switch multi-agent pipeline.\n\nHow can I help your team today? You can ask me to:\n• 🛠️ **Analyze Team Project & Fix Defects** (e.g. *\"Give me three improvements\"*)\n• 🔍 **Research Architecture & Trade-offs** (e.g. *\"Research SQLite WAL mode performance\"*)\n• 📝 **Draft Documentation or Runbooks** (e.g. *\"Document deployment runbook for v2 release\"*)\n• 🗺️ **Plan Team Milestones & Roadmaps** (e.g. *\"Plan migration roadmap for Kubernetes staging\"*)"
-      : "Hello! I am your ShipDev Personal AI Assistant, connected to your private workspace memory and the Switch multi-agent pipeline.\n\nHow can I help you today? You can ask me to:\n• 🛠️ **Analyze Project & Fix Defects** (e.g. *\"Give me three improvements\"*)\n• 🔍 **Research Architecture & Trade-offs** (e.g. *\"Research SQLite WAL mode performance\"*)\n• 📝 **Draft Documentation or Runbooks** (e.g. *\"Document deployment runbook for v2 release\"*)\n• 🗺️ **Plan Milestones & Roadmaps** (e.g. *\"Plan migration roadmap for Kubernetes staging\"*)",
+      ? "👋 **ShipDev Team Workspace**\n\nConnected to team memory and the Switch multi-agent pipeline. Ask me to analyze the codebase, investigate issues, or plan sprint milestones."
+      : "👋 **ShipDev Personal Workspace**\n\nConnected to your private workspace memory and the Switch multi-agent pipeline. Ask me to inspect code, fix defects, or verify test suites.",
     timestamp: "Just now",
     category: "greeting",
   }), [isTeam, workspaceId]);
@@ -227,7 +227,7 @@ export function PersonalAssistantView({
               if (
                 msg.id.startsWith("msg_init_") ||
                 msg.id.startsWith("msg_welcome_") ||
-                (msg.category === "greeting" && msg.sender === "assistant" && msg.text.includes("Hello! I am your ShipDev"))
+                (msg.category === "greeting" && msg.sender === "assistant" && (msg.text.includes("ShipDev") || msg.text.includes("Hello!")))
               ) {
                 if (hasWelcome) continue;
                 hasWelcome = true;
@@ -271,7 +271,7 @@ export function PersonalAssistantView({
               if (
                 msg.id.startsWith("msg_init_") ||
                 msg.id.startsWith("msg_welcome_") ||
-                (msg.category === "greeting" && msg.sender === "assistant" && msg.text.includes("Hello! I am your ShipDev"))
+                (msg.category === "greeting" && msg.sender === "assistant" && (msg.text.includes("ShipDev") || msg.text.includes("Hello!")))
               ) {
                 if (hasWelcome) continue;
                 hasWelcome = true;
@@ -331,10 +331,13 @@ export function PersonalAssistantView({
     setActionError(null);
 
     try {
-      const historyPayload = messages.slice(-6).map((m) => ({
-        role: m.sender === "user" ? "user" : "assistant",
-        content: m.text,
-      }));
+      const historyPayload = messages
+        .filter((m) => !m.id.startsWith("msg_init_") && !m.id.startsWith("msg_welcome_") && m.category !== "greeting")
+        .slice(-6)
+        .map((m) => ({
+          role: m.sender === "user" ? "user" : "assistant",
+          content: m.text,
+        }));
       const resp = await sendAssistantChat(userPrompt, workspaceId, historyPayload);
 
       const reply: Message = {

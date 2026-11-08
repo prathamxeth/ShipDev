@@ -627,7 +627,7 @@ async def process_assistant_chat(
     if is_casual_greeting:
         return AssistantChatResponse(
             category="conversation",
-            reply_text="Hello! How can I help you today? You can ask me to analyze the project, investigate defects, run tests, or execute engineering tasks.",
+            reply_text="Hello! How can I help you build, analyze, or debug in the project today?",
             pipeline_executed=False,
             needs_approval=False,
         )
@@ -638,15 +638,15 @@ async def process_assistant_chat(
         or text_lower in {"what can you do?", "what can you do", "help", "capabilities"}
     )
     if is_capability:
-        model_name = gemini_runtime.model if gemini_runtime.is_configured() else "Google Gemini (gemini-3.5-flash-lite)"
+        model_name = gemini_runtime.model if gemini_runtime.is_configured() else "Google Gemini (gemini-2.0-flash)"
         return AssistantChatResponse(
             category="capabilities",
             reply_text=(
-                f"I am your ShipDev AI Assistant, powered by **{model_name}** and the Switch multi-agent pipeline.\n\n"
-                "Here is what I can do for you in this workspace:\n"
-                "• 🔍 **Project Analysis**: Inspect source files and test suites to identify defects and code improvements.\n"
-                "• 🛠️ **Multi-Agent Task Execution**: Coordinate specialist agents (`shipdev-triager`, `shipdev-fixer`, `shipdev-verifier`) to reproduce bugs, craft minimal patches, and run regression tests.\n"
-                "• 📊 **Evidence & Verification**: Capture sandbox execution logs, exit codes, and unified diffs.\n"
+                f"I'm your workspace-aware AI engineering teammate, powered by **{model_name}** and the Switch multi-agent pipeline.\n\n"
+                "Here is what I can do directly in this workspace:\n"
+                "• 🔍 **Project Analysis**: Inspect source files and test suites (like `demo/buggy_app/calculator.py`) to uncover defects, arithmetic errors, and missing validations.\n"
+                "• 🛠️ **Multi-Agent Task Execution**: Coordinate specialist agents (`shipdev-triager`, `shipdev-fixer`, `shipdev-verifier`) via Switch to reproduce bugs in isolated sandboxes, craft minimal diffs, and run regression tests.\n"
+                "• 📊 **Evidence & Verification**: Capture sandbox execution logs, exit codes, and unified patch diffs.\n"
                 "• 🛡️ **Human Authorization Gates**: Enforce human approval checkpoints before code is merged.\n"
                 "• 🔌 **Connected Platforms**: Sync issues and notifications with Slack, Teams, Discord, and Telegram.\n\n"
                 "Try asking: *\"Analyze this project and identify three improvements.\"*"
