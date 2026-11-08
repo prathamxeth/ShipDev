@@ -168,9 +168,16 @@ export async function checkBackendHealth(): Promise<{ ok: boolean; data?: Backen
     const data = await request<BackendHealth>(`${BACKEND_HOST}/health`);
     return { ok: true, data };
   } catch (err: any) {
+    try {
+      const res = await fetch("/api/health");
+      if (res.ok) {
+        const data = await res.json();
+        return { ok: true, data };
+      }
+    } catch {}
     return {
       ok: false,
-      error: err.message || "FastAPI backend is offline at http://localhost:8000",
+      error: err.message || "FastAPI backend is offline",
     };
   }
 }
