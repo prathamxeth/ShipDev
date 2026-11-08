@@ -11,7 +11,10 @@ import json
 import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-import httpx
+try:
+    import httpx
+except ImportError:
+    httpx = None
 
 from app.core.state_machine import CallerType, TaskStatus
 from app.models.task import EvidenceCreate, TaskCreate, TaskResponse, TransitionRequest
@@ -170,8 +173,8 @@ class GeminiAgentRuntime:
         }
 
     def is_configured(self) -> bool:
-        """Returns True if a valid GEMINI_API_KEY is configured."""
-        return bool(self.api_key and len(self.api_key) > 10)
+        """Returns True if a valid GEMINI_API_KEY is configured and httpx is available."""
+        return bool(self.api_key and len(self.api_key) > 10 and httpx is not None)
 
     def get_registered_agents(self) -> List[Dict[str, Any]]:
         """Lists active specialist agents registered with the Gemini runtime and Switch."""
