@@ -7,6 +7,8 @@ import {
   Info,
   Share2,
   ShieldCheck,
+  Network,
+  Cpu,
 } from "lucide-react";
 
 export type ActivityTab =
@@ -50,6 +52,8 @@ export function LeftActivityBar({
     badge?: number;
   }> = [
     { id: "assistant", label: "Personal AI Assistant", icon: Bot },
+    { id: "graph", label: "Architecture Map", icon: Network },
+    { id: "agents", label: "Switch Agents", icon: Cpu },
     { id: "platforms", label: "Connected Apps (Discord & Telegram)", icon: Share2 },
   ];
 
@@ -60,6 +64,8 @@ export function LeftActivityBar({
     badge?: number;
   }> = [
     { id: "assistant", label: "Team AI Assistant", icon: Bot },
+    { id: "graph", label: "Architecture Map", icon: Network },
+    { id: "agents", label: "Switch Agents", icon: Cpu },
     { id: "reviews", label: "Reviews & Approvals", icon: ShieldCheck, badge: bugCount },
     { id: "platforms", label: "Connected Apps (Slack & MS Teams)", icon: Share2 },
   ];

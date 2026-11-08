@@ -6,7 +6,11 @@ import { LeftActivityBar, ActivityTab } from "@/components/layout/LeftActivityBa
 import { PersonalAssistantView } from "@/components/workspace/PersonalAssistantView";
 import { ReviewsApprovalView } from "@/components/workspace/ReviewsApprovalView";
 import { PlatformsManagementPanel } from "@/components/workspace/PlatformsManagementPanel";
+import { BugGraphCanvas } from "@/components/workspace/BugGraphCanvas";
+import { AgentsRosterView } from "@/components/workspace/AgentsRosterView";
 import { AboutModal } from "@/components/modals/AboutModal";
+import { AgentDetailModal, AgentIdentifier } from "@/components/modals/AgentDetailModal";
+import { INITIAL_WORKSPACE_FILES } from "@/lib/workspaceFiles";
 import {
   getTasks,
   setActiveWorkspaceId,
@@ -18,6 +22,8 @@ export default function ShipDevIDE() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [activeWorkspaceType, setActiveWorkspaceType] = useState<"PERSONAL" | "TEAM">("PERSONAL");
   const [activeActivityTab, setActiveActivityTab] = useState<ActivityTab>("assistant");
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [selectedAgentModal, setSelectedAgentModal] = useState<AgentIdentifier | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
@@ -115,12 +121,43 @@ export default function ShipDevIDE() {
             />
           </div>
         )}
+
+        {/* 4. SYSTEM ARCHITECTURE GRAPH VIEW */}
+        {activeActivityTab === "graph" && (
+          <div className="flex-1 min-h-0 relative flex flex-col h-full bg-clay-canvas overflow-hidden">
+            <BugGraphCanvas
+              tasks={tasks}
+              selectedTaskId={selectedTaskId}
+              activeFileName=""
+              workspaceFiles={INITIAL_WORKSPACE_FILES}
+              onSelectBug={(task) => setSelectedTaskId(task.id)}
+              onSelectFile={() => {}}
+              onNavigateToLine={() => {}}
+              onSelectAgent={(agentId) => setSelectedAgentModal(agentId)}
+              compact={false}
+            />
+          </div>
+        )}
+
+        {/* 5. SWITCH AI AGENTS OVERVIEW VIEW */}
+        {activeActivityTab === "agents" && (
+          <div className="flex-1 min-w-0 h-full overflow-hidden flex flex-col">
+            <AgentsRosterView activeWorkspaceType={activeWorkspaceType} />
+          </div>
+        )}
       </div>
 
       {/* Modals */}
       <AboutModal
         isOpen={isAboutOpen}
         onClose={() => setIsAboutOpen(false)}
+        switchConnected={true}
+      />
+
+      <AgentDetailModal
+        isOpen={Boolean(selectedAgentModal)}
+        onClose={() => setSelectedAgentModal(null)}
+        agentId={selectedAgentModal}
         switchConnected={true}
       />
 
