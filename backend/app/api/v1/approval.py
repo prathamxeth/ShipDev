@@ -1,8 +1,10 @@
 """Human-in-the-loop approval, rejection, and completion REST routes."""
 
+import logging
 from typing import Optional
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from app.api.deps import get_repository, require_human_caller
+from app.core.config import settings
 from app.core.state_machine import CallerType, TaskStatus
 from app.models.task import (
     ApprovalRequest,
@@ -14,13 +16,15 @@ from app.repositories.task_repository import TaskRepository
 from app.repositories.workspace_repository import WorkspaceRepository
 from app.models.workspace import WorkspaceType
 
+logger = logging.getLogger("shipdev.approval")
+
 router = APIRouter(prefix="/tasks", tags=["Approval"])
 
 
 @router.post("/{task_id}/approve", response_model=TaskResponse)
 async def approve_task(
     task_id: str,
-    payload: ApprovalRequest,
+    payload: Optional[ApprovalRequest] = None,
     x_workspace_id: Optional[str] = Header(None, alias="X-Workspace-ID"),
     caller_auth: tuple[CallerType, str] = Depends(require_human_caller),
     repo: TaskRepository = Depends(get_repository),
@@ -65,11 +69,14 @@ async def approve_task(
         )
 
     # Server-derived operator identity is enforced; payload.reviewer_id is ignored.
+    comments = payload.comments if payload else None
     verified_request = ApprovalRequest(
         reviewer_id=reviewer_id,
-        comments=payload.comments,
+        comments=comments,
     )
-    return repo.record_human_approval(task_id, verified_request, actor_type=caller_type, workspace_id=x_workspace_id)
+    result = repo.record_human_approval(task_id, verified_request, actor_type=caller_type, workspace_id=x_workspace_id)
+    logger.info(f"[APPROVAL_GATE] 200 OK: Task {task_id} approved by human operator {reviewer_id}")
+    return result
 
 
 @router.post("/{task_id}/reject", response_model=TaskResponse)

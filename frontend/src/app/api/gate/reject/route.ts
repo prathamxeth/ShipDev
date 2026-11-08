@@ -86,9 +86,23 @@ export async function POST(req: NextRequest) {
     const responseData = await backendResponse.json().catch(() => null);
 
     if (!backendResponse.ok) {
+      const stage = backendResponse.headers.get("x-auth-rejection-stage") || "unknown";
+      const tokenLen = backendResponse.headers.get("x-auth-token-len");
+      console.warn(
+        `[BFF_REJECT] Task ${taskId} rejection rejected by backend: status=${backendResponse.status}, stage=${stage}, tokenLen=${tokenLen}`
+      );
       return NextResponse.json(
-        responseData || { detail: `Backend returned HTTP ${backendResponse.status}` },
-        { status: backendResponse.status }
+        responseData || {
+          detail: `Backend returned HTTP ${backendResponse.status}`,
+          authStage: stage,
+        },
+        {
+          status: backendResponse.status,
+          headers: {
+            ...(stage ? { "X-Auth-Rejection-Stage": stage } : {}),
+            ...(tokenLen ? { "X-Auth-Token-Len": tokenLen } : {}),
+          },
+        }
       );
     }
 

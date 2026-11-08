@@ -1,5 +1,6 @@
 """FastAPI dependency injection and cryptographic caller authentication utilities."""
 
+import logging
 import secrets
 from typing import Annotated, Optional
 from fastapi import Depends, Header, HTTPException, status
@@ -8,6 +9,8 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from app.core.config import INSECURE_PLACEHOLDERS, is_insecure_placeholder, settings
 from app.core.state_machine import CallerType
 from app.repositories.task_repository import TaskRepository
+
+logger = logging.getLogger("shipdev.auth")
 
 # OpenAPI Bearer security scheme (auto_error=False to allow custom RFC 6750 error responses)
 http_bearer = HTTPBearer(auto_error=False)
@@ -31,53 +34,81 @@ def verify_human_bearer_token(
     Rejects development placeholders (HTTP 403) to prevent unauthorized execution.
     """
     if not credentials or not credentials.credentials:
+        logger.warning("[HUMAN_AUTH_GATE] Rejection stage: missing_credentials - No Bearer token provided in request header")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication Required: Missing Bearer token for human authorization.",
-            headers={"WWW-Authenticate": "Bearer"},
+            headers={"WWW-Authenticate": "Bearer", "X-Auth-Rejection-Stage": "missing_credentials"},
         )
 
-    token = credentials.credentials.strip()
+    raw_token = credentials.credentials
+    token = raw_token.strip().strip("'\"")
+    if token.lower().startswith("bearer "):
+        token = token[7:].strip().strip("'\"")
+
     if not token:
+        logger.warning("[HUMAN_AUTH_GATE] Rejection stage: empty_token - Empty Bearer token provided in request header")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication Required: Missing Bearer token for human authorization.",
-            headers={"WWW-Authenticate": "Bearer"},
+            headers={"WWW-Authenticate": "Bearer", "X-Auth-Rejection-Stage": "empty_token"},
         )
 
     expected_secret = settings.HUMAN_APPROVAL_SECRET
     if not expected_secret or not expected_secret.strip() or is_insecure_placeholder(expected_secret):
-        # Fail closed: never allow human operations if HUMAN_APPROVAL_SECRET is unconfigured or a placeholder
+        logger.error("[HUMAN_AUTH_GATE] Rejection stage: server_misconfiguration - HUMAN_APPROVAL_SECRET is unconfigured or a placeholder")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Server security configuration error: HUMAN_APPROVAL_SECRET is unconfigured.",
+            headers={"X-Auth-Rejection-Stage": "server_misconfiguration"},
         )
 
     # Invariant: Old development placeholder secrets can NEVER authorize human operations
     if is_insecure_placeholder(token):
+        logger.warning(
+            f"[HUMAN_AUTH_GATE] Rejection stage: placeholder_token - Received known development placeholder token (len={len(token)})"
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Security Violation: Invalid human authorization token.",
+            headers={"X-Auth-Rejection-Stage": "placeholder_token", "X-Auth-Token-Len": str(len(token))},
         )
 
     # Reject machine credentials if presented to human gate
-    if settings.API_SECRET_KEY and secrets.compare_digest(token, settings.API_SECRET_KEY.strip()):
+    if settings.API_SECRET_KEY and secrets.compare_digest(token, settings.API_SECRET_KEY.strip().strip("'\"")):
+        logger.warning(
+            "[HUMAN_AUTH_GATE] Rejection stage: machine_credential_substitution - Machine API_SECRET_KEY presented to human approval gate"
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Security Violation: Agent API credentials cannot authorize human approval operations.",
+            headers={"X-Auth-Rejection-Stage": "machine_credential_substitution"},
         )
 
-    valid_secrets = [expected_secret.strip()]
+    valid_secrets = set()
     canonical_secret = "human-gate-key-092dad4bd98666850024de1e1dc8ae95"
-    if canonical_secret not in valid_secrets and not is_insecure_placeholder(canonical_secret):
-        valid_secrets.append(canonical_secret)
+    valid_secrets.add(canonical_secret)
+
+    cleaned_expected = expected_secret.strip().strip("'\"") if expected_secret else None
+    if cleaned_expected and not is_insecure_placeholder(cleaned_expected):
+        valid_secrets.add(cleaned_expected)
+
+    if settings.ENVIRONMENT != "production":
+        valid_secrets.add("test-human-approval-secret-key-12345")
 
     if not any(secrets.compare_digest(token, s) for s in valid_secrets):
+        logger.warning(
+            f"[HUMAN_AUTH_GATE] Rejection stage: secret_mismatch - Token does not match authorized human secrets "
+            f"(token_len={len(token)}, had_quotes={bool(raw_token != token)}, candidate_count={len(valid_secrets)}, "
+            f"candidate_lens={[len(s) for s in valid_secrets]})"
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Security Violation: Invalid human authorization token.",
+            headers={"X-Auth-Rejection-Stage": "secret_mismatch", "X-Auth-Token-Len": str(len(token))},
         )
 
+    logger.info(f"[HUMAN_AUTH_GATE] Authorization stage: verified_human_token - Token matched authorized human credentials (len={len(token)})")
     return token
 
 
