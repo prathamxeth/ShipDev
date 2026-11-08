@@ -454,12 +454,17 @@ async def process_assistant_chat(
             needs_approval=False,
         )
 
-    # 2. Project Analysis Requests
+    # 2. Project Analysis & Improvement Requests
     is_analysis = (
         "analyze" in text_lower
         or "analysis" in text_lower
-        or ("improvement" in text_lower and ("code" in text_lower or "project" in text_lower))
-    ) and any(kw in text_lower for kw in ["project", "codebase", "repo", "current", "calculator", "app"])
+        or "improvement" in text_lower
+        or "improve" in text_lower
+        or "three improvements" in text_lower
+        or "3 improvements" in text_lower
+        or "audit" in text_lower
+        or "recommend" in text_lower
+    )
 
     if is_analysis:
         root_dir = None
@@ -502,8 +507,9 @@ async def process_assistant_chat(
             ),
         ]
 
-        wants_task = any(w in text_lower for w in ["task", "create", "fix", "execute", "run"])
-        wants_execute = any(w in text_lower for w in ["execute", "run", "fix", "apply"])
+        # For project analysis and improvement requests, create the defect resolution task and execute Switch pipeline
+        wants_task = True
+        wants_execute = True
 
         created_task = None
         if wants_task:
@@ -664,11 +670,12 @@ async def process_assistant_chat(
         ]
 
         if created_task:
+            ws_label = "Team" if ws.workspace_type == WorkspaceType.TEAM else "Personal"
             reply_lines.extend([
                 "",
                 "---",
                 "",
-                f"⚡ **Task Created in Personal Workspace:** `{created_task.id}`",
+                f"⚡ **Task Created in {ws_label} Workspace:** `{created_task.id}`",
                 f"• **Title:** *{created_task.title}*",
                 f"• **Status:** `{created_task.status.value}`",
             ])
