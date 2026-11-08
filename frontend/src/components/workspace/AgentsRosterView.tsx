@@ -45,7 +45,7 @@ export function AgentsRosterView({ activeWorkspaceType }: AgentsRosterViewProps)
       tools: ["code_search", "ast_parser", "symbol_resolver"],
       evidencePolicy: "Identifies file and line before reproduction is triggered",
       status: "Online",
-      runtime: "Switch Subprocess Runtime",
+      runtime: "Switch + Google Gemini Runtime",
     },
     {
       id: "shipdev-triager",
@@ -56,7 +56,7 @@ export function AgentsRosterView({ activeWorkspaceType }: AgentsRosterViewProps)
       tools: ["pytest_runner", "sandbox_exec", "exit_code_capture"],
       evidencePolicy: "Mandatory reproduction confirmation (Exit Code != 0)",
       status: "Online",
-      runtime: "Switch Subprocess Runtime",
+      runtime: "Switch + Google Gemini Runtime",
     },
     {
       id: "shipdev-fixer",
@@ -67,7 +67,7 @@ export function AgentsRosterView({ activeWorkspaceType }: AgentsRosterViewProps)
       tools: ["diff_generator", "patch_applier", "linter_validator"],
       evidencePolicy: "Unified diff format conforming to repository style",
       status: "Online",
-      runtime: "Switch Subprocess Runtime",
+      runtime: "Switch + Google Gemini Runtime",
     },
     {
       id: "shipdev-verifier",
@@ -78,7 +78,7 @@ export function AgentsRosterView({ activeWorkspaceType }: AgentsRosterViewProps)
       tools: ["verification_runner", "diff_auditor", "evidence_signer"],
       evidencePolicy: "Exit Code 0 confirmation required for human gate transition",
       status: "Online",
-      runtime: "Switch Subprocess Runtime",
+      runtime: "Switch + Google Gemini Runtime",
     },
     {
       id: "shipdev-researcher",
@@ -89,7 +89,7 @@ export function AgentsRosterView({ activeWorkspaceType }: AgentsRosterViewProps)
       tools: ["dep_analyzer", "git_blame_inspector", "doc_search"],
       evidencePolicy: "Read-only non-mutating inspection",
       status: "Online",
-      runtime: "Switch Subprocess Runtime",
+      runtime: "Switch + Google Gemini Runtime",
     },
     {
       id: "shipdev-planner",
@@ -100,7 +100,7 @@ export function AgentsRosterView({ activeWorkspaceType }: AgentsRosterViewProps)
       tools: ["dag_planner", "state_machine_tracker"],
       evidencePolicy: "Enforces transition order invariants",
       status: "Online",
-      runtime: "Switch Subprocess Runtime",
+      runtime: "Switch + Google Gemini Runtime",
     },
   ];
 

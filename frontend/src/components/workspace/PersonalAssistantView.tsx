@@ -218,19 +218,23 @@ export function PersonalAssistantView({
         if (stored) {
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            const filtered: Message[] = [];
-            let foundWelcome = false;
+            const deduped: Message[] = [];
+            const seenIds = new Set<string>();
+            let hasWelcome = false;
             for (const msg of parsed) {
-              if (msg.category === "greeting" && msg.sender === "assistant") {
-                if (!foundWelcome) {
-                  filtered.push(msg);
-                  foundWelcome = true;
-                }
-              } else {
-                filtered.push(msg);
+              if (seenIds.has(msg.id)) continue;
+              seenIds.add(msg.id);
+              if (
+                msg.id.startsWith("msg_init_") ||
+                msg.id.startsWith("msg_welcome_") ||
+                (msg.category === "greeting" && msg.sender === "assistant" && msg.text.includes("Hello! I am your ShipDev"))
+              ) {
+                if (hasWelcome) continue;
+                hasWelcome = true;
               }
+              deduped.push(msg);
             }
-            if (filtered.length > 0) return filtered;
+            if (deduped.length > 0) return deduped;
           }
         }
       } catch {
@@ -258,19 +262,23 @@ export function PersonalAssistantView({
         if (stored) {
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            const filtered: Message[] = [];
-            let foundWelcome = false;
+            const deduped: Message[] = [];
+            const seenIds = new Set<string>();
+            let hasWelcome = false;
             for (const msg of parsed) {
-              if (msg.category === "greeting" && msg.sender === "assistant") {
-                if (!foundWelcome) {
-                  filtered.push(msg);
-                  foundWelcome = true;
-                }
-              } else {
-                filtered.push(msg);
+              if (seenIds.has(msg.id)) continue;
+              seenIds.add(msg.id);
+              if (
+                msg.id.startsWith("msg_init_") ||
+                msg.id.startsWith("msg_welcome_") ||
+                (msg.category === "greeting" && msg.sender === "assistant" && msg.text.includes("Hello! I am your ShipDev"))
+              ) {
+                if (hasWelcome) continue;
+                hasWelcome = true;
               }
+              deduped.push(msg);
             }
-            setMessages(filtered.length > 0 ? filtered : [getWelcomeMessage()]);
+            setMessages(deduped.length > 0 ? deduped : [getWelcomeMessage()]);
             return;
           }
         }

@@ -11,6 +11,9 @@ class AgentProfile(BaseModel):
     role: str
     capabilities: Set[str]
     instructions_file: Optional[str] = None
+    provider: str = "Google Gemini"
+    model: str = "gemini-3.5-flash-lite"
+    runtime: str = "Switch ACP + Gemini Runtime"
     is_active: bool = True
 
 
