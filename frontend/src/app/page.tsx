@@ -1,16 +1,17 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { TopNavigation } from "@/components/layout/TopNavigation";
 import { LeftActivityBar, ActivityTab } from "@/components/layout/LeftActivityBar";
 import { PersonalAssistantView } from "@/components/workspace/PersonalAssistantView";
 import { ReviewsApprovalView } from "@/components/workspace/ReviewsApprovalView";
 import { PlatformsManagementPanel } from "@/components/workspace/PlatformsManagementPanel";
 import { BugGraphCanvas } from "@/components/workspace/BugGraphCanvas";
+import { CodeEditor } from "@/components/workspace/CodeEditor";
 import { AgentsRosterView } from "@/components/workspace/AgentsRosterView";
 import { AboutModal } from "@/components/modals/AboutModal";
 import { AgentDetailModal, AgentIdentifier } from "@/components/modals/AgentDetailModal";
-import { INITIAL_WORKSPACE_FILES } from "@/lib/workspaceFiles";
+import { INITIAL_WORKSPACE_FILES, WorkspaceFile } from "@/lib/workspaceFiles";
 import {
   getTasks,
   setActiveWorkspaceId,
@@ -27,6 +28,58 @@ export default function ShipDevIDE() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
+
+  // Code Viewer & Architecture Map states
+  const [workspaceFiles, setWorkspaceFiles] = useState<Record<string, WorkspaceFile>>(INITIAL_WORKSPACE_FILES);
+  const [openTabs, setOpenTabs] = useState<string[]>(["calculator.py", "test_calculator.py"]);
+  const [activeFileName, setActiveFileName] = useState<string>("calculator.py");
+  const [targetHighlightLine, setTargetHighlightLine] = useState<number | null>(null);
+  const [isDiffMode, setIsDiffMode] = useState(false);
+  const [cursorPosition, setCursorPosition] = useState<{ lineNumber: number; column: number }>({ lineNumber: 1, column: 1 });
+  const [isGraphMaximized, setIsGraphMaximized] = useState(false);
+
+  const handleSelectFile = useCallback((fileName: string) => {
+    setActiveFileName(fileName);
+    setOpenTabs((prev) => (prev.includes(fileName) ? prev : [...prev, fileName]));
+    setTargetHighlightLine(null);
+  }, []);
+
+  const handleCloseTab = useCallback((fileName: string) => {
+    setOpenTabs((prev) => {
+      const remaining = prev.filter((f) => f !== fileName);
+      if (activeFileName === fileName && remaining.length > 0) {
+        setActiveFileName(remaining[remaining.length - 1]);
+      }
+      return remaining.length > 0 ? remaining : [fileName];
+    });
+  }, [activeFileName]);
+
+  const handleCodeChange = useCallback((newCode: string) => {
+    setWorkspaceFiles((prev) => {
+      const target = prev[activeFileName];
+      if (!target) return prev;
+      return {
+        ...prev,
+        [activeFileName]: {
+          ...target,
+          code: newCode,
+          modified: true,
+        },
+      };
+    });
+  }, [activeFileName]);
+
+  const currentBugAnnotation = useMemo(() => {
+    const file = workspaceFiles[activeFileName];
+    if (file?.bugLine && file?.bugDescription) {
+      return {
+        lineNumber: file.bugLine,
+        description: file.bugDescription,
+        severity: "critical",
+      };
+    }
+    return null;
+  }, [workspaceFiles, activeFileName]);
 
   const showToast = useCallback((msg: string) => {
     setToastMessage(msg);
@@ -122,20 +175,69 @@ export default function ShipDevIDE() {
           </div>
         )}
 
-        {/* 4. SYSTEM ARCHITECTURE GRAPH VIEW */}
+        {/* 4. SYSTEM ARCHITECTURE GRAPH & CODE VIEWER VIEW */}
         {activeActivityTab === "graph" && (
-          <div className="flex-1 min-h-0 relative flex flex-col h-full bg-clay-canvas overflow-hidden">
-            <BugGraphCanvas
-              tasks={tasks}
-              selectedTaskId={selectedTaskId}
-              activeFileName=""
-              workspaceFiles={INITIAL_WORKSPACE_FILES}
-              onSelectBug={(task) => setSelectedTaskId(task.id)}
-              onSelectFile={() => {}}
-              onNavigateToLine={() => {}}
-              onSelectAgent={(agentId) => setSelectedAgentModal(agentId)}
-              compact={false}
-            />
+          <div className="flex-1 min-h-0 relative flex flex-row h-full bg-clay-canvas overflow-hidden">
+            {/* Architecture Graph Canvas */}
+            <div
+              className={`h-full relative flex flex-col bg-clay-canvas overflow-hidden transition-all duration-200 ${
+                isGraphMaximized ? "w-full" : "w-1/2 min-w-[340px] border-r border-clay-hairline"
+              }`}
+            >
+              <BugGraphCanvas
+                tasks={tasks}
+                selectedTaskId={selectedTaskId}
+                activeFileName={activeFileName}
+                workspaceFiles={workspaceFiles}
+                onSelectBug={(task, fileName, lineNumber) => {
+                  setSelectedTaskId(task.id);
+                  if (fileName) {
+                    handleSelectFile(fileName);
+                    if (lineNumber) setTargetHighlightLine(lineNumber);
+                  }
+                }}
+                onSelectFile={(fileName) => {
+                  handleSelectFile(fileName);
+                  setIsGraphMaximized(false);
+                }}
+                onNavigateToLine={(fileName, lineNumber) => {
+                  handleSelectFile(fileName);
+                  setTargetHighlightLine(lineNumber);
+                  setIsGraphMaximized(false);
+                }}
+                onSelectAgent={(agentId) => setSelectedAgentModal(agentId)}
+                compact={!isGraphMaximized}
+                isEnlarged={isGraphMaximized}
+                onToggleEnlarge={() => setIsGraphMaximized((prev) => !prev)}
+                onReturnToCode={() => setIsGraphMaximized(false)}
+              />
+            </div>
+
+            {/* Code Viewer Panel */}
+            {!isGraphMaximized && (
+              <div className="flex-1 min-w-0 h-full flex flex-col bg-white overflow-hidden">
+                <CodeEditor
+                  workspaceFiles={workspaceFiles}
+                  openTabs={openTabs}
+                  activeFileName={activeFileName}
+                  onSelectTab={handleSelectFile}
+                  onCloseTab={handleCloseTab}
+                  onCodeChange={handleCodeChange}
+                  isDiffMode={isDiffMode}
+                  onToggleDiffMode={() => setIsDiffMode((prev) => !prev)}
+                  originalCodeForDiff={workspaceFiles[activeFileName]?.code || ""}
+                  modifiedCodeForDiff={workspaceFiles[activeFileName]?.code || ""}
+                  onAcceptDiff={() => showToast("✓ Code changes accepted")}
+                  onRejectDiff={() => showToast("Diff rejected")}
+                  targetHighlightLine={targetHighlightLine}
+                  bugAnnotation={currentBugAnnotation}
+                  cursorPosition={cursorPosition}
+                  onCursorPositionChange={setCursorPosition}
+                  onSaveFile={() => showToast("✓ File saved")}
+                  onOpenSystemMap={() => setIsGraphMaximized(true)}
+                />
+              </div>
+            )}
           </div>
         )}
 
