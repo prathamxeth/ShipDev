@@ -97,15 +97,20 @@ def verify_human_bearer_token(
         valid_secrets.add("test-human-approval-secret-key-12345")
 
     if not any(secrets.compare_digest(token, s) for s in valid_secrets):
+        hint = f"{token[:6]}...{token[-4:]}" if len(token) > 10 else "too_short"
         logger.warning(
-            f"[HUMAN_AUTH_GATE] Rejection stage: secret_mismatch - Token does not match authorized human secrets "
-            f"(token_len={len(token)}, had_quotes={bool(raw_token != token)}, candidate_count={len(valid_secrets)}, "
+            f"[HUMAN_GATE_AUTH] Rejection stage: secret_mismatch - Token does not match authorized human secrets "
+            f"(token_len={len(token)}, hint={hint}, had_quotes={bool(raw_token != token)}, candidate_count={len(valid_secrets)}, "
             f"candidate_lens={[len(s) for s in valid_secrets]})"
         )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Security Violation: Invalid human authorization token.",
-            headers={"X-Auth-Rejection-Stage": "secret_mismatch", "X-Auth-Token-Len": str(len(token))},
+            headers={
+                "X-Auth-Rejection-Stage": "secret_mismatch",
+                "X-Auth-Token-Len": str(len(token)),
+                "X-Auth-Token-Hint": hint,
+            },
         )
 
     logger.info(f"[HUMAN_AUTH_GATE] Authorization stage: verified_human_token - Token matched authorized human credentials (len={len(token)})")

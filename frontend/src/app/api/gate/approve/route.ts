@@ -79,8 +79,9 @@ export async function POST(req: NextRequest) {
     if (!backendResponse.ok) {
       const stage = backendResponse.headers.get("x-auth-rejection-stage") || "unknown";
       const tokenLen = backendResponse.headers.get("x-auth-token-len");
+      const tokenHint = backendResponse.headers.get("x-auth-token-hint");
       console.warn(
-        `[BFF_APPROVE] Task ${taskId} approval rejected by backend: status=${backendResponse.status}, stage=${stage}, tokenLen=${tokenLen}`
+        `[BFF_APPROVE] Task ${taskId} approval rejected by backend: status=${backendResponse.status}, stage=${stage}, tokenLen=${tokenLen}, hint=${tokenHint}`
       );
       return NextResponse.json(
         responseData || {
@@ -92,6 +93,7 @@ export async function POST(req: NextRequest) {
           headers: {
             ...(stage ? { "X-Auth-Rejection-Stage": stage } : {}),
             ...(tokenLen ? { "X-Auth-Token-Len": tokenLen } : {}),
+            ...(tokenHint ? { "X-Auth-Token-Hint": tokenHint } : {}),
           },
         }
       );
