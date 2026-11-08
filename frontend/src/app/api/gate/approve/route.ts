@@ -52,14 +52,20 @@ export async function POST(req: NextRequest) {
 
     // 5. Proxy to FastAPI Backend with Server-Side Secret
     const backendBase = resolveBackendApiBase();
+    const workspaceId = req.headers.get("x-workspace-id") || body.workspaceId;
+    const proxyHeaders: Record<string, string> = {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      Authorization: `Bearer ${secret}`,
+      "X-Caller-ID": operatorIdentity,
+    };
+    if (workspaceId) {
+      proxyHeaders["X-Workspace-ID"] = workspaceId;
+    }
+
     const backendResponse = await fetch(`${backendBase}/tasks/${encodeURIComponent(taskId)}/approve`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        Authorization: `Bearer ${secret}`,
-        "X-Caller-ID": operatorIdentity,
-      },
+      headers: proxyHeaders,
       body: JSON.stringify({
         reviewer_id: operatorIdentity,
         comments: comments,
