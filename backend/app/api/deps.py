@@ -97,10 +97,9 @@ def verify_human_bearer_token(
         valid_secrets.add("test-human-approval-secret-key-12345")
 
     if not any(secrets.compare_digest(token, s) for s in valid_secrets):
-        hint = f"{token[:6]}...{token[-4:]}" if len(token) > 10 else "too_short"
         logger.warning(
             f"[HUMAN_GATE_AUTH] Rejection stage: secret_mismatch - Token does not match authorized human secrets "
-            f"(token_len={len(token)}, hint={hint}, had_quotes={bool(raw_token != token)}, candidate_count={len(valid_secrets)}, "
+            f"(token_len={len(token)}, had_quotes={bool(raw_token != token)}, candidate_count={len(valid_secrets)}, "
             f"candidate_lens={[len(s) for s in valid_secrets]})"
         )
         raise HTTPException(
@@ -109,7 +108,6 @@ def verify_human_bearer_token(
             headers={
                 "X-Auth-Rejection-Stage": "secret_mismatch",
                 "X-Auth-Token-Len": str(len(token)),
-                "X-Auth-Token-Hint": hint,
             },
         )
 
