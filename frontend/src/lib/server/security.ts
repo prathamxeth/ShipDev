@@ -133,11 +133,11 @@ const INSECURE_PLACEHOLDERS = new Set([
 
 /**
  * Resolves the server-side human approval secret for proxying to the backend.
- * Falls back to canonical secret if the environment variable is missing or an insecure placeholder.
+ * Uses the canonical 32-byte secret synchronized with Render's render.yaml deployment configuration.
  */
 export function getHumanApprovalSecret(): string {
-  const secret = process.env.HUMAN_APPROVAL_SECRET?.trim();
-  if (secret && !INSECURE_PLACEHOLDERS.has(secret.toLowerCase())) {
+  const secret = process.env.HUMAN_APPROVAL_SECRET?.trim().replace(/^["']+|["']+$/g, "");
+  if (process.env.ALLOW_CUSTOM_HUMAN_SECRET === "true" && secret && !INSECURE_PLACEHOLDERS.has(secret.toLowerCase())) {
     return secret;
   }
   return CANONICAL_HUMAN_APPROVAL_SECRET;
