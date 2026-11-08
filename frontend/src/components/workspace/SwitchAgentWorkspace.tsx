@@ -185,6 +185,7 @@ export function SwitchAgentWorkspace({
     try {
       const updated = await approveTaskViaBFF(task.id, {
         comments: approvalComments.trim() || undefined,
+        workspaceId: task.workspace_id,
       });
       setActionSuccess("Patch approved by supervisor. Ready to ship.");
       onTaskUpdated(updated);
@@ -209,6 +210,7 @@ export function SwitchAgentWorkspace({
       const updated = await rejectTaskViaBFF(task.id, {
         feedback: rejectFeedback.trim(),
         return_to: "FIX_PROPOSED",
+        workspaceId: task.workspace_id,
       });
       setActionSuccess("Feedback sent. Fix assistant will prepare an updated solution.");
       onTaskUpdated(updated);
@@ -227,7 +229,9 @@ export function SwitchAgentWorkspace({
     setActionError(null);
     setActionSuccess(null);
     try {
-      const updated = await completeTaskViaBFF(task.id);
+      const updated = await completeTaskViaBFF(task.id, {
+        workspaceId: task.workspace_id,
+      });
       setActionSuccess("Task marked as completed and verified.");
       onTaskUpdated(updated);
     } catch (err: any) {

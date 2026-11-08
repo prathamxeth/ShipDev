@@ -46,7 +46,10 @@ export function ReviewsApprovalView({
     setIsSubmitting(true);
     setStatusMessage(null);
     try {
-      await approveTaskViaBFF(activeTask.id, { comments: comments.trim() || undefined });
+      await approveTaskViaBFF(activeTask.id, {
+        comments: comments.trim() || undefined,
+        workspaceId: activeTask.workspace_id,
+      });
       setStatusMessage(`✓ Task ${activeTask.id} approved! You can now mark it as completed.`);
       onRefresh();
     } catch (err: any) {
@@ -62,7 +65,10 @@ export function ReviewsApprovalView({
     setIsSubmitting(true);
     setStatusMessage(null);
     try {
-      await rejectTaskViaBFF(activeTask.id, { feedback: feedback.trim() });
+      await rejectTaskViaBFF(activeTask.id, {
+        feedback: feedback.trim(),
+        workspaceId: activeTask.workspace_id,
+      });
       setStatusMessage(`✓ Rejection recorded. Autonomous team is generating an adjusted patch.`);
       setShowRejectForm(false);
       setFeedback("");
@@ -79,7 +85,9 @@ export function ReviewsApprovalView({
     setIsSubmitting(true);
     setStatusMessage(null);
     try {
-      await completeTaskViaBFF(activeTask.id);
+      await completeTaskViaBFF(activeTask.id, {
+        workspaceId: activeTask.workspace_id,
+      });
       setStatusMessage(`✓ Task ${activeTask.id} verified and deployed to production!`);
       onRefresh();
     } catch (err: any) {

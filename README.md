@@ -22,7 +22,7 @@ Built for the **WeMakeDevs Flip the Switch Hackathon 2026** — delivering the *
 [![Google Gemini](https://img.shields.io/badge/AI_Brain-Google_Gemini_2.0_Flash-4285F4.svg?logo=google)](https://ai.google.dev)
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI_+_SQLite_State_Machine-059669.svg)](backend)
 [![Next.js 14](https://img.shields.io/badge/Frontend-Next.js_14_+_Monaco_+_Clay-000000.svg)](frontend)
-[![Pytest](https://img.shields.io/badge/Test_Suite-168%2F168_Passing-22c55e.svg)](backend/tests)
+[![Pytest](https://img.shields.io/badge/Test_Suite-169%2F169_Passing-22c55e.svg)](backend/tests)
 [![Security](https://img.shields.io/badge/Security_Audit-14%2F14_Guards_Passed-22c55e.svg)](frontend/tests)
 
 <br/>
@@ -291,7 +291,7 @@ Docker / VM Containers    : ~600MB [██████████████�
 ShipDev Subprocess Scratch: <1MB   [▏]  ◄── Instant clean workspace cloning (<50ms)
 
 TEST SUITE RIGOR (Automated Test Count)
-Backend State Machine & Mesh : 168 tests passed in 2.83s (pytest)
+Backend State Machine & Mesh : 169 tests passed in 2.84s (pytest)
 Frontend Security Audit      : 14 tests passed (CSRF, same-origin, anti-spoofing)
 ```
 
@@ -300,24 +300,24 @@ Frontend Security Audit      : 14 tests passed (CSRF, same-origin, anti-spoofing
 ## 🔍 Interactive Verification & Audit Deep Dives
 
 <details>
-<summary><b>🧪 1. View 168 Backend Automated Tests (State Machine, Multi-Tenancy, Persistence & Security)</b></summary>
+<summary><b>🧪 1. View 169 Backend Automated Tests (State Machine, Multi-Tenancy, Persistence & Security)</b></summary>
 
 ```text
-backend/tests/test_api.py ...................................            [ 21%]
-backend/tests/test_conversation_and_gemini.py ...                        [ 23%]
-backend/tests/test_demo_pipeline.py ........                             [ 28%]
-backend/tests/test_harden.py ..............................              [ 46%]
-backend/tests/test_health.py ..                                          [ 47%]
-backend/tests/test_persistence.py .......                                [ 51%]
-backend/tests/test_phase2_p1_gateway.py ...........                      [ 58%]
-backend/tests/test_phase2_p3_memory.py .....                             [ 61%]
-backend/tests/test_phase2_p5_e2e.py ......                               [ 65%]
-backend/tests/test_phase3_security.py .................                  [ 75%]
-backend/tests/test_sse.py ........                                       [ 80%]
-backend/tests/test_state_machine.py .........                            [ 85%]
+backend/tests/test_api.py ...................................            [ 20%]
+backend/tests/test_conversation_and_gemini.py ....                       [ 23%]
+backend/tests/test_demo_pipeline.py ........                             [ 27%]
+backend/tests/test_harden.py ..............................              [ 45%]
+backend/tests/test_health.py ..                                          [ 46%]
+backend/tests/test_persistence.py .......                                [ 50%]
+backend/tests/test_phase2_p1_gateway.py ...........                      [ 57%]
+backend/tests/test_phase2_p3_memory.py .....                             [ 60%]
+backend/tests/test_phase2_p5_e2e.py ......                               [ 63%]
+backend/tests/test_phase3_security.py .................                  [ 73%]
+backend/tests/test_sse.py ........                                       [ 78%]
+backend/tests/test_state_machine.py .........                            [ 83%]
 backend/tests/test_workspace_isolation.py ..........................    [100%]
 
-============================= 168 passed in 2.83s ==============================
+============================= 169 passed in 2.84s ==============================
 ```
 </details>
 

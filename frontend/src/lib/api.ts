@@ -353,14 +353,19 @@ export async function executeTaskPipeline(taskId: string): Promise<Task> {
  */
 export async function approveTaskViaBFF(
   taskId: string,
-  payload?: { comments?: string }
+  payload?: { comments?: string; workspaceId?: string | null }
 ): Promise<Task> {
+  const wsId = payload?.workspaceId || undefined;
   return request<Task>("/api/gate/approve", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(wsId ? { "X-Workspace-ID": wsId } : {}),
+    },
     body: JSON.stringify({
       taskId,
       comments: payload?.comments || null,
+      workspaceId: wsId,
     }),
   });
 }
@@ -370,15 +375,20 @@ export async function approveTaskViaBFF(
  */
 export async function rejectTaskViaBFF(
   taskId: string,
-  payload: { feedback: string; return_to?: TaskStatus }
+  payload: { feedback: string; return_to?: TaskStatus; workspaceId?: string | null }
 ): Promise<Task> {
+  const wsId = payload?.workspaceId || undefined;
   return request<Task>("/api/gate/reject", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(wsId ? { "X-Workspace-ID": wsId } : {}),
+    },
     body: JSON.stringify({
       taskId,
       feedback: payload.feedback,
       return_to: payload.return_to || "FIX_PROPOSED",
+      workspaceId: wsId,
     }),
   });
 }
@@ -386,12 +396,20 @@ export async function rejectTaskViaBFF(
 /**
  * Human engineer marks an approved task as completed via secure BFF (`POST /api/gate/complete`)
  */
-export async function completeTaskViaBFF(taskId: string): Promise<Task> {
+export async function completeTaskViaBFF(
+  taskId: string,
+  payload?: { workspaceId?: string | null }
+): Promise<Task> {
+  const wsId = payload?.workspaceId || undefined;
   return request<Task>("/api/gate/complete", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(wsId ? { "X-Workspace-ID": wsId } : {}),
+    },
     body: JSON.stringify({
       taskId,
+      workspaceId: wsId,
     }),
   });
 }

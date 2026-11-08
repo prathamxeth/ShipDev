@@ -388,8 +388,11 @@ export function PersonalAssistantView({
   const handleApproveFix = async (msgId: string, taskId: string) => {
     setActionError(null);
     try {
-      await approveTaskViaBFF(taskId, { comments: "Approved via Personal AI Assistant." });
-      await completeTaskViaBFF(taskId);
+      await approveTaskViaBFF(taskId, {
+        comments: `Approved via ${isTeam ? "Team" : "Personal"} AI Assistant.`,
+        workspaceId,
+      });
+      await completeTaskViaBFF(taskId, { workspaceId });
 
       setMessages((prev) =>
         prev.map((m) =>
@@ -416,7 +419,10 @@ export function PersonalAssistantView({
   const handleRejectFix = async (msgId: string, taskId: string) => {
     setActionError(null);
     try {
-      await rejectTaskViaBFF(taskId, { feedback: "Operator requested revision to discount formula." });
+      await rejectTaskViaBFF(taskId, {
+        feedback: "Operator requested revision to discount formula.",
+        workspaceId,
+      });
       setMessages((prev) =>
         prev.map((m) =>
           m.id === msgId

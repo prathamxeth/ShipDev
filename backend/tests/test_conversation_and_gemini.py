@@ -127,3 +127,64 @@ def test_gemini_runtime_configuration():
     agents = runtime.get_registered_agents()
     assert len(agents) == 5
     assert all(a["provider"] == "Google Gemini" for a in agents)
+
+
+def test_human_verification_loop_for_personal_and_team_workspaces(tmp_path):
+    """Verifies that human approval, completion, and rejection work seamlessly in both Personal and Team workspaces."""
+    db_file = str(tmp_path / "test_human_loop.db")
+    init_db(db_file)
+    task_repo = TaskRepository(db_path=db_file)
+    ws_repo = WorkspaceRepository(db_path=db_file)
+
+    app.dependency_overrides[get_repository] = lambda: task_repo
+    app.dependency_overrides[get_workspace_repository] = lambda: ws_repo
+
+    try:
+        client = TestClient(app)
+        human_secret = os.getenv("HUMAN_APPROVAL_SECRET", "test-human-approval-secret-key-12345")
+
+        for ws_id in ["ws_personal_default", "ws_team_default"]:
+            headers = {"X-Workspace-ID": ws_id}
+
+            # 1. Trigger defect execution pipeline
+            r_exec = client.post(
+                f"/api/v1/workspaces/{ws_id}/assistant",
+                json={"message": "Execute the improvements."},
+                headers=headers,
+            )
+            assert r_exec.status_code == 200, f"Defect execution failed for {ws_id}: {r_exec.text}"
+            d_exec = r_exec.json()
+            assert d_exec["task"] is not None
+            task_id = d_exec["task"]["id"]
+            assert d_exec["task"]["status"] == TaskStatus.AWAITING_HUMAN_APPROVAL.value
+            assert d_exec["needs_approval"] is True
+
+            # 2. Approve the task via human gate
+            r_app = client.post(
+                f"/api/v1/tasks/{task_id}/approve",
+                json={"comments": f"Human verification signoff for {ws_id}"},
+                headers={
+                    "Authorization": f"Bearer {human_secret}",
+                    "X-Workspace-ID": ws_id,
+                },
+            )
+            assert r_app.status_code == 200, f"Human approval failed for {ws_id}: {r_app.text}"
+            d_app = r_app.json()
+            assert d_app["status"] == TaskStatus.APPROVED.value
+
+            # 3. Complete the task via human gate
+            r_comp = client.post(
+                f"/api/v1/tasks/{task_id}/complete",
+                json={},
+                headers={
+                    "Authorization": f"Bearer {human_secret}",
+                    "X-Workspace-ID": ws_id,
+                },
+            )
+            assert r_comp.status_code == 200, f"Task completion failed for {ws_id}: {r_comp.text}"
+            d_comp = r_comp.json()
+            assert d_comp["status"] == TaskStatus.COMPLETED.value
+
+    finally:
+        app.dependency_overrides.clear()
+

@@ -262,6 +262,35 @@ def migrate_workspaces_schema(conn: sqlite3.Connection) -> None:
         """,
         (now,),
     )
+    conn.execute(
+        """
+        INSERT OR IGNORE INTO workspace_members (id, workspace_id, user_id, role, joined_at)
+        VALUES ('mem_team_operator', 'ws_team_default', 'shipdev-operator', 'owner', ?);
+        """,
+        (now,),
+    )
+    conn.execute(
+        """
+        INSERT OR IGNORE INTO workspace_members (id, workspace_id, user_id, role, joined_at)
+        VALUES ('mem_personal_operator', 'ws_personal_default', 'shipdev-operator', 'owner', ?);
+        """,
+        (now,),
+    )
+    if settings.HUMAN_OPERATOR_IDENTITY and settings.HUMAN_OPERATOR_IDENTITY not in {"local-operator", "shipdev-operator"}:
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO workspace_members (id, workspace_id, user_id, role, joined_at)
+            VALUES (?, 'ws_team_default', ?, 'owner', ?);
+            """,
+            (f"mem_team_{settings.HUMAN_OPERATOR_IDENTITY}", settings.HUMAN_OPERATOR_IDENTITY, now),
+        )
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO workspace_members (id, workspace_id, user_id, role, joined_at)
+            VALUES (?, 'ws_personal_default', ?, 'owner', ?);
+            """,
+            (f"mem_personal_{settings.HUMAN_OPERATOR_IDENTITY}", settings.HUMAN_OPERATOR_IDENTITY, now),
+        )
 
 
 def init_db(db_path: Optional[str] = None) -> None:

@@ -41,6 +41,7 @@ export function HumanGateConsole({ task, onActionSuccess }: HumanGateConsoleProp
     try {
       const updatedTask = await approveTaskViaBFF(task.id, {
         comments: comments.trim() || undefined,
+        workspaceId: task.workspace_id,
       });
       setActionSuccess("Patch successfully approved by human supervisor.");
       onActionSuccess(updatedTask);
@@ -66,6 +67,7 @@ export function HumanGateConsole({ task, onActionSuccess }: HumanGateConsoleProp
       const updatedTask = await rejectTaskViaBFF(task.id, {
         feedback: rejectFeedback.trim(),
         return_to: "FIX_PROPOSED",
+        workspaceId: task.workspace_id,
       });
       setActionSuccess("Patch rejected. Task returned to FIX_PROPOSED for agent re-attempt.");
       onActionSuccess(updatedTask);
@@ -84,7 +86,9 @@ export function HumanGateConsole({ task, onActionSuccess }: HumanGateConsoleProp
     setActionSuccess(null);
 
     try {
-      const updatedTask = await completeTaskViaBFF(task.id);
+      const updatedTask = await completeTaskViaBFF(task.id, {
+        workspaceId: task.workspace_id,
+      });
       setActionSuccess("Task marked as completed and verified.");
       onActionSuccess(updatedTask);
     } catch (err: any) {
