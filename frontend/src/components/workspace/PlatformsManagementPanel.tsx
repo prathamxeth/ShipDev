@@ -10,18 +10,25 @@ import {
   Bot,
   ArrowRight,
   ShieldAlert,
+  ShieldCheck,
   Send,
   X,
   Sparkles,
   Lock,
   Users,
+  Key,
+  Check,
 } from "lucide-react";
-import { PlatformConnectionInfo, PlatformType, PlatformMapping } from "@/types";
+import { PlatformConnectionInfo, PlatformType, PlatformMapping, ConnectedAccount } from "@/types";
 import {
   getPlatformConnections,
   connectPlatform,
   disconnectPlatform,
   getPlatformMappings,
+  getConnectedAccounts,
+  initiateOAuthFlow,
+  disconnectConnectedAccount,
+  authorizeAccountOperator,
 } from "@/lib/api";
 
 interface PlatformsManagementPanelProps {
@@ -34,6 +41,7 @@ export function PlatformsManagementPanel({
   activeWorkspaceType = "PERSONAL",
 }: PlatformsManagementPanelProps) {
   const [connections, setConnections] = useState<PlatformConnectionInfo[]>([]);
+  const [connectedAccounts, setConnectedAccounts] = useState<ConnectedAccount[]>([]);
   const [mappings, setMappings] = useState<PlatformMapping[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -52,12 +60,14 @@ export function PlatformsManagementPanel({
     setIsLoading(true);
     setActionError(null);
     try {
-      const [connList, mapList] = await Promise.all([
+      const [connList, mapList, accountsList] = await Promise.all([
         getPlatformConnections().catch(() => []),
         getPlatformMappings().catch(() => []),
+        getConnectedAccounts().catch(() => []),
       ]);
       setConnections(connList);
       setMappings(mapList || []);
+      setConnectedAccounts(accountsList || []);
     } catch (err: any) {
       setActionError(err.message || "Failed to load connection status");
     } finally {
@@ -68,6 +78,17 @@ export function PlatformsManagementPanel({
   useEffect(() => {
     loadData();
   }, [loadData, activeWorkspaceType]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const connected = params.get("connected");
+      if (connected) {
+        setActionSuccess(`✓ Successfully connected ${connected === "teams" ? "Microsoft Teams" : "Telegram"} via official OAuth/OIDC!`);
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    }
+  }, []);
 
   // Handle Initiating Connect Flow
   const handleStartConnect = (platform: PlatformType) => {
@@ -123,6 +144,53 @@ export function PlatformsManagementPanel({
       await loadData();
     } catch (err: any) {
       setActionError(err.message || "Failed to disconnect platform.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Launch Provider OAuth 2.0 / OIDC Flow (Telegram / Microsoft Entra)
+  const handleLaunchOAuth = async (platform: "telegram" | "teams") => {
+    setIsProcessing(true);
+    setActionError(null);
+    try {
+      const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+      const redirectUri = `${origin}/auth/callback/${platform}`;
+      const res = await initiateOAuthFlow(platform, redirectUri);
+      if (res?.authorization_url) {
+        window.location.href = res.authorization_url;
+      }
+    } catch (err: any) {
+      setActionError(err.message || `Failed to initiate ${platform} authorization`);
+      setIsProcessing(false);
+    }
+  };
+
+  // Disconnect Connected Account
+  const handleDisconnectAccount = async (platform: string) => {
+    setIsProcessing(true);
+    setActionError(null);
+    try {
+      await disconnectConnectedAccount(platform);
+      setActionSuccess(`✓ Disconnected and revoked ${platform.toUpperCase()} account.`);
+      await loadData();
+    } catch (err: any) {
+      setActionError(err.message || "Failed to disconnect account.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Explicitly designate connected account as workspace operator (Owner Only)
+  const handleAuthorizeOperator = async (platform: string) => {
+    setIsProcessing(true);
+    setActionError(null);
+    try {
+      await authorizeAccountOperator(platform);
+      setActionSuccess(`✓ Successfully authorized ${platform.toUpperCase()} account as a workspace operator.`);
+      await loadData();
+    } catch (err: any) {
+      setActionError(err.message || "Failed to authorize reviewer.");
     } finally {
       setIsProcessing(false);
     }
@@ -266,7 +334,10 @@ export function PlatformsManagementPanel({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {platformsOrder.map((plat) => {
             const conn = connections.find((c) => c.platform === plat);
-            const isConnected = conn ? conn.connected : false;
+            const connectedAccount = connectedAccounts.find(
+              (a) => a.platform === plat && a.status === "active"
+            );
+            const isConnected = !!connectedAccount || (conn ? conn.connected : false);
 
             return (
               <div
@@ -288,17 +359,26 @@ export function PlatformsManagementPanel({
                             {conn?.name || getPlatformDisplayName(plat)}
                           </h3>
                         </div>
-                        {isConnected && conn?.account_name && (
+                        {connectedAccount ? (
+                          <span className="text-[11px] text-clay-muted font-medium block">
+                            {connectedAccount.external_username
+                              ? `@${connectedAccount.external_username}`
+                              : connectedAccount.external_display_name || connectedAccount.external_user_id}
+                            {connectedAccount.tenant_id ? ` • Tenant: ${connectedAccount.tenant_id.slice(0, 8)}...` : ""}
+                          </span>
+                        ) : isConnected && conn?.account_name ? (
                           <span className="text-[11px] text-clay-muted font-medium block">
                             {conn.account_name} {conn.target_name ? `• ${conn.target_name}` : ""}
                           </span>
-                        )}
+                        ) : null}
                       </div>
                     </div>
 
                     <span
                       className={`flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-clay-pill font-medium border shrink-0 ${
-                        isConnected
+                        connectedAccount
+                          ? "bg-clay-mint/25 text-[#136149] border-clay-mint/50 font-semibold"
+                          : isConnected
                           ? "bg-clay-mint/25 text-[#136149] border-clay-mint/50 font-semibold"
                           : conn?.status_label === "Awaiting Platform Credentials"
                           ? "bg-amber-50 text-amber-800 border-amber-200"
@@ -307,28 +387,85 @@ export function PlatformsManagementPanel({
                     >
                       <span
                         className={`w-2 h-2 rounded-full ${
-                          isConnected
+                          connectedAccount || isConnected
                             ? "bg-clay-success"
                             : conn?.status_label === "Awaiting Platform Credentials"
                             ? "bg-amber-400"
                             : "bg-slate-300"
                         }`}
                       />
-                      <span>{conn?.status_label || (isConnected ? "Connected" : "Not connected")}</span>
+                      <span>
+                        {connectedAccount
+                          ? "Connected (OAuth)"
+                          : conn?.status_label || (isConnected ? "Connected" : "Not connected")}
+                      </span>
                     </span>
                   </div>
 
                   {/* One short sentence describing what connecting enables */}
                   <p className="text-xs text-clay-body leading-relaxed mt-1">
-                    {conn?.short_description ||
-                      (plat === "discord"
-                        ? "Chat with ShipDev directly or mention it in your Discord channels to resolve code issues."
-                        : plat === "telegram"
-                        ? "Message ShipDev in Telegram for instant bug diagnosis and fix verification on the go."
-                        : plat === "slack"
-                        ? "Mention @ShipDev in channels to collaborate with your team and review pull requests."
-                        : "Bring ShipDev into Microsoft Teams chats and channels to automate issue triage.")}
+                    {connectedAccount
+                      ? `Connected to your ${getPlatformDisplayName(plat)} account. Direct messages and mentions automatically route to your workspace.`
+                      : conn?.short_description ||
+                        (plat === "discord"
+                          ? "Chat with ShipDev directly or mention it in your Discord channels to resolve code issues."
+                          : plat === "telegram"
+                          ? "Connect your Telegram account with official OpenID Connect for instant bug diagnosis and fix verification on the go."
+                          : plat === "slack"
+                          ? "Mention @ShipDev in channels to collaborate with your team and review pull requests."
+                          : "Connect your Microsoft Teams account with Entra ID to automate issue triage.")}
                   </p>
+
+                  {/* If connected via OAuth, show Capabilities & Separate Reviewer Permission Layer */}
+                  {connectedAccount && (
+                    <div className="mt-3 space-y-2">
+                      {/* Scopes badge */}
+                      {connectedAccount.granted_scopes && connectedAccount.granted_scopes.length > 0 && (
+                        <div className="flex items-center gap-1.5 text-[10px] text-clay-muted font-mono flex-wrap">
+                          <span className="font-sans font-semibold text-clay-body">Scopes:</span>
+                          {connectedAccount.granted_scopes.map((s) => (
+                            <span key={s} className="px-1.5 py-0.5 rounded-clay-sm bg-clay-surface-soft border border-clay-hairline">
+                              {s}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Explicit Reviewer Role Layer (Invariant: OAuth connect does NOT auto-grant operator) */}
+                      {connectedAccount.reviewer_role_authorized ? (
+                        <div className="p-2 rounded-clay-md bg-clay-mint/20 border border-clay-mint/50 flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2">
+                            <ShieldCheck className="w-4 h-4 text-clay-success shrink-0" />
+                            <div>
+                              <span className="font-semibold text-clay-ink block text-[11px]">Authorized Reviewer</span>
+                              <span className="text-[10px] text-clay-body">Allowed to Approve &amp; Ship production fixes</span>
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-mono text-clay-success font-semibold px-2 py-0.5 rounded-clay-pill bg-clay-mint/30">
+                            Active
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="p-2 rounded-clay-md bg-amber-50/70 border border-amber-200/80 flex items-center justify-between gap-2 text-xs">
+                          <div className="flex items-center gap-2">
+                            <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+                            <div>
+                              <span className="font-semibold text-amber-900 block text-[11px]">Standard Chat Member</span>
+                              <span className="text-[10px] text-amber-700">Approval decisions gated (requires operator role)</span>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleAuthorizeOperator(plat)}
+                            disabled={isProcessing}
+                            className="px-2.5 py-1 rounded-clay-md bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-semibold cursor-pointer shrink-0 transition-colors shadow-xs"
+                          >
+                            Authorize Reviewer
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Friendly Admin Guidance Note (Only if required by enterprise Teams) */}
                   {!isConnected && conn?.admin_approval_required && (
@@ -343,7 +480,27 @@ export function PlatformsManagementPanel({
 
                 {/* Primary & Secondary Actions */}
                 <div className="pt-3 border-t border-clay-hairline flex items-center justify-between">
-                  {isConnected ? (
+                  {connectedAccount ? (
+                    <>
+                      <a
+                        href={conn?.chat_url || (plat === "telegram" ? "https://t.me/ShipDevBot" : "https://teams.microsoft.com")}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3.5 py-1.5 rounded-clay-md bg-clay-surface-soft hover:bg-clay-surface-card border border-clay-hairline text-clay-ink text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shadow-clay-soft"
+                      >
+                        <span>Start using in {getPlatformDisplayName(plat)}</span>
+                        <ExternalLink className="w-3 h-3 text-clay-primary" />
+                      </a>
+
+                      <button
+                        onClick={() => handleDisconnectAccount(plat)}
+                        disabled={isProcessing}
+                        className="text-xs text-clay-muted hover:text-clay-coral font-medium cursor-pointer transition-colors px-2 py-1"
+                      >
+                        Disconnect &amp; Revoke
+                      </button>
+                    </>
+                  ) : isConnected ? (
                     <>
                       <a
                         href={conn?.chat_url || "#"}
@@ -364,34 +521,63 @@ export function PlatformsManagementPanel({
                     </>
                   ) : (
                     <>
-                      <button
-                        onClick={() => handleStartConnect(plat)}
-                        className="px-4 py-2 rounded-clay-md bg-clay-primary hover:bg-clay-primary-active text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shadow-clay-soft"
-                      >
-                        <span>Connect {getPlatformDisplayName(plat)}</span>
-                        <ArrowRight className="w-3 h-3" />
-                      </button>
+                      {plat === "telegram" ? (
+                        <>
+                          <button
+                            onClick={() => handleLaunchOAuth("telegram")}
+                            disabled={isProcessing}
+                            className="px-4 py-2 rounded-clay-md bg-[#229ED9] hover:bg-[#1E8BC3] text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shadow-clay-soft"
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>Connect Telegram (Official OIDC)</span>
+                          </button>
+                          <a
+                            href={conn?.connect_url || "https://t.me"}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[11px] text-clay-muted hover:text-clay-ink font-medium cursor-pointer flex items-center gap-1"
+                          >
+                            <span>{conn?.account_name ? `Open ${conn.account_name} ↗` : "Open in Telegram ↗"}</span>
+                          </a>
+                        </>
+                      ) : plat === "teams" ? (
+                        <>
+                          <button
+                            onClick={() => handleLaunchOAuth("teams")}
+                            disabled={isProcessing}
+                            className="px-4 py-2 rounded-clay-md bg-[#5B5FC7] hover:bg-[#4E52B2] text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shadow-clay-soft"
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>Connect Microsoft Account</span>
+                          </button>
+                          <button
+                            onClick={() => handleStartConnect(plat)}
+                            className="text-[11px] text-clay-muted hover:text-clay-ink font-medium cursor-pointer"
+                          >
+                            Bot Setup
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => handleStartConnect(plat)}
+                            className="px-4 py-2 rounded-clay-md bg-clay-primary hover:bg-clay-primary-active text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shadow-clay-soft"
+                          >
+                            <span>Connect {getPlatformDisplayName(plat)}</span>
+                            <ArrowRight className="w-3 h-3" />
+                          </button>
 
-                      {plat === "discord" && (
-                        <a
-                          href={conn?.connect_url || "https://discord.com"}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[11px] text-clay-muted hover:text-clay-ink font-medium cursor-pointer flex items-center gap-1"
-                        >
-                          <span>Invite bot ↗</span>
-                        </a>
-                      )}
-
-                      {plat === "telegram" && (
-                        <a
-                          href={conn?.connect_url || "https://t.me"}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[11px] text-clay-muted hover:text-clay-ink font-medium cursor-pointer flex items-center gap-1"
-                        >
-                          <span>{conn?.account_name ? `Open ${conn.account_name} ↗` : "Open in Telegram ↗"}</span>
-                        </a>
+                          {plat === "discord" && (
+                            <a
+                              href={conn?.connect_url || "https://discord.com"}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[11px] text-clay-muted hover:text-clay-ink font-medium cursor-pointer flex items-center gap-1"
+                            >
+                              <span>Invite bot ↗</span>
+                            </a>
+                          )}
+                        </>
                       )}
                     </>
                   )}

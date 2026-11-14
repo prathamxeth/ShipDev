@@ -55,6 +55,14 @@ class UniversalOrchestrator:
         2. Check if a workspace has an active platform connection for Telegram.
         3. Check chat type: group/supergroup/channel -> ws_team_default; private 1-on-1 -> ws_personal_default.
         """
+        # 0. Check verified Native Connected Accounts first
+        linked_ws = self.platform_repo.get_connected_account_workspace(
+            platform=event.platform,
+            external_user_id=event.user_id,
+        )
+        if linked_ws:
+            return linked_ws
+
         # 1. User-specific assignment
         assigned_ws = self.platform_repo.get_user_workspace(
             platform=event.platform,
@@ -281,6 +289,14 @@ class UniversalOrchestrator:
         2. Check if a workspace has an active platform connection for Microsoft Teams.
         3. Default to enterprise team workspace: ws_team_default.
         """
+        # 0. Check verified Native Connected Accounts first
+        linked_ws = self.platform_repo.get_connected_account_workspace(
+            platform=event.platform,
+            external_user_id=event.user_id,
+        )
+        if linked_ws:
+            return linked_ws
+
         # 1. User-specific assignment
         assigned_ws = self.platform_repo.get_user_workspace(
             platform=event.platform,

@@ -239,3 +239,29 @@ export interface CompanionSummaryResponse {
   platforms: PlatformType[];
   agent_status: string;
 }
+
+export interface ConnectedAccount {
+  id: string;
+  workspace_id: string;
+  user_id: string;
+  platform: string;
+  external_user_id: string;
+  external_username?: string | null;
+  external_display_name?: string | null;
+  external_email?: string | null;
+  tenant_id?: string | null;
+  granted_scopes: string[];
+  status: "active" | "expired" | "revoked";
+  bot_messaging_authorized: boolean;
+  bot_installed: boolean;
+  reviewer_role_authorized: boolean;
+  connected_at: string;
+  updated_at: string;
+}
+
+export interface OAuthAuthorizeResponse {
+  authorization_url: string;
+  state: string;
+  platform: string;
+  code_challenge_method: string;
+}

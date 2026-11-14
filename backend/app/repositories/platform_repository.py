@@ -413,6 +413,24 @@ class PlatformRepository:
                     ),
                 )
 
+    def get_connected_account_workspace(
+        self, platform: PlatformType, external_user_id: str
+    ) -> Optional[str]:
+        """Find a workspace bound to this verified native connected account."""
+        plat_val = platform.value if isinstance(platform, PlatformType) else platform
+        clean_user_id = str(external_user_id).strip()
+        with get_connection(self.db_path) as conn:
+            cursor = conn.execute(
+                """
+                SELECT workspace_id FROM connected_accounts
+                WHERE platform = ? AND external_user_id = ? AND status = 'active'
+                ORDER BY updated_at DESC LIMIT 1;
+                """,
+                (plat_val, clean_user_id),
+            )
+            row = cursor.fetchone()
+            return row["workspace_id"] if row else None
+
     def get_connected_workspace(self, platform: PlatformType) -> Optional[str]:
         """Find the workspace ID explicitly connected to this platform."""
         plat_val = platform.value if isinstance(platform, PlatformType) else platform

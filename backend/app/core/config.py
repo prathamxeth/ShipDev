@@ -75,6 +75,19 @@ class Settings(BaseModel):
     TELEGRAM_OPERATOR_USER_ID: Optional[str] = os.getenv("TELEGRAM_OPERATOR_USER_ID")
     TELEGRAM_OPERATOR_WORKSPACE_ID: str = os.getenv("TELEGRAM_OPERATOR_WORKSPACE_ID", "ws_personal_default")
 
+    # Native Connected Accounts (OIDC / OAuth 2.0 with PKCE & AEAD Encryption at Rest)
+    TOKEN_ENCRYPTION_KEY: Optional[str] = os.getenv("TOKEN_ENCRYPTION_KEY")
+    TELEGRAM_OIDC_CLIENT_ID: Optional[str] = os.getenv("TELEGRAM_OIDC_CLIENT_ID")
+    TELEGRAM_OIDC_CLIENT_SECRET: Optional[str] = os.getenv("TELEGRAM_OIDC_CLIENT_SECRET")
+    TELEGRAM_OAUTH_REDIRECT_URI: str = os.getenv(
+        "TELEGRAM_OAUTH_REDIRECT_URI", "http://localhost:3000/auth/callback/telegram"
+    )
+
+    TEAMS_OAUTH_REDIRECT_URI: str = os.getenv(
+        "TEAMS_OAUTH_REDIRECT_URI", "http://localhost:3000/auth/callback/teams"
+    )
+    TEAMS_TENANT_ID: str = os.getenv("TEAMS_TENANT_ID", "common")
+
     @model_validator(mode="after")
     def validate_security_credentials(self) -> "Settings":
         env = (self.ENVIRONMENT or "development").strip().lower()

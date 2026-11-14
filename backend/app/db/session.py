@@ -184,6 +184,46 @@ CREATE TABLE IF NOT EXISTS platform_chat_history (
 );
 
 CREATE INDEX IF NOT EXISTS idx_platform_chat_hist ON platform_chat_history(platform, conversation_id, workspace_id, created_at);
+
+CREATE TABLE IF NOT EXISTS connected_accounts (
+    id TEXT PRIMARY KEY,
+    workspace_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    platform TEXT NOT NULL,
+    external_user_id TEXT NOT NULL,
+    external_username TEXT,
+    external_display_name TEXT,
+    external_email TEXT,
+    tenant_id TEXT,
+    encrypted_access_token TEXT,
+    encrypted_refresh_token TEXT,
+    token_expires_at TEXT,
+    granted_scopes TEXT,
+    status TEXT NOT NULL DEFAULT 'active',
+    bot_messaging_authorized INTEGER NOT NULL DEFAULT 0,
+    bot_installed INTEGER NOT NULL DEFAULT 0,
+    connected_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY(workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+    UNIQUE(workspace_id, platform, external_user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_conn_acc_ws_plat ON connected_accounts(workspace_id, platform);
+CREATE INDEX IF NOT EXISTS idx_conn_acc_ext ON connected_accounts(platform, external_user_id);
+
+CREATE TABLE IF NOT EXISTS oauth_flow_states (
+    state TEXT PRIMARY KEY,
+    workspace_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    platform TEXT NOT NULL,
+    code_verifier TEXT NOT NULL,
+    nonce TEXT NOT NULL,
+    redirect_uri TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_oauth_states_exp ON oauth_flow_states(expires_at);
 """
 
 
@@ -366,6 +406,53 @@ def migrate_workspaces_schema(conn: sqlite3.Connection) -> None:
                     """,
                     (role_id, op_id, now, ws_id),
                 )
+
+    # 8. Ensure connected_accounts and oauth_flow_states tables exist for migration compatibility
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS connected_accounts (
+            id TEXT PRIMARY KEY,
+            workspace_id TEXT NOT NULL,
+            user_id TEXT NOT NULL,
+            platform TEXT NOT NULL,
+            external_user_id TEXT NOT NULL,
+            external_username TEXT,
+            external_display_name TEXT,
+            external_email TEXT,
+            tenant_id TEXT,
+            encrypted_access_token TEXT,
+            encrypted_refresh_token TEXT,
+            token_expires_at TEXT,
+            granted_scopes TEXT,
+            status TEXT NOT NULL DEFAULT 'active',
+            bot_messaging_authorized INTEGER NOT NULL DEFAULT 0,
+            bot_installed INTEGER NOT NULL DEFAULT 0,
+            connected_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY(workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+            UNIQUE(workspace_id, platform, external_user_id)
+        );
+        """
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_conn_acc_ws_plat ON connected_accounts(workspace_id, platform);")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_conn_acc_ext ON connected_accounts(platform, external_user_id);")
+
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS oauth_flow_states (
+            state TEXT PRIMARY KEY,
+            workspace_id TEXT NOT NULL,
+            user_id TEXT NOT NULL,
+            platform TEXT NOT NULL,
+            code_verifier TEXT NOT NULL,
+            nonce TEXT NOT NULL,
+            redirect_uri TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            expires_at TEXT NOT NULL
+        );
+        """
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_oauth_states_exp ON oauth_flow_states(expires_at);")
 
 
 def init_db(db_path: Optional[str] = None) -> None:

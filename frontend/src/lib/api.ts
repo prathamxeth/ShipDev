@@ -10,8 +10,10 @@ import {
   ApprovalRequest,
   BackendHealth,
   CompanionSummaryResponse,
+  ConnectedAccount,
   Evidence,
   EvidenceCreate,
+  OAuthAuthorizeResponse,
   PlatformConnectionInfo,
   PlatformHealthItem,
   PlatformMapping,
@@ -568,5 +570,77 @@ export async function disconnectPlatform(
     headers: {
       "X-Workspace-ID": targetWs,
     },
+  });
+}
+
+/**
+ * Get native connected accounts for active workspace
+ */
+export async function getConnectedAccounts(workspaceId?: string): Promise<ConnectedAccount[]> {
+  const targetWs = workspaceId || currentActiveWorkspaceId;
+  return request<ConnectedAccount[]>(`${API_BASE_URL}/connected-accounts`, {
+    headers: { "X-Workspace-ID": targetWs },
+  });
+}
+
+/**
+ * Initiate provider OAuth 2.0 / OIDC flow
+ */
+export async function initiateOAuthFlow(
+  platform: string,
+  redirectUri?: string,
+  workspaceId?: string
+): Promise<OAuthAuthorizeResponse> {
+  const targetWs = workspaceId || currentActiveWorkspaceId;
+  const query = redirectUri ? `?redirect_uri=${encodeURIComponent(redirectUri)}` : "";
+  return request<OAuthAuthorizeResponse>(`${API_BASE_URL}/connected-accounts/${platform}/authorize${query}`, {
+    headers: { "X-Workspace-ID": targetWs },
+  });
+}
+
+/**
+ * Complete provider OAuth 2.0 / OIDC callback
+ */
+export async function completeOAuthCallback(
+  platform: string,
+  payload: { code?: string; state: string; id_token?: string; redirect_uri?: string },
+  workspaceId?: string
+): Promise<ConnectedAccount> {
+  const targetWs = workspaceId || currentActiveWorkspaceId;
+  return request<ConnectedAccount>(`${API_BASE_URL}/connected-accounts/${platform}/callback`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Workspace-ID": targetWs,
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * Disconnect and revoke a connected account
+ */
+export async function disconnectConnectedAccount(
+  platform: string,
+  workspaceId?: string
+): Promise<{ success: boolean; message: string }> {
+  const targetWs = workspaceId || currentActiveWorkspaceId;
+  return request<{ success: boolean; message: string }>(`${API_BASE_URL}/connected-accounts/${platform}/disconnect`, {
+    method: "POST",
+    headers: { "X-Workspace-ID": targetWs },
+  });
+}
+
+/**
+ * Explicitly authorize a connected account as workspace operator (Owner only)
+ */
+export async function authorizeAccountOperator(
+  platform: string,
+  workspaceId?: string
+): Promise<ConnectedAccount> {
+  const targetWs = workspaceId || currentActiveWorkspaceId;
+  return request<ConnectedAccount>(`${API_BASE_URL}/connected-accounts/${platform}/authorize-operator`, {
+    method: "POST",
+    headers: { "X-Workspace-ID": targetWs },
   });
 }
