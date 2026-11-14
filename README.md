@@ -27,7 +27,19 @@ Built for the **WeMakeDevs Flip the Switch Hackathon 2026** — **Best Business 
 
 <br/>
 
-<img src="docs/assets/screenshots/01_shipdev_clay_ide.png" alt="ShipDev Clay Studio IDE" width="100%" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);" />
+```text
+┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ ⚡ ShipDev Clay Studio IDE                                        [🔒 Personal] [👥 Team] Live   │
+├─────────────────────────┬─────────────────────────────────────────┬─────────────────────────────┤
+│ 🤖 Conversational AI    │ 🗺️ Topological Architecture Map         │ 📝 Monaco Code & Patch Diff │
+│ • Google Gemini 2.0     │ demo/buggy_app/calculator.py            │ 20  initial_price, rate     │
+│ • Switch Agent Mesh     │   └── calculate_discount() [Ln 13/22]   │ 21  # Arithmetic Defect     │
+│ • 1-Click Bot Pairing   │       └── 🐛 Defect: Added vs Deducted  │ 22 - return price + disc    │
+│ • Human Gate Review     │ demo/tests/test_calculator.py           │ 22 + return price - disc    │
+├─────────────────────────┴─────────────────────────────────────────┴─────────────────────────────┤
+│ 🛡️ Immutable Human Gate: [Approve & Ship Fix (0 Regressions)] [Request Revision with Feedback]  │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
 
 </div>
 
@@ -41,8 +53,6 @@ Use the top bar to switch between **🔒 Personal Workspace** (Discord & Telegra
 ---
 
 ### Track 1: Conversational Engineering & Dual-Agent Bug Repair
-
-<img src="docs/assets/screenshots/02_conversational_ai_assistant.jpg" alt="Conversational AI Assistant" width="100%" style="border-radius: 8px; margin-bottom: 12px;" />
 
 Run this live conversation with the AI Assistant in the left panel:
 
@@ -62,27 +72,37 @@ Traditional chat integrations require complex OAuth redirects, domain verificati
 
 ShipDev introduces **Instant 1-Click Platform Bot Pairing**: a zero-friction, cryptographic pairing mechanism that connects any third-party chat app directly to your active workspace in seconds.
 
-<div align="center">
-  <img src="docs/assets/screenshots/05_connected_apps_platforms.jpg" alt="Connected Apps and Platforms Panel" width="49%" style="border-radius: 8px;" />
-  <img src="docs/assets/screenshots/06_instant_bot_pairing_modal.jpg" alt="Instant Bot Pairing Modal" width="49%" style="border-radius: 8px;" />
-</div>
+```text
+┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ 1-Click Platform Bot Pairing Architecture                                                       │
+├─────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ 1. Engineer clicks [Connect] on Telegram / Discord / Teams / Slack                             │
+│ 2. Frontend calls GET /api/v1/connected-accounts/{platform}/pair-info                           │
+│ 3. Deep link opens native bot chat + copies authorization command to clipboard                 │
+│ 4. Engineer sends: /pair <YOUR_WORKSPACE_KEY>                                                  │
+│ 5. UniversalOrchestrator validates token & auto-provisions operator role in <200ms             │
+│ 6. IDE modal auto-detects completion via real-time polling and displays green success badge    │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
 
-#### How Instant Pairing Works:
-1. Navigate to **Connected Apps** in the left activity bar.
-2. Click **Connect** on **Telegram**, **Discord**, **Microsoft Teams**, or **Slack**.
-3. ShipDev calls the authenticated backend endpoint `GET /api/v1/connected-accounts/{platform}/pair-info` to dynamically generate a pre-filled authorization command (`/pair <secret>`) and a deep link URL.
-4. **Auto-Clipboard & Auto-Redirect**: The command is automatically copied to your clipboard and the native bot chat opens immediately.
-5. In the chat, simply hit send or tap **START**:
-
-<div align="center">
-  <img src="docs/assets/screenshots/07_telegram_instant_pairing.jpg" alt="Telegram Instant Bot Pairing Response" width="60%" style="border-radius: 8px; margin-top: 10px;" />
-</div>
+#### Live Chat Interaction:
+```text
+┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ 💬 Telegram (@Shipdev_bot) / Discord / Teams / Slack                                            │
+├─────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ 👨‍💻 Engineer:  /pair <YOUR_APPROVAL_KEY>                                                         │
+│                                                                                                 │
+│ 🤖 ShipDev:    ✅ Successfully paired with workspace 'ws_personal_default'!                      │
+│                Your account (@prathamxeth) is now an authorized workspace operator.             │
+│                You can now receive review alerts, inspect diffs, and approve deployment gates. │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
 
 The backend orchestrator (`UniversalOrchestrator`) intercepts the pairing message, validates the secret against `settings.HUMAN_APPROVAL_SECRET`, and automatically provisions:
-* A linked `connected_accounts` entry with token encryption.
+* A linked `connected_accounts` entry with AES-256 token encryption.
 * A workspace-scoped `platform_connections` record.
 * An authorized `operator` role in `reviewer_role_assignments`.
-* The modal in the ShipDev IDE automatically detects completion via real-time polling and updates with a green success badge!
+* The modal in the ShipDev IDE automatically detects completion via real-time polling and updates with a green success badge.
 
 ---
 
@@ -142,8 +162,6 @@ graph TD
 
 ShipDev renders an interactive 5-layer graph (`Root -> Directories -> Files -> AST Symbols -> Active Bugs & Agents`) paired with a synchronized Monaco code viewer:
 
-<img src="docs/assets/screenshots/03_topological_bug_graph.jpg" alt="Topological Bug Graph" width="100%" style="border-radius: 8px; margin-bottom: 12px;" />
-
 ```mermaid
 graph LR
     subgraph L1["📂 DIRS"]
@@ -181,8 +199,6 @@ graph LR
 ---
 
 ## 🤖 Switch Multi-Agent Mesh & Incident Rooms
-
-<img src="docs/assets/screenshots/04_switch_agent_mesh.jpg" alt="Switch Agent Mesh" width="100%" style="border-radius: 8px; margin-bottom: 12px;" />
 
 Switch orchestrates specialized roles inside dedicated incident war rooms:
 * **`shipdev-triager` (`bd717264-f0ac-4651-a4da-3746ec71fa28`)**: Analyzes reported defects, extracts minimal reproduction tests, and runs them in a scratch sandbox clone, verifying an `Exit Code 1` reproduction before any code modification.
