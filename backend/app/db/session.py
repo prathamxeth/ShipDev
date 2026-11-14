@@ -170,6 +170,19 @@ CREATE TABLE IF NOT EXISTS platform_connections (
 );
 
 CREATE INDEX IF NOT EXISTS idx_plat_conn_ws ON platform_connections(workspace_id, platform);
+
+CREATE TABLE IF NOT EXISTS platform_chat_history (
+    id TEXT PRIMARY KEY,
+    platform TEXT NOT NULL,
+    conversation_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    workspace_id TEXT NOT NULL,
+    role TEXT NOT NULL, -- 'user' | 'assistant'
+    content TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_platform_chat_hist ON platform_chat_history(platform, conversation_id, workspace_id, created_at);
 """
 
 
@@ -232,7 +245,26 @@ def migrate_workspaces_schema(conn: sqlite3.Connection) -> None:
     if "workspace_id" not in role_cols:
         conn.execute("ALTER TABLE reviewer_role_assignments ADD COLUMN workspace_id TEXT NOT NULL DEFAULT 'ws_team_default';")
 
-    # 4. Auto-provision canonical default environments
+    # 4. Auto-provision platform chat history table if missing
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS platform_chat_history (
+            id TEXT PRIMARY KEY,
+            platform TEXT NOT NULL,
+            conversation_id TEXT NOT NULL,
+            user_id TEXT NOT NULL,
+            workspace_id TEXT NOT NULL,
+            role TEXT NOT NULL,
+            content TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        );
+        """
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_platform_chat_hist ON platform_chat_history(platform, conversation_id, workspace_id, created_at);"
+    )
+
+    # 5. Auto-provision canonical default environments
     now = "2026-01-01T00:00:00Z"
     conn.execute(
         """

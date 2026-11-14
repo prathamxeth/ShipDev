@@ -199,23 +199,26 @@ class PlatformRepository:
         role: str,
         assigned_by: str = "system",
         user_handle: Optional[str] = None,
+        workspace_id: Optional[str] = None,
     ) -> ReviewerRoleRecord:
         """Assign an authorized reviewer role to a platform user."""
         role_id = str(uuid.uuid4())
         now = datetime.now(timezone.utc).isoformat()
         plat_val = platform.value if isinstance(platform, PlatformType) else platform
+        ws_id = workspace_id or "ws_team_default"
 
         with get_connection(self.db_path) as conn:
             with conn:
                 conn.execute(
                     """
-                    INSERT INTO reviewer_role_assignments (id, platform, user_id, user_handle, role, assigned_by, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO reviewer_role_assignments (id, platform, user_id, user_handle, role, assigned_by, created_at, workspace_id)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(platform, user_id, role) DO UPDATE SET
                         user_handle = excluded.user_handle,
-                        assigned_by = excluded.assigned_by
+                        assigned_by = excluded.assigned_by,
+                        workspace_id = excluded.workspace_id
                     """,
-                    (role_id, plat_val, user_id, user_handle, role.lower(), assigned_by, now),
+                    (role_id, plat_val, user_id, user_handle, role.lower(), assigned_by, now, ws_id),
                 )
 
         return ReviewerRoleRecord(
@@ -228,24 +231,33 @@ class PlatformRepository:
             created_at=now,
         )
 
-    def get_user_roles(self, platform: PlatformType, user_id: str) -> Set[str]:
-        """Fetch all authorized roles for a given platform user."""
+    def get_user_roles(
+        self, platform: PlatformType, user_id: str, user_handle: Optional[str] = None
+    ) -> Set[str]:
+        """Fetch all authorized roles for a given platform user by ID or handle."""
         plat_val = platform.value if isinstance(platform, PlatformType) else platform
         with get_connection(self.db_path) as conn:
             cursor = conn.execute(
-                "SELECT role FROM reviewer_role_assignments WHERE platform = ? AND user_id = ?",
-                (plat_val, user_id),
+                """
+                SELECT role FROM reviewer_role_assignments
+                WHERE platform = ? AND (user_id = ? OR (? IS NOT NULL AND user_handle = ?))
+                """,
+                (plat_val, user_id, user_handle, user_handle),
             )
             return {row["role"].lower() for row in cursor.fetchall()}
 
     def is_authorized_reviewer(
-        self, platform: PlatformType, user_id: str, allowed_roles: Optional[Set[str]] = None
+        self,
+        platform: PlatformType,
+        user_id: str,
+        allowed_roles: Optional[Set[str]] = None,
+        user_handle: Optional[str] = None,
     ) -> bool:
-        """Check if user has at least one of the allowed roles (defaults to admin, lead, operator, reviewer, manager, maintainer)."""
-        roles = self.get_user_roles(platform, user_id)
+        """Check if user has at least one of the allowed roles (defaults to admin, lead, operator, reviewer, manager, maintainer, owner)."""
+        roles = self.get_user_roles(platform, user_id, user_handle=user_handle)
         if allowed_roles:
             return bool(roles.intersection({r.lower() for r in allowed_roles}))
-        keywords = {"admin", "lead", "operator", "reviewer", "manager", "maintainer"}
+        keywords = {"admin", "lead", "operator", "reviewer", "manager", "maintainer", "owner"}
         return any(any(kw in r for kw in keywords) for r in roles)
 
     def list_reviewer_roles(self, platform: Optional[PlatformType] = None) -> List[ReviewerRoleRecord]:
@@ -326,3 +338,86 @@ class PlatformRepository:
                         now,
                     ),
                 )
+
+    def get_connected_workspace(self, platform: PlatformType) -> Optional[str]:
+        """Find the workspace ID explicitly connected to this platform."""
+        plat_val = platform.value if isinstance(platform, PlatformType) else platform
+        with get_connection(self.db_path) as conn:
+            cursor = conn.execute(
+                "SELECT workspace_id FROM platform_connections WHERE platform = ? AND connected = 1 LIMIT 1",
+                (plat_val,),
+            )
+            row = cursor.fetchone()
+            return row["workspace_id"] if row else None
+
+    def get_user_workspace(
+        self, platform: PlatformType, user_id: str, user_handle: Optional[str] = None
+    ) -> Optional[str]:
+        """Find a designated workspace assigned to this platform user."""
+        plat_val = platform.value if isinstance(platform, PlatformType) else platform
+        with get_connection(self.db_path) as conn:
+            cursor = conn.execute(
+                """
+                SELECT workspace_id FROM reviewer_role_assignments
+                WHERE platform = ? AND (user_id = ? OR (? IS NOT NULL AND user_handle = ?))
+                ORDER BY created_at DESC LIMIT 1
+                """,
+                (plat_val, user_id, user_handle, user_handle),
+            )
+            row = cursor.fetchone()
+            if row and row["workspace_id"]:
+                return row["workspace_id"]
+            return None
+
+    # =========================================================================
+    # 5. Conversation Context History (Isolated by Platform & Workspace)
+    # =========================================================================
+    def save_chat_turn(
+        self,
+        platform: PlatformType,
+        conversation_id: str,
+        user_id: str,
+        workspace_id: str,
+        role: str,
+        content: str,
+    ) -> str:
+        """Persist a conversation turn strictly isolated by platform, conversation, and workspace."""
+        msg_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        plat_val = platform.value if isinstance(platform, PlatformType) else platform
+
+        with get_connection(self.db_path) as conn:
+            with conn:
+                conn.execute(
+                    """
+                    INSERT INTO platform_chat_history (
+                        id, platform, conversation_id, user_id, workspace_id, role, content, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (msg_id, plat_val, conversation_id, user_id, workspace_id, role, content, now),
+                )
+        return msg_id
+
+    def get_chat_history(
+        self,
+        platform: PlatformType,
+        conversation_id: str,
+        workspace_id: str,
+        limit: int = 8,
+    ) -> List[Dict[str, str]]:
+        """Retrieve recent conversation history for multi-turn assistant context in chronological order."""
+        plat_val = platform.value if isinstance(platform, PlatformType) else platform
+        with get_connection(self.db_path) as conn:
+            cursor = conn.execute(
+                """
+                SELECT role, content FROM (
+                    SELECT role, content, created_at FROM platform_chat_history
+                    WHERE platform = ? AND conversation_id = ? AND workspace_id = ?
+                    ORDER BY created_at DESC
+                    LIMIT ?
+                ) sub
+                ORDER BY created_at ASC
+                """,
+                (plat_val, conversation_id, workspace_id, limit),
+            )
+            return [{"role": row["role"], "content": row["content"]} for row in cursor.fetchall()]

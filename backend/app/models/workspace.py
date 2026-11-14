@@ -1,8 +1,9 @@
 """Workspace identity, membership, and context data models."""
 
 from enum import Enum
-from typing import List, Optional, Set
+from typing import Any, Dict, List, Optional, Set
 from pydantic import BaseModel, Field
+from app.models.task import TaskResponse
 
 
 class WorkspaceType(str, Enum):
@@ -123,4 +124,33 @@ class WorkspaceContext(BaseModel):
     @property
     def can_admin(self) -> bool:
         return WorkspacePermission.ADMIN in self.permissions
+
+
+class AssistantStage(BaseModel):
+    name: str
+    status: str
+
+
+class AssistantTestEvidence(BaseModel):
+    command: str
+    exit_code: int
+    summary: str
+
+
+class AssistantChatRequest(BaseModel):
+    message: str = Field(..., min_length=1)
+    history: Optional[List[Dict[str, str]]] = None
+
+
+class AssistantChatResponse(BaseModel):
+    category: str
+    reply_text: str
+    task: Optional[TaskResponse] = None
+    improvements: Optional[List[str]] = None
+    pipeline_executed: bool = False
+    patch_diff: Optional[str] = None
+    test_evidence: Optional[AssistantTestEvidence] = None
+    needs_approval: bool = False
+    stages: Optional[List[AssistantStage]] = None
+
 

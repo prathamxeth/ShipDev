@@ -147,6 +147,19 @@ async def get_platform_connections(
     health_list = gateway.get_all_health()
     health_map = {h.platform: h for h in health_list}
 
+    # Dynamically resolve authoritative Telegram bot identity from getMe
+    tg_adapter: Optional[TelegramAdapter] = gateway.get_adapter(PlatformType.TELEGRAM)  # type: ignore
+    tg_bot_username = tg_adapter.get_bot_username() if tg_adapter else None
+
+    if tg_bot_username:
+        tg_connect_url = f"https://t.me/{tg_bot_username}?start={workspace_id}"
+        tg_chat_url = f"https://t.me/{tg_bot_username}"
+        tg_account_name = f"@{tg_bot_username}"
+    else:
+        tg_connect_url = "https://t.me"
+        tg_chat_url = "https://t.me"
+        tg_account_name = "Telegram Bot"
+
     platform_meta = {
         PlatformType.DISCORD: {
             "name": "Discord",
@@ -161,9 +174,9 @@ async def get_platform_connections(
         PlatformType.TELEGRAM: {
             "name": "Telegram",
             "short_description": "Message ShipDev in Telegram for instant bug diagnosis and fix verification on the go.",
-            "connect_url": f"https://t.me/ShipDevBot?start={workspace_id}",
-            "chat_url": "https://t.me/ShipDevBot",
-            "default_account": "@ShipDevUser",
+            "connect_url": tg_connect_url,
+            "chat_url": tg_chat_url,
+            "default_account": tg_account_name,
             "default_target": "Private Chat",
             "admin_approval_required": False,
             "admin_guidance": None,
@@ -205,18 +218,29 @@ async def get_platform_connections(
         if db_conn and db_conn.get("connected"):
             is_connected = True
             account_name = db_conn.get("account_name")
+            # If Telegram has a verified bot username, keep account_name strictly synchronized
+            if plat == PlatformType.TELEGRAM and tg_bot_username:
+                account_name = f"@{tg_bot_username}"
+                if db_conn.get("account_name") != account_name:
+                    _platform_repo.set_connection(
+                        workspace_id=workspace_id,
+                        platform=plat,
+                        connected=True,
+                        account_name=account_name,
+                        target_name=db_conn.get("target_name") or "Private Chat",
+                    )
             target_name = db_conn.get("target_name")
             connected_at = db_conn.get("connected_at")
             status_label = "Connected"
         elif health and health.configured:
             is_connected = False
-            account_name = None
+            account_name = meta["default_account"]
             target_name = None
             connected_at = None
             status_label = "Configured (Ready to Link)"
         else:
             is_connected = False
-            account_name = None
+            account_name = meta["default_account"]
             target_name = None
             connected_at = None
             status_label = "Awaiting Platform Credentials"
@@ -253,10 +277,18 @@ async def connect_platform_endpoint(
 ):
     """Authenticate and link a platform to the active workspace effortlessly."""
     workspace_id = x_workspace_id or "ws_personal_default"
-    account = (payload and payload.account_name) or f"@{platform.value.capitalize()}User"
-    target = (payload and payload.target_name) or (
-        "Personal Server" if platform in (PlatformType.DISCORD, PlatformType.TELEGRAM) else "Organization Team"
-    )
+
+    if platform == PlatformType.TELEGRAM:
+        tg_adapter: Optional[TelegramAdapter] = gateway.get_adapter(PlatformType.TELEGRAM)  # type: ignore
+        # Force refresh getMe to refresh bot identity on reconnect (Requirement 6)
+        tg_username = tg_adapter.get_bot_username(refresh=True) if tg_adapter else None
+        account = f"@{tg_username}" if tg_username else ((payload and payload.account_name) or "Telegram Bot")
+        target = (payload and payload.target_name) or "Private Chat"
+    else:
+        account = (payload and payload.account_name) or f"@{platform.value.capitalize()}User"
+        target = (payload and payload.target_name) or (
+            "Personal Server" if platform in (PlatformType.DISCORD, PlatformType.TELEGRAM) else "Organization Team"
+        )
 
     _platform_repo.set_connection(
         workspace_id=workspace_id,

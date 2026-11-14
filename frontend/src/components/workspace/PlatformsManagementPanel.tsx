@@ -90,10 +90,10 @@ export function PlatformsManagementPanel({
         account_name: connectingPlatform === "discord"
           ? "@Developer#1024"
           : connectingPlatform === "telegram"
-          ? "@ShipDevUser"
-          : connectingPlatform === "slack"
-          ? "Workspace Bot (@ShipDev)"
-          : "Teams Teammate",
+            ? (connections.find((c) => c.platform === "telegram")?.account_name || undefined)
+            : connectingPlatform === "slack"
+              ? "Workspace Bot (@ShipDev)"
+              : "Teams Teammate",
         target_name: selectedTarget,
       });
 
@@ -192,11 +192,10 @@ export function PlatformsManagementPanel({
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold text-clay-ink">Connected Apps</h1>
               <span
-                className={`px-2 py-0.5 rounded-clay-pill text-[10px] font-semibold border flex items-center gap-1 ${
-                  activeWorkspaceType === "PERSONAL"
+                className={`px-2 py-0.5 rounded-clay-pill text-[10px] font-semibold border flex items-center gap-1 ${activeWorkspaceType === "PERSONAL"
                     ? "bg-clay-teal/10 text-clay-teal border-clay-teal/30"
                     : "bg-clay-lavender/25 text-clay-lavender-ink border-clay-lavender/40"
-                }`}
+                  }`}
               >
                 {activeWorkspaceType === "PERSONAL" ? (
                   <>
@@ -268,11 +267,10 @@ export function PlatformsManagementPanel({
             return (
               <div
                 key={plat}
-                className={`p-5 rounded-clay-xl bg-white border transition-all flex flex-col justify-between gap-4 shadow-clay-soft hover:shadow-clay-card ${
-                  isConnected
+                className={`p-5 rounded-clay-xl bg-white border transition-all flex flex-col justify-between gap-4 shadow-clay-soft hover:shadow-clay-card ${isConnected
                     ? "border-clay-mint/60 ring-1 ring-clay-mint/30"
                     : "border-clay-hairline"
-                }`}
+                  }`}
               >
                 <div>
                   {/* Card Header: Icon, Name & Status Badge */}
@@ -294,22 +292,20 @@ export function PlatformsManagementPanel({
                     </div>
 
                     <span
-                      className={`flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-clay-pill font-medium border shrink-0 ${
-                        isConnected
+                      className={`flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-clay-pill font-medium border shrink-0 ${isConnected
                           ? "bg-clay-mint/25 text-[#136149] border-clay-mint/50 font-semibold"
                           : conn?.status_label === "Awaiting Platform Credentials"
-                          ? "bg-amber-50 text-amber-800 border-amber-200"
-                          : "bg-clay-surface-soft text-clay-muted border-clay-hairline"
-                      }`}
+                            ? "bg-amber-50 text-amber-800 border-amber-200"
+                            : "bg-clay-surface-soft text-clay-muted border-clay-hairline"
+                        }`}
                     >
                       <span
-                        className={`w-2 h-2 rounded-full ${
-                          isConnected
+                        className={`w-2 h-2 rounded-full ${isConnected
                             ? "bg-clay-success"
                             : conn?.status_label === "Awaiting Platform Credentials"
-                            ? "bg-amber-400"
-                            : "bg-slate-300"
-                        }`}
+                              ? "bg-amber-400"
+                              : "bg-slate-300"
+                          }`}
                       />
                       <span>{conn?.status_label || (isConnected ? "Connected" : "Not connected")}</span>
                     </span>
@@ -321,10 +317,10 @@ export function PlatformsManagementPanel({
                       (plat === "discord"
                         ? "Chat with ShipDev directly or mention it in your Discord channels to resolve code issues."
                         : plat === "telegram"
-                        ? "Message ShipDev in Telegram for instant bug diagnosis and fix verification on the go."
-                        : plat === "slack"
-                        ? "Mention @ShipDev in channels to collaborate with your team and review pull requests."
-                        : "Bring ShipDev into Microsoft Teams chats and channels to automate issue triage.")}
+                          ? "Message ShipDev in Telegram for instant bug diagnosis and fix verification on the go."
+                          : plat === "slack"
+                            ? "Mention @ShipDev in channels to collaborate with your team and review pull requests."
+                            : "Bring ShipDev into Microsoft Teams chats and channels to automate issue triage.")}
                   </p>
 
                   {/* Friendly Admin Guidance Note (Only if required by enterprise Teams) */}
@@ -382,12 +378,12 @@ export function PlatformsManagementPanel({
 
                       {plat === "telegram" && (
                         <a
-                          href={conn?.connect_url || "https://t.me/ShipDevBot"}
+                          href={conn?.connect_url || "https://t.me"}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-[11px] text-clay-muted hover:text-clay-ink font-medium cursor-pointer flex items-center gap-1"
                         >
-                          <span>Open @ShipDevBot ↗</span>
+                          <span>{conn?.account_name ? `Open ${conn.account_name} ↗` : "Open in Telegram ↗"}</span>
                         </a>
                       )}
                     </>
@@ -429,10 +425,10 @@ export function PlatformsManagementPanel({
                       {m.platform === "slack"
                         ? "💬"
                         : m.platform === "teams"
-                        ? "👥"
-                        : m.platform === "discord"
-                        ? "🎮"
-                        : "✈️"}
+                          ? "👥"
+                          : m.platform === "discord"
+                            ? "🎮"
+                            : "✈️"}
                     </span>
                     <div>
                       <span className="font-semibold text-clay-ink block">

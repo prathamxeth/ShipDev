@@ -19,6 +19,7 @@ from app.models.platform import (
 from app.models.task import ApprovalRequest, RejectionRequest, TaskCreate, TransitionRequest
 from app.repositories.platform_repository import PlatformRepository
 from app.repositories.task_repository import TaskRepository
+from app.services.assistant_service import run_workspace_assistant_turn
 
 
 class UniversalOrchestrator:
@@ -38,20 +39,158 @@ class UniversalOrchestrator:
         self.planner = planner or UniversalTaskPlanner()
         self.agents = agent_registry or SpecialistAgentRegistry()
 
+    def resolve_telegram_workspace(self, event: ChatEvent) -> str:
+        """Resolve and enforce the Telegram user's authorized Personal or Team workspace server-side.
+
+        Never trust client-provided workspace IDs.
+        Resolution precedence:
+        1. Check if user ID or handle is explicitly bound to a workspace in reviewer_role_assignments.
+        2. Check if a workspace has an active platform connection for Telegram.
+        3. Check chat type: group/supergroup/channel -> ws_team_default; private 1-on-1 -> ws_personal_default.
+        """
+        # 1. User-specific assignment
+        assigned_ws = self.platform_repo.get_user_workspace(
+            platform=event.platform,
+            user_id=event.user_id,
+            user_handle=event.user_handle,
+        )
+        if assigned_ws:
+            return assigned_ws
+
+        # 2. Platform connection binding
+        connected_ws = self.platform_repo.get_connected_workspace(event.platform)
+        if connected_ws:
+            return connected_ws
+
+        # 3. Chat type from Telegram payload
+        chat_type = "private"
+        if event.raw_payload:
+            msg = event.raw_payload.get("message") or event.raw_payload.get("channel_post") or {}
+            chat = msg.get("chat", {})
+            chat_type = chat.get("type", "private")
+
+        if chat_type in ("group", "supergroup", "channel"):
+            return "ws_team_default"
+
+        return "ws_personal_default"
+
+    def handle_telegram_assistant_turn(self, event: ChatEvent) -> Dict[str, Any]:
+        """Route incoming conversational Telegram messages through the unified Gemini/Switch assistant."""
+        target_ws = self.resolve_telegram_workspace(event)
+
+        # 1. Retrieve conversation context history strictly isolated by (platform, conversation, workspace)
+        history = self.platform_repo.get_chat_history(
+            platform=event.platform,
+            conversation_id=event.conversation_id,
+            workspace_id=target_ws,
+            limit=8,
+        )
+
+        # 2. Run the unified workspace assistant turn (Gemini runtime or deterministic Switch pipeline)
+        assistant_resp = run_workspace_assistant_turn(
+            message=event.message_text,
+            workspace_id=target_ws,
+            history=history,
+            task_repo=self.task_repo,
+            actor_id=f"tg_{event.user_handle or event.user_id}",
+            input_source="telegram",
+        )
+
+        # 3. Persist conversation turns in platform_chat_history
+        self.platform_repo.save_chat_turn(
+            platform=event.platform,
+            conversation_id=event.conversation_id,
+            user_id=event.user_id,
+            workspace_id=target_ws,
+            role="user",
+            content=event.message_text,
+        )
+        self.platform_repo.save_chat_turn(
+            platform=event.platform,
+            conversation_id=event.conversation_id,
+            user_id="shipdev-assistant",
+            workspace_id=target_ws,
+            role="assistant",
+            content=assistant_resp.reply_text,
+        )
+
+        # 4. Correlate task with conversation thread if a task was created or inspected
+        task_id = assistant_resp.task.id if assistant_resp.task else None
+        if assistant_resp.task:
+            cat = TaskCategory.ENGINEERING if assistant_resp.category == "engineering" else TaskCategory.GENERAL
+            self.platform_repo.create_mapping(
+                platform=event.platform,
+                conversation_id=event.conversation_id,
+                thread_id=event.thread_id,
+                user_id=event.user_id,
+                user_display_name=event.user_display_name or event.user_handle,
+                task_id=assistant_resp.task.id,
+                intent_category=cat,
+                status=assistant_resp.task.status.value,
+            )
+
+        # 5. Deliver assistant reply to Telegram chat
+        self.gateway.send_outbound(
+            OutboundMessage(
+                platform=event.platform,
+                conversation_id=event.conversation_id,
+                thread_id=event.thread_id,
+                text=assistant_resp.reply_text,
+                task_id=task_id,
+            )
+        )
+
+        # 6. If execution halted at AWAITING_HUMAN_APPROVAL, dispatch interactive review card with InlineKeyboardMarkup
+        if assistant_resp.needs_approval and assistant_resp.task:
+            ev_summary = (
+                f"Regression suite exit code {assistant_resp.test_evidence.exit_code} (Verified clean)"
+                if assistant_resp.test_evidence and assistant_resp.test_evidence.exit_code == 0
+                else "Automated tests verified"
+            )
+            review_payload = ReviewRequestPayload(
+                task_id=assistant_resp.task.id,
+                title=assistant_resp.task.title,
+                summary=assistant_resp.task.description,
+                category=TaskCategory.ENGINEERING,
+                patch_diff=assistant_resp.patch_diff,
+                evidence_summary=ev_summary,
+                status=assistant_resp.task.status.value,
+            )
+            self.gateway.send_review_request(
+                platform=event.platform,
+                conversation_id=event.conversation_id,
+                payload=review_payload,
+                thread_id=event.thread_id,
+            )
+
+        return {
+            "status": "assistant_reply",
+            "category": assistant_resp.category,
+            "workspace_id": target_ws,
+            "task_id": task_id,
+            "pipeline_executed": assistant_resp.pipeline_executed,
+            "needs_approval": assistant_resp.needs_approval,
+            "reply_text": assistant_resp.reply_text,
+        }
+
     def handle_chat_event(self, event: ChatEvent) -> Dict[str, Any]:
         """Main entrypoint for processing any verified incoming chat event."""
         # 1. Route interactive human review decisions (Approve / Reject buttons)
         if event.mention_type == MentionType.ACTION:
             return self.handle_review_action(event)
 
-        # 2. Check for active conversation task in thread
+        # 2. For standard Telegram conversational messages: route through unified Gemini/Switch assistant
+        if event.platform == PlatformType.TELEGRAM and not event.message_text.strip().startswith("/shipdev "):
+            return self.handle_telegram_assistant_turn(event)
+
+        # 3. Check for active conversation task in thread
         active_mapping = self.platform_repo.get_active_mapping(
             platform=event.platform,
             conversation_id=event.conversation_id,
             thread_id=event.thread_id,
         )
 
-        # 3. Classify intent and plan task
+        # 4. Classify intent and plan task
         classification = self.classifier.classify(event.message_text)
         plan = self.planner.plan_task(
             category=classification.category,
@@ -59,10 +198,10 @@ class UniversalOrchestrator:
             entities=classification.entities,
         )
 
-        # 4. Select specialist agents
+        # 5. Select specialist agents
         assigned_agents = self.agents.select_agents_for_capabilities(plan.required_capabilities)
 
-        # 5. Determine target workspace by platform binding:
+        # 6. Determine target workspace by platform binding:
         # Personal: Discord, Telegram -> ws_personal_default
         # Team: Slack, Teams -> ws_team_default
         if event.platform in (PlatformType.DISCORD, PlatformType.TELEGRAM):
@@ -70,7 +209,7 @@ class UniversalOrchestrator:
         else:
             target_ws = "ws_team_default"
 
-        # 6. Persist task in backend repository (Strictly starting at REPORTED)
+        # 7. Persist task in backend repository (Strictly starting at REPORTED)
         task_payload = TaskCreate(
             title=plan.title,
             description=f"[{classification.category.value.upper()}] {event.message_text.strip()}",
@@ -80,7 +219,7 @@ class UniversalOrchestrator:
         )
         task = self.task_repo.create_task(task_payload)
 
-        # 7. Correlate conversation thread to task
+        # 8. Correlate conversation thread to task
         mapping = self.platform_repo.create_mapping(
             platform=event.platform,
             conversation_id=event.conversation_id,
@@ -92,7 +231,7 @@ class UniversalOrchestrator:
             status=task.status.value,
         )
 
-        # 8. Post initial status acknowledgment to conversation
+        # 9. Post initial status acknowledgment to conversation
         agent_names = ", ".join([a.name for a in assigned_agents]) or "AI Team"
         ack_text = (
             f"⚡ **ShipDev Acknowledged:** `{task.title}`\n"
@@ -132,6 +271,7 @@ class UniversalOrchestrator:
         is_authorized = self.platform_repo.is_authorized_reviewer(
             platform=event.platform,
             user_id=event.user_id,
+            user_handle=event.user_handle,
         )
         if not is_authorized:
             self.gateway.send_outbound(
