@@ -1,10 +1,16 @@
 """Universal Orchestration Engine: binds chat events, intent classification, task planning, and human review."""
 
+import hmac
+import logging
+import re
 import time
 from typing import Any, Dict, List, Optional
 from app.agents.registry import SpecialistAgentRegistry
 from app.core.approval_tokens import verify_approval_callback_data
+from app.core.config import is_insecure_placeholder, settings
 from app.core.intent_classifier import UniversalIntentClassifier
+
+logger = logging.getLogger(__name__)
 from app.core.platform_gateway import PlatformGateway
 from app.core.state_machine import CallerType, TaskStatus
 from app.core.task_planner import TaskPlan, UniversalTaskPlanner
@@ -78,6 +84,95 @@ class UniversalOrchestrator:
     def handle_telegram_assistant_turn(self, event: ChatEvent) -> Dict[str, Any]:
         """Route incoming conversational Telegram messages through the unified Gemini/Switch assistant."""
         target_ws = self.resolve_telegram_workspace(event)
+        text_stripped = event.message_text.strip()
+
+        # 0a. Identity Lookup Commands: /id, /whoami, /myid
+        if text_stripped.lower() in ("/id", "/whoami", "/myid", "id", "whoami", "my id", "what is my id", "my telegram id"):
+            info_text = (
+                f"👤 **Your Verified Telegram Identity:**\n\n"
+                f"• **Display Name:** `{event.user_display_name or 'N/A'}`\n"
+                f"• **Telegram Numeric ID:** `{event.user_id}`\n"
+                f"• **Username:** @{event.user_handle or 'none'}\n\n"
+                f"**How to Authorize This Account:**\n"
+                f"1. **Instant Pairing:** Send `/pair <YOUR_HUMAN_APPROVAL_SECRET>` directly in this chat.\n"
+                f"2. **Render Environment:** Add to your Render backend Environment Variables:\n"
+                f"   `TELEGRAM_OPERATOR_USER_ID={event.user_id}`\n"
+                f"   `TELEGRAM_OPERATOR_WORKSPACE_ID={target_ws}`"
+            )
+            self.gateway.send_outbound(
+                OutboundMessage(
+                    platform=event.platform,
+                    conversation_id=event.conversation_id,
+                    thread_id=event.thread_id,
+                    text=info_text,
+                )
+            )
+            return {
+                "status": "assistant_reply",
+                "category": "conversation",
+                "workspace_id": target_ws,
+                "reply_text": info_text,
+            }
+
+        # 0b. Explicit Pairing Command: /pair <secret> or /authorize <secret>
+        pair_match = re.match(r"^/(?:pair|authorize|claim)\s+(.+)$", text_stripped, re.IGNORECASE)
+        if pair_match:
+            candidate_secret = pair_match.group(1).strip()
+            valid_secrets = set()
+            if settings.HUMAN_APPROVAL_SECRET:
+                valid_secrets.add(settings.HUMAN_APPROVAL_SECRET.strip())
+            if settings.API_SECRET_KEY:
+                valid_secrets.add(settings.API_SECRET_KEY.strip())
+
+            is_secret_valid = any(
+                hmac.compare_digest(candidate_secret, s)
+                for s in valid_secrets
+                if s and not is_insecure_placeholder(s)
+            )
+
+            if is_secret_valid:
+                self.platform_repo.assign_reviewer_role(
+                    platform=PlatformType.TELEGRAM,
+                    user_id=event.user_id,
+                    role="operator",
+                    assigned_by="authenticated-pairing",
+                    user_handle=event.user_handle,
+                    workspace_id=target_ws,
+                )
+                success_text = (
+                    f"✅ **Account Successfully Authorized as Workspace Operator!**\n\n"
+                    f"• **Telegram User:** `{event.user_display_name or event.user_id}`\n"
+                    f"• **Telegram ID:** `{event.user_id}`\n"
+                    f"• **Workspace:** `{target_ws}`\n"
+                    f"• **Role:** `operator` (Authorized Reviewer)\n\n"
+                    "You can now click **[ ✅ Approve & Ship ]** on review cards to authorize production deployment.\n\n"
+                    "🔒 *Security Recommendation: Delete your message containing the pairing secret from this chat history.*"
+                )
+                self.gateway.send_outbound(
+                    OutboundMessage(
+                        platform=event.platform,
+                        conversation_id=event.conversation_id,
+                        thread_id=event.thread_id,
+                        text=success_text,
+                    )
+                )
+                return {
+                    "status": "paired",
+                    "workspace_id": target_ws,
+                    "user_id": event.user_id,
+                    "reply_text": success_text,
+                }
+            else:
+                fail_text = "⛔ **Pairing Failed:** Invalid secret key. Access denied."
+                self.gateway.send_outbound(
+                    OutboundMessage(
+                        platform=event.platform,
+                        conversation_id=event.conversation_id,
+                        thread_id=event.thread_id,
+                        text=fail_text,
+                    )
+                )
+                return {"status": "pairing_failed", "reply_text": fail_text}
 
         # 1. Retrieve conversation context history strictly isolated by (platform, conversation, workspace)
         history = self.platform_repo.get_chat_history(
@@ -277,6 +372,10 @@ class UniversalOrchestrator:
 
         # 1. Platform-level reviewer authorization check (fail-closed for unauthorized callers)
         if not self.platform_repo.is_authorized_reviewer(platform=event.platform, user_id=event.user_id):
+            logger.warning(
+                f"[TELEGRAM_AUTH_GATE] Unauthorized review attempt by user_id='{event.user_id}', "
+                f"name='{event.user_display_name}', handle='{event.user_handle}', task_id='{task_id}'"
+            )
             self.gateway.send_outbound(
                 OutboundMessage(
                     platform=event.platform,
@@ -284,8 +383,12 @@ class UniversalOrchestrator:
                     thread_id=event.thread_id,
                     text=(
                         f"⛔ **Permission Denied:** User `{event.user_display_name or event.user_id}` "
-                        "is not an authorized reviewer for this workspace. Human review decisions "
-                        "require a designated operator role."
+                        f"(Telegram ID: `{event.user_id}`) is not an authorized reviewer for this workspace.\n\n"
+                        f"**To authorize this account:**\n"
+                        f"1. Send `/pair <YOUR_HUMAN_APPROVAL_SECRET>` directly in this chat.\n"
+                        f"2. Or add in Render backend Environment Variables:\n"
+                        f"   `TELEGRAM_OPERATOR_USER_ID={event.user_id}`\n"
+                        f"   `TELEGRAM_OPERATOR_WORKSPACE_ID=ws_personal_default`"
                     ),
                     task_id=task_id,
                 )
@@ -339,6 +442,10 @@ class UniversalOrchestrator:
             workspace_id=task.workspace_id,
         )
         if not is_ws_authorized:
+            logger.warning(
+                f"[TELEGRAM_AUTH_GATE] Cross-workspace unauthorized review attempt: user_id='{event.user_id}', "
+                f"workspace='{task.workspace_id}', task_id='{task_id}'"
+            )
             self.gateway.send_outbound(
                 OutboundMessage(
                     platform=event.platform,
@@ -346,8 +453,12 @@ class UniversalOrchestrator:
                     thread_id=event.thread_id,
                     text=(
                         f"⛔ **Permission Denied:** User `{event.user_display_name or event.user_id}` "
-                        f"is not an authorized reviewer for workspace `{task.workspace_id}`. Human review decisions "
-                        "require a designated operator role."
+                        f"(Telegram ID: `{event.user_id}`) is not an authorized reviewer for workspace `{task.workspace_id}`.\n\n"
+                        f"**To authorize this account:**\n"
+                        f"1. Send `/pair <YOUR_HUMAN_APPROVAL_SECRET>` directly in this chat.\n"
+                        f"2. Or add in Render backend Environment Variables:\n"
+                        f"   `TELEGRAM_OPERATOR_USER_ID={event.user_id}`\n"
+                        f"   `TELEGRAM_OPERATOR_WORKSPACE_ID={task.workspace_id}`"
                     ),
                     task_id=task_id,
                 )

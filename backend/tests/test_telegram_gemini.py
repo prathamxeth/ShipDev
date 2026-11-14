@@ -1075,4 +1075,102 @@ def test_telegram_request_changes_follows_same_authorization_checks(tg_test_env,
     assert approvals[0].reviewer_id == f"telegram:{owner_user_id}"
 
 
+def test_telegram_whoami_identity_command(tg_test_env):
+    """User sending /id or /whoami receives their verified Telegram numeric ID and instructions."""
+    orchestrator = tg_test_env["orchestrator"]
+    adapter = tg_test_env["adapter"]
+
+    id_event = ChatEvent(
+        event_id="tg_upd_whoami_1",
+        platform=PlatformType.TELEGRAM,
+        conversation_id="priv_conv_whoami",
+        user_id="987123456",
+        user_display_name="प्रथम |||",
+        user_handle="pratham_dev",
+        message_text="/id",
+        mention_type=MentionType.DIRECT_MESSAGE,
+        raw_payload={"message": {"chat": {"type": "private"}}},
+    )
+    res = orchestrator.handle_chat_event(id_event)
+    assert res["status"] == "assistant_reply"
+    assert "987123456" in res["reply_text"]
+    assert "प्रथम |||" in res["reply_text"]
+    assert "/pair <YOUR_HUMAN_APPROVAL_SECRET>" in res["reply_text"]
+    assert any("987123456" in m.text for m in adapter.sent_messages)
+
+
+def test_telegram_pair_command_authorizes_operator(tg_test_env, monkeypatch):
+    """User sending /pair <secret> securely authorizes their Telegram account without redeployment."""
+    orchestrator = tg_test_env["orchestrator"]
+    task_repo = tg_test_env["task_repo"]
+    platform_repo = tg_test_env["platform_repo"]
+    adapter = tg_test_env["adapter"]
+
+    secret = "pratham-secure-approval-secret-key-12345"
+    monkeypatch.setattr(settings, "HUMAN_APPROVAL_SECRET", secret)
+
+    user_id = "888123456"
+
+    # 1. Invalid secret is rejected
+    fail_event = ChatEvent(
+        event_id="tg_upd_pair_fail",
+        platform=PlatformType.TELEGRAM,
+        conversation_id="priv_conv_pair",
+        user_id=user_id,
+        user_display_name="प्रथम |||",
+        message_text="/pair wrong-secret-token",
+        mention_type=MentionType.DIRECT_MESSAGE,
+        raw_payload={"message": {"chat": {"type": "private"}}},
+    )
+    fail_res = orchestrator.handle_chat_event(fail_event)
+    assert fail_res["status"] == "pairing_failed"
+    assert platform_repo.is_authorized_reviewer(PlatformType.TELEGRAM, user_id) is False
+
+    # 2. Valid secret authorizes the user
+    pair_event = ChatEvent(
+        event_id="tg_upd_pair_ok",
+        platform=PlatformType.TELEGRAM,
+        conversation_id="priv_conv_pair",
+        user_id=user_id,
+        user_display_name="प्रथम |||",
+        message_text=f"/pair {secret}",
+        mention_type=MentionType.DIRECT_MESSAGE,
+        raw_payload={"message": {"chat": {"type": "private"}}},
+    )
+    ok_res = orchestrator.handle_chat_event(pair_event)
+    assert ok_res["status"] == "paired"
+    assert ok_res["user_id"] == user_id
+    assert platform_repo.is_authorized_reviewer(PlatformType.TELEGRAM, user_id, workspace_id="ws_personal_default") is True
+
+    # 3. User can now successfully approve tasks
+    exec_event = ChatEvent(
+        event_id="tg_upd_pair_exec",
+        platform=PlatformType.TELEGRAM,
+        conversation_id="priv_conv_pair",
+        user_id=user_id,
+        message_text="Execute the improvements",
+        mention_type=MentionType.DIRECT_MESSAGE,
+        raw_payload={"message": {"chat": {"type": "private"}}},
+    )
+    exec_res = orchestrator.handle_chat_event(exec_event)
+    task_id = exec_res["task_id"]
+
+    cb_token = generate_approval_callback_data("approve", task_id)
+    approve_event = ChatEvent(
+        event_id="tg_cb_pair_approve",
+        platform=PlatformType.TELEGRAM,
+        conversation_id="priv_conv_pair",
+        user_id=user_id,
+        message_text="Button click: approve",
+        mention_type=MentionType.ACTION,
+        action_id="approve_task",
+        action_value=task_id,
+        raw_payload={"callback_query": {"data": cb_token}},
+    )
+    appr_res = orchestrator.handle_chat_event(approve_event)
+    assert appr_res["status"] == "approved"
+    assert task_repo.get_task(task_id).status == TaskStatus.COMPLETED
+
+
+
 
