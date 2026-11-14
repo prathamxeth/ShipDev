@@ -50,11 +50,28 @@ class TelegramOIDCService:
     ) -> str:
         """Construct the official Telegram OpenID Connect authorization URL with PKCE."""
         code_challenge = generate_pkce_challenge(code_verifier)
-        client_id = self.client_id or "shipdev_bot"
+
+        # Telegram oauth.telegram.org requires the numeric bot_id
+        # Extract numeric bot ID if client_id is digits, or from settings.TELEGRAM_BOT_TOKEN (<bot_id>:<secret>)
+        bot_id = None
+        if self.client_id and str(self.client_id).strip().isdigit():
+            bot_id = str(self.client_id).strip()
+        elif getattr(settings, "TELEGRAM_BOT_TOKEN", None) and ":" in str(settings.TELEGRAM_BOT_TOKEN):
+            prefix = str(settings.TELEGRAM_BOT_TOKEN).split(":", 1)[0].strip()
+            if prefix.isdigit():
+                bot_id = prefix
+
+        effective_client_id = bot_id or (str(self.client_id).strip() if self.client_id else "shipdev_bot")
+
+        parsed = httpx.URL(redirect_uri)
+        origin = f"{parsed.scheme}://{parsed.netloc}" if parsed.scheme and parsed.netloc else redirect_uri
 
         params = {
-            "client_id": client_id,
+            "client_id": effective_client_id,
+            "bot_id": effective_client_id,
+            "origin": origin,
             "redirect_uri": redirect_uri,
+            "return_to": redirect_uri,
             "response_type": "code",
             "scope": "openid profile",
             "state": state,
@@ -62,7 +79,7 @@ class TelegramOIDCService:
             "code_challenge": code_challenge,
             "code_challenge_method": "S256",
         }
-        query_string = "&".join(f"{k}={httpx.URL('', params={k: v}).query.decode('utf-8')}" for k, v in params.items())
+        query_string = httpx.URL("", params=params).query.decode("utf-8")
         return f"https://oauth.telegram.org/auth?{query_string}"
 
     async def exchange_and_verify(

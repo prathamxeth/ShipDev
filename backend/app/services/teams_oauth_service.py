@@ -67,7 +67,7 @@ class TeamsOAuthService:
             "code_challenge_method": "S256",
             "prompt": prompt,
         }
-        query_string = "&".join(f"{k}={httpx.URL('', params={k: v}).query.decode('utf-8')}" for k, v in params.items())
+        query_string = httpx.URL("", params=params).query.decode("utf-8")
         return f"{self.authority_url}/authorize?{query_string}"
 
     async def exchange_and_verify(
