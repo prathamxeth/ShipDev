@@ -9,6 +9,7 @@ import urllib.request
 import uuid
 from typing import Any, Dict, Optional
 from app.adapters.base import BasePlatformAdapter
+from app.core.approval_tokens import generate_approval_callback_data
 from app.core.config import settings
 from app.models.platform import (
     ChatEvent,
@@ -62,7 +63,7 @@ class TelegramAdapter(BasePlatformAdapter):
             action_id = "unknown_action"
             action_value = None
             if ":" in cb_data:
-                parts = cb_data.split(":", 1)
+                parts = cb_data.split(":")
                 action_id = f"{parts[0]}_task"
                 action_value = parts[1]
 
@@ -263,11 +264,11 @@ class TelegramAdapter(BasePlatformAdapter):
             [
                 {
                     "text": "✅ Approve & Ship",
-                    "callback_data": f"approve:{payload.task_id}",
+                    "callback_data": generate_approval_callback_data("approve", payload.task_id),
                 },
                 {
                     "text": "❌ Request Changes",
-                    "callback_data": f"reject:{payload.task_id}",
+                    "callback_data": generate_approval_callback_data("reject", payload.task_id),
                 },
             ]
         ]
@@ -311,6 +312,27 @@ class TelegramAdapter(BasePlatformAdapter):
                 platform=PlatformType.TELEGRAM,
                 error=f"Failed sending Telegram review card: {str(e)}",
             )
+
+    def answer_callback_query(self, callback_query_id: str, text: Optional[str] = None) -> bool:
+        """Acknowledge Telegram callback query to dismiss loading state in client."""
+        if not self.bot_token or not callback_query_id:
+            return False
+        url = f"https://api.telegram.org/bot{self.bot_token}/answerCallbackQuery"
+        body = {"callback_query_id": callback_query_id}
+        if text:
+            body["text"] = text[:200]
+        try:
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(body).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=5.0) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                return bool(data.get("ok"))
+        except Exception:
+            return False
 
     def is_configured(self) -> bool:
         return bool(self.bot_token)

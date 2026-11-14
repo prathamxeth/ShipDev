@@ -3,6 +3,7 @@
 import time
 from typing import Any, Dict, List, Optional
 from app.agents.registry import SpecialistAgentRegistry
+from app.core.approval_tokens import verify_approval_callback_data
 from app.core.intent_classifier import UniversalIntentClassifier
 from app.core.platform_gateway import PlatformGateway
 from app.core.state_machine import CallerType, TaskStatus
@@ -260,20 +261,22 @@ class UniversalOrchestrator:
         }
 
     def handle_review_action(self, event: ChatEvent) -> Dict[str, Any]:
-        """Handle human review interactive decisions (Approve & Ship / Request Changes)."""
+        """Handle human review interactive decisions (Approve & Ship / Request Changes).
+
+        Enforces:
+        1. Cryptographic token validation and expiration.
+        2. Task state replay protection (must be in AWAITING_HUMAN_APPROVAL).
+        3. Strict workspace reviewer authorization bound to verified numeric user ID.
+        4. Complete audit trail in approval_records and task_transitions.
+        """
         task_id = event.action_value
         action = event.action_id or ""
 
         if not task_id:
             return {"status": "error", "message": "Missing task_id in action value"}
 
-        # 1. Server-Side Identity & Reviewer Authorization Check
-        is_authorized = self.platform_repo.is_authorized_reviewer(
-            platform=event.platform,
-            user_id=event.user_id,
-            user_handle=event.user_handle,
-        )
-        if not is_authorized:
+        # 1. Platform-level reviewer authorization check (fail-closed for unauthorized callers)
+        if not self.platform_repo.is_authorized_reviewer(platform=event.platform, user_id=event.user_id):
             self.gateway.send_outbound(
                 OutboundMessage(
                     platform=event.platform,
@@ -289,13 +292,93 @@ class UniversalOrchestrator:
             )
             return {"status": "unauthorized", "user_id": event.user_id}
 
-        # 2. Fetch task to verify existence and determine workspace scope
+        # 2. Cryptographic Token Validation & Expiration Check
+        cb_data = (event.raw_payload or {}).get("callback_query", {}).get("data")
+        if cb_data:
+            is_valid, token_act, token_tid, err_reason = verify_approval_callback_data(cb_data)
+            if not is_valid:
+                if err_reason and "expired" in err_reason.lower():
+                    self.gateway.send_outbound(
+                        OutboundMessage(
+                            platform=event.platform,
+                            conversation_id=event.conversation_id,
+                            thread_id=event.thread_id,
+                            text=(
+                                f"⛔ **Approval Expired:** The review decision token for `{task_id}` has expired. "
+                                "Please re-trigger verification or review in the workspace."
+                            ),
+                            task_id=task_id,
+                        )
+                    )
+                    return {"status": "expired", "task_id": task_id, "detail": err_reason}
+                else:
+                    self.gateway.send_outbound(
+                        OutboundMessage(
+                            platform=event.platform,
+                            conversation_id=event.conversation_id,
+                            thread_id=event.thread_id,
+                            text=(
+                                f"⛔ **Invalid Approval Token:** Cryptographic validation failed for review callback on `{task_id}`. "
+                                "Callback data has been rejected."
+                            ),
+                            task_id=task_id,
+                        )
+                    )
+                    return {"status": "invalid_token", "task_id": task_id, "detail": err_reason}
+
+        # 3. Fetch task to verify existence and determine workspace scope
         try:
             task = self.task_repo.get_task(task_id)
         except Exception:
             return {"status": "error", "message": f"Task '{task_id}' not found"}
 
-        # 2. Process Approval Decision
+        # 4. Strict Workspace Reviewer Authorization Check Scoped to Task Workspace
+        is_ws_authorized = self.platform_repo.is_authorized_reviewer(
+            platform=event.platform,
+            user_id=event.user_id,
+            workspace_id=task.workspace_id,
+        )
+        if not is_ws_authorized:
+            self.gateway.send_outbound(
+                OutboundMessage(
+                    platform=event.platform,
+                    conversation_id=event.conversation_id,
+                    thread_id=event.thread_id,
+                    text=(
+                        f"⛔ **Permission Denied:** User `{event.user_display_name or event.user_id}` "
+                        f"is not an authorized reviewer for workspace `{task.workspace_id}`. Human review decisions "
+                        "require a designated operator role."
+                    ),
+                    task_id=task_id,
+                )
+            )
+            return {"status": "unauthorized", "user_id": event.user_id, "workspace_id": task.workspace_id}
+
+        # 5. Replay Protection: Task must be currently in AWAITING_HUMAN_APPROVAL
+        if task.status != TaskStatus.AWAITING_HUMAN_APPROVAL:
+            self.gateway.send_outbound(
+                OutboundMessage(
+                    platform=event.platform,
+                    conversation_id=event.conversation_id,
+                    thread_id=event.thread_id,
+                    text=(
+                        f"⛔ **Replay Protected:** Decision already recorded. Task `{task_id}` "
+                        f"is currently in `{task.status.value}` status."
+                    ),
+                    task_id=task_id,
+                )
+            )
+            return {"status": "replay_rejected", "task_id": task_id, "current_status": task.status.value}
+
+        # Acknowledge Telegram callback query if present
+        if event.platform == PlatformType.TELEGRAM and event.raw_payload:
+            cb_id = event.raw_payload.get("callback_query", {}).get("id")
+            if cb_id:
+                tg_adapter = self.gateway.get_adapter(PlatformType.TELEGRAM)
+                if tg_adapter and hasattr(tg_adapter, "answer_callback_query"):
+                    tg_adapter.answer_callback_query(cb_id, text="Review decision processed.")
+
+        # 5. Process Approval Decision
         if "approve" in action.lower():
             try:
                 # Transition AWAITING_HUMAN_APPROVAL -> APPROVED -> COMPLETED
@@ -336,7 +419,7 @@ class UniversalOrchestrator:
             except Exception as e:
                 return {"status": "error", "detail": str(e)}
 
-        # 3. Process Rejection & Revision Loop
+        # 6. Process Rejection & Revision Loop
         elif "reject" in action.lower():
             try:
                 feedback = "Reviewer requested changes to candidate solution."

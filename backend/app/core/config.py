@@ -70,6 +70,8 @@ class Settings(BaseModel):
 
     TELEGRAM_BOT_TOKEN: Optional[str] = os.getenv("TELEGRAM_BOT_TOKEN")
     TELEGRAM_WEBHOOK_SECRET: Optional[str] = os.getenv("TELEGRAM_WEBHOOK_SECRET")
+    TELEGRAM_OPERATOR_USER_ID: Optional[str] = os.getenv("TELEGRAM_OPERATOR_USER_ID")
+    TELEGRAM_OPERATOR_WORKSPACE_ID: str = os.getenv("TELEGRAM_OPERATOR_WORKSPACE_ID", "ws_personal_default")
 
     @model_validator(mode="after")
     def validate_security_credentials(self) -> "Settings":

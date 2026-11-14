@@ -35,8 +35,9 @@ orchestrator = UniversalOrchestrator(gateway=gateway, platform_repo=_platform_re
 class RoleAssignPayload(BaseModel):
     platform: PlatformType
     user_id: str
-    role: str
+    role: str = "operator"
     user_handle: Optional[str] = None
+    workspace_id: Optional[str] = None
 
 
 @router.post("/{platform}/webhook", summary="Inbound platform webhook receiver")
@@ -118,20 +119,24 @@ async def list_reviewer_roles(
 async def assign_reviewer_role(
     payload: RoleAssignPayload,
     auth: Any = Depends(get_api_key_or_human_secret),
+    x_workspace_id: Optional[str] = Header(None, alias="X-Workspace-ID"),
 ):
     """Assign an authorized reviewer role to a platform user (Requires authenticated operator/admin secret)."""
+    target_ws = (payload.workspace_id or x_workspace_id or "ws_personal_default").strip()
     return _platform_repo.assign_reviewer_role(
         platform=payload.platform,
         user_id=payload.user_id,
         role=payload.role,
         assigned_by="authenticated-operator",
         user_handle=payload.user_handle,
+        workspace_id=target_ws,
     )
 
 
 class ConnectPlatformPayload(BaseModel):
     account_name: Optional[str] = None
     target_name: Optional[str] = None
+    operator_user_id: Optional[str] = None
 
 
 @router.get(
@@ -297,6 +302,15 @@ async def connect_platform_endpoint(
         account_name=account,
         target_name=target,
     )
+
+    if payload and payload.operator_user_id:
+        _platform_repo.assign_reviewer_role(
+            platform=platform,
+            user_id=str(payload.operator_user_id).strip(),
+            role="operator",
+            assigned_by="workspace-owner",
+            workspace_id=workspace_id,
+        )
 
     connections = await get_platform_connections(x_workspace_id=workspace_id)
     matched = next((c for c in connections if c.platform == platform), None)

@@ -93,10 +93,11 @@ CREATE TABLE IF NOT EXISTS reviewer_role_assignments (
     user_handle TEXT,
     role TEXT NOT NULL,
     assigned_by TEXT NOT NULL,
-    created_at TEXT NOT NULL
+    created_at TEXT NOT NULL,
+    workspace_id TEXT NOT NULL DEFAULT 'ws_personal_default'
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_rev_roles_plat_user ON reviewer_role_assignments(platform, user_id, role);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_rev_roles_plat_user_ws ON reviewer_role_assignments(platform, user_id, role, workspace_id);
 
 CREATE TABLE IF NOT EXISTS processed_chat_events (
     event_id TEXT PRIMARY KEY,
@@ -323,6 +324,27 @@ def migrate_workspaces_schema(conn: sqlite3.Connection) -> None:
             """,
             (f"mem_personal_{settings.HUMAN_OPERATOR_IDENTITY}", settings.HUMAN_OPERATOR_IDENTITY, now),
         )
+
+    # 6. Auto-provision Telegram operator reviewer role if configured in settings
+    if getattr(settings, "TELEGRAM_OPERATOR_USER_ID", None):
+        op_ids = [i.strip() for i in settings.TELEGRAM_OPERATOR_USER_ID.split(",") if i.strip()]
+        target_ws_conf = getattr(settings, "TELEGRAM_OPERATOR_WORKSPACE_ID", "ws_personal_default").strip()
+        workspaces_to_seed = (
+            ["ws_personal_default", "ws_team_default"]
+            if target_ws_conf in ("*", "all", "both")
+            else [w.strip() for w in target_ws_conf.split(",") if w.strip()]
+        )
+        for op_id in op_ids:
+            for ws_id in workspaces_to_seed:
+                role_id = f"rev_tg_{op_id}_{ws_id}"
+                conn.execute(
+                    """
+                    INSERT OR IGNORE INTO reviewer_role_assignments
+                    (id, platform, user_id, user_handle, role, assigned_by, created_at, workspace_id)
+                    VALUES (?, 'telegram', ?, 'operator', 'operator', 'server-config', ?, ?);
+                    """,
+                    (role_id, op_id, now, ws_id),
+                )
 
 
 def init_db(db_path: Optional[str] = None) -> None:

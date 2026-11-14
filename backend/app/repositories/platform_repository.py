@@ -4,6 +4,7 @@ import sqlite3
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set
+from app.core.config import settings
 from app.db.session import get_connection
 from app.models.platform import (
     ConversationTaskMapping,
@@ -205,7 +206,7 @@ class PlatformRepository:
         role_id = str(uuid.uuid4())
         now = datetime.now(timezone.utc).isoformat()
         plat_val = platform.value if isinstance(platform, PlatformType) else platform
-        ws_id = workspace_id or "ws_team_default"
+        ws_id = workspace_id or "*"
 
         with get_connection(self.db_path) as conn:
             with conn:
@@ -213,7 +214,7 @@ class PlatformRepository:
                     """
                     INSERT INTO reviewer_role_assignments (id, platform, user_id, user_handle, role, assigned_by, created_at, workspace_id)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    ON CONFLICT(platform, user_id, role) DO UPDATE SET
+                    ON CONFLICT DO UPDATE SET
                         user_handle = excluded.user_handle,
                         assigned_by = excluded.assigned_by,
                         workspace_id = excluded.workspace_id
@@ -232,18 +233,37 @@ class PlatformRepository:
         )
 
     def get_user_roles(
-        self, platform: PlatformType, user_id: str, user_handle: Optional[str] = None
+        self,
+        platform: PlatformType,
+        user_id: str,
+        user_handle: Optional[str] = None,
+        workspace_id: Optional[str] = None,
     ) -> Set[str]:
-        """Fetch all authorized roles for a given platform user by ID or handle."""
+        """Fetch all authorized roles for a given platform user.
+
+        Security Invariant: Reviewer authorization binds strictly to verified user_id.
+        User handle is never used to elevate privileges.
+        """
         plat_val = platform.value if isinstance(platform, PlatformType) else platform
+        clean_user_id = str(user_id).strip()
         with get_connection(self.db_path) as conn:
-            cursor = conn.execute(
-                """
-                SELECT role FROM reviewer_role_assignments
-                WHERE platform = ? AND (user_id = ? OR (? IS NOT NULL AND user_handle = ?))
-                """,
-                (plat_val, user_id, user_handle, user_handle),
-            )
+            if workspace_id:
+                cursor = conn.execute(
+                    """
+                    SELECT role FROM reviewer_role_assignments
+                    WHERE platform = ? AND user_id = ?
+                      AND (workspace_id = ? OR workspace_id IN ('*', 'all', 'both'))
+                    """,
+                    (plat_val, clean_user_id, workspace_id.strip()),
+                )
+            else:
+                cursor = conn.execute(
+                    """
+                    SELECT role FROM reviewer_role_assignments
+                    WHERE platform = ? AND user_id = ?
+                    """,
+                    (plat_val, clean_user_id),
+                )
             return {row["role"].lower() for row in cursor.fetchall()}
 
     def is_authorized_reviewer(
@@ -252,9 +272,40 @@ class PlatformRepository:
         user_id: str,
         allowed_roles: Optional[Set[str]] = None,
         user_handle: Optional[str] = None,
+        workspace_id: Optional[str] = None,
     ) -> bool:
-        """Check if user has at least one of the allowed roles (defaults to admin, lead, operator, reviewer, manager, maintainer, owner)."""
-        roles = self.get_user_roles(platform, user_id, user_handle=user_handle)
+        """Check if user has at least one of the allowed roles within authorized workspace.
+
+        Security Invariants:
+        1. Reviewer identity binds strictly to verified platform numeric user_id.
+        2. Personal Workspace and Team Workspace reviewer permissions remain strictly isolated.
+        3. Never authorizes users based on display names, usernames, or unauthenticated callback data.
+        """
+        plat_val = platform.value if isinstance(platform, PlatformType) else platform
+        clean_user_id = str(user_id).strip()
+        if not clean_user_id:
+            return False
+
+        # 1. Environment-level designated operator binding (Render / production)
+        if plat_val == PlatformType.TELEGRAM.value and getattr(settings, "TELEGRAM_OPERATOR_USER_ID", None):
+            op_config = settings.TELEGRAM_OPERATOR_USER_ID.strip()
+            authorized_ids = {i.strip() for i in op_config.split(",") if i.strip()}
+            if clean_user_id in authorized_ids:
+                target_ws = getattr(settings, "TELEGRAM_OPERATOR_WORKSPACE_ID", "ws_personal_default").strip()
+                allowed_workspaces = {w.strip() for w in target_ws.split(",") if w.strip()}
+                if (
+                    not workspace_id
+                    or "*" in allowed_workspaces
+                    or "all" in allowed_workspaces
+                    or "both" in allowed_workspaces
+                    or workspace_id.strip() in allowed_workspaces
+                ):
+                    return True
+
+        # 2. Database reviewer_role_assignments strictly scoped to workspace
+        roles = self.get_user_roles(
+            platform, clean_user_id, workspace_id=workspace_id
+        )
         if allowed_roles:
             return bool(roles.intersection({r.lower() for r in allowed_roles}))
         keywords = {"admin", "lead", "operator", "reviewer", "manager", "maintainer", "owner"}

@@ -5,6 +5,7 @@ workspace isolation, human approval gates, and webhook idempotency.
 import json
 import pytest
 from unittest.mock import MagicMock, patch
+from app.core.approval_tokens import generate_approval_callback_data, verify_approval_callback_data
 from fastapi.testclient import TestClient
 
 from app.adapters.telegram_adapter import TelegramAdapter
@@ -749,5 +750,329 @@ def test_telegram_deep_link_workspace_isolation(monkeypatch, tmp_path):
 
         assert next(c for c in check_p if c["platform"] == "telegram")["connected"] is True
         assert next(c for c in check_t if c["platform"] == "telegram")["connected"] is False
+
+
+# =============================================================================
+# 7. Telegram Human Approval Authorization & Security Tests
+# =============================================================================
+
+def test_telegram_authorized_workspace_owner_approval_via_settings(tg_test_env, monkeypatch):
+    """Authorized workspace owner configured in settings can approve task and ship."""
+    orchestrator = tg_test_env["orchestrator"]
+    task_repo = tg_test_env["task_repo"]
+    adapter = tg_test_env["adapter"]
+
+    owner_user_id = "777888999"
+    monkeypatch.setattr(settings, "TELEGRAM_OPERATOR_USER_ID", owner_user_id)
+    monkeypatch.setattr(settings, "TELEGRAM_OPERATOR_WORKSPACE_ID", "ws_personal_default")
+
+    # 1. Create task reaching AWAITING_HUMAN_APPROVAL
+    exec_event = ChatEvent(
+        event_id="tg_upd_owner_exec",
+        platform=PlatformType.TELEGRAM,
+        conversation_id="priv_conv_owner",
+        user_id=owner_user_id,
+        user_handle="workspace_owner",
+        message_text="Execute the improvements",
+        mention_type=MentionType.DIRECT_MESSAGE,
+        raw_payload={"message": {"chat": {"type": "private"}}},
+    )
+    exec_res = orchestrator.handle_chat_event(exec_event)
+    task_id = exec_res["task_id"]
+
+    # Verify task is awaiting approval
+    task_before = task_repo.get_task(task_id, workspace_id="ws_personal_default")
+    assert task_before.status == TaskStatus.AWAITING_HUMAN_APPROVAL
+
+    # 2. Owner clicks [ Approve & Ship ] with valid cryptographic token
+    cb_token = generate_approval_callback_data("approve", task_id, expires_in_seconds=3600)
+    approve_event = ChatEvent(
+        event_id="tg_cb_owner_approve",
+        platform=PlatformType.TELEGRAM,
+        conversation_id="priv_conv_owner",
+        user_id=owner_user_id,
+        user_handle="workspace_owner",
+        message_text="Button click: approve",
+        mention_type=MentionType.ACTION,
+        action_id="approve_task",
+        action_value=task_id,
+        raw_payload={"callback_query": {"id": "cb_query_1", "data": cb_token}},
+    )
+
+    action_res = orchestrator.handle_chat_event(approve_event)
+    assert action_res["status"] == "approved"
+    assert action_res["task_id"] == task_id
+
+    # 3. Verify task is COMPLETED
+    task_after = task_repo.get_task(task_id, workspace_id="ws_personal_default")
+    assert task_after.status == TaskStatus.COMPLETED
+
+    # 4. Verify approval recorded against correct task and operator
+    approvals = task_repo.get_approval_records_for_task(task_id)
+    assert len(approvals) == 1
+    assert approvals[0].task_id == task_id
+    assert approvals[0].decision == "approved"
+    assert approvals[0].reviewer_id == f"telegram:{owner_user_id}"
+
+
+def test_telegram_unauthorized_user_cannot_approve(tg_test_env):
+    """Unauthorized Telegram user is rejected with permission denied; task remains untouched."""
+    orchestrator = tg_test_env["orchestrator"]
+    task_repo = tg_test_env["task_repo"]
+    adapter = tg_test_env["adapter"]
+
+    # 1. Create task awaiting approval
+    exec_event = ChatEvent(
+        event_id="tg_upd_unauth_exec",
+        platform=PlatformType.TELEGRAM,
+        conversation_id="priv_conv_test",
+        user_id="111222333",
+        message_text="Execute the improvements",
+        mention_type=MentionType.DIRECT_MESSAGE,
+        raw_payload={"message": {"chat": {"type": "private"}}},
+    )
+    exec_res = orchestrator.handle_chat_event(exec_event)
+    task_id = exec_res["task_id"]
+
+    # 2. Unauthorized attacker clicks [ Approve & Ship ]
+    cb_token = generate_approval_callback_data("approve", task_id, expires_in_seconds=3600)
+    attacker_event = ChatEvent(
+        event_id="tg_cb_attacker_click",
+        platform=PlatformType.TELEGRAM,
+        conversation_id="priv_conv_test",
+        user_id="999000111",  # Unregistered, unauthorized user
+        user_handle="attacker_spoof",
+        message_text="Button click: approve",
+        mention_type=MentionType.ACTION,
+        action_id="approve_task",
+        action_value=task_id,
+        raw_payload={"callback_query": {"id": "cb_attacker", "data": cb_token}},
+    )
+
+    action_res = orchestrator.handle_chat_event(attacker_event)
+    assert action_res["status"] == "unauthorized"
+
+    # Task must NOT be approved
+    task = task_repo.get_task(task_id, workspace_id="ws_personal_default")
+    assert task.status == TaskStatus.AWAITING_HUMAN_APPROVAL
+
+    # Zero approval records created
+    approvals = task_repo.get_approval_records_for_task(task_id)
+    assert len(approvals) == 0
+
+
+def test_telegram_team_workspace_user_cannot_approve_personal_task(tg_test_env):
+    """Team workspace user cannot approve Personal Workspace tasks without explicit permission."""
+    orchestrator = tg_test_env["orchestrator"]
+    task_repo = tg_test_env["task_repo"]
+    platform_repo = tg_test_env["platform_repo"]
+
+    team_user_id = "555666777"
+    # Pre-authorize user ONLY for Team workspace
+    platform_repo.assign_reviewer_role(
+        platform=PlatformType.TELEGRAM,
+        user_id=team_user_id,
+        role="operator",
+        workspace_id="ws_team_default",
+    )
+
+    # Create task in Personal workspace
+    exec_event = ChatEvent(
+        event_id="tg_upd_iso_exec",
+        platform=PlatformType.TELEGRAM,
+        conversation_id="priv_conv_iso",
+        user_id="111222",
+        message_text="Execute the improvements",
+        mention_type=MentionType.DIRECT_MESSAGE,
+        raw_payload={"message": {"chat": {"type": "private"}}},
+    )
+    exec_res = orchestrator.handle_chat_event(exec_event)
+    task_id = exec_res["task_id"]
+
+    # Verify task belongs to Personal workspace
+    task = task_repo.get_task(task_id)
+    assert task.workspace_id == "ws_personal_default"
+
+    # Team user attempts to approve Personal workspace task
+    cb_token = generate_approval_callback_data("approve", task_id, expires_in_seconds=3600)
+    team_approve_event = ChatEvent(
+        event_id="tg_cb_team_cross_approve",
+        platform=PlatformType.TELEGRAM,
+        conversation_id="priv_conv_iso",
+        user_id=team_user_id,
+        message_text="Button click: approve",
+        mention_type=MentionType.ACTION,
+        action_id="approve_task",
+        action_value=task_id,
+        raw_payload={"callback_query": {"data": cb_token}},
+    )
+
+    action_res = orchestrator.handle_chat_event(team_approve_event)
+    assert action_res["status"] == "unauthorized"
+
+    # Task remains in AWAITING_HUMAN_APPROVAL
+    task_after = task_repo.get_task(task_id, workspace_id="ws_personal_default")
+    assert task_after.status == TaskStatus.AWAITING_HUMAN_APPROVAL
+
+
+def test_telegram_expired_approval_callback_rejected(tg_test_env, monkeypatch):
+    """Expired approval callbacks are strictly rejected fail-closed."""
+    orchestrator = tg_test_env["orchestrator"]
+    task_repo = tg_test_env["task_repo"]
+
+    owner_user_id = "888999111"
+    monkeypatch.setattr(settings, "TELEGRAM_OPERATOR_USER_ID", owner_user_id)
+
+    # Create task awaiting approval
+    exec_event = ChatEvent(
+        event_id="tg_upd_exp_exec",
+        platform=PlatformType.TELEGRAM,
+        conversation_id="priv_conv_exp",
+        user_id=owner_user_id,
+        message_text="Execute the improvements",
+        mention_type=MentionType.DIRECT_MESSAGE,
+        raw_payload={"message": {"chat": {"type": "private"}}},
+    )
+    exec_res = orchestrator.handle_chat_event(exec_event)
+    task_id = exec_res["task_id"]
+
+    # Generate an expired callback token (expired 60 seconds ago)
+    expired_token = generate_approval_callback_data("approve", task_id, expires_in_seconds=-60)
+    expired_event = ChatEvent(
+        event_id="tg_cb_expired_click",
+        platform=PlatformType.TELEGRAM,
+        conversation_id="priv_conv_exp",
+        user_id=owner_user_id,
+        message_text="Button click: approve",
+        mention_type=MentionType.ACTION,
+        action_id="approve_task",
+        action_value=task_id,
+        raw_payload={"callback_query": {"data": expired_token}},
+    )
+
+    action_res = orchestrator.handle_chat_event(expired_event)
+    assert action_res["status"] == "expired"
+
+    # Task must remain unapproved
+    task = task_repo.get_task(task_id, workspace_id="ws_personal_default")
+    assert task.status == TaskStatus.AWAITING_HUMAN_APPROVAL
+
+
+def test_telegram_replayed_approval_callback_rejected(tg_test_env, monkeypatch):
+    """Replayed approval callbacks on already completed tasks are rejected."""
+    orchestrator = tg_test_env["orchestrator"]
+    task_repo = tg_test_env["task_repo"]
+
+    owner_user_id = "888999222"
+    monkeypatch.setattr(settings, "TELEGRAM_OPERATOR_USER_ID", owner_user_id)
+
+    exec_event = ChatEvent(
+        event_id="tg_upd_replay_exec",
+        platform=PlatformType.TELEGRAM,
+        conversation_id="priv_conv_replay",
+        user_id=owner_user_id,
+        message_text="Execute the improvements",
+        mention_type=MentionType.DIRECT_MESSAGE,
+        raw_payload={"message": {"chat": {"type": "private"}}},
+    )
+    exec_res = orchestrator.handle_chat_event(exec_event)
+    task_id = exec_res["task_id"]
+
+    cb_token = generate_approval_callback_data("approve", task_id, expires_in_seconds=3600)
+
+    # 1. First approval succeeds
+    click1 = ChatEvent(
+        event_id="tg_cb_replay_click1",
+        platform=PlatformType.TELEGRAM,
+        conversation_id="priv_conv_replay",
+        user_id=owner_user_id,
+        message_text="Button click: approve",
+        mention_type=MentionType.ACTION,
+        action_id="approve_task",
+        action_value=task_id,
+        raw_payload={"callback_query": {"data": cb_token}},
+    )
+    res1 = orchestrator.handle_chat_event(click1)
+    assert res1["status"] == "approved"
+
+    # 2. Replay same approval on completed task
+    click2 = ChatEvent(
+        event_id="tg_cb_replay_click2",
+        platform=PlatformType.TELEGRAM,
+        conversation_id="priv_conv_replay",
+        user_id=owner_user_id,
+        message_text="Button click: approve",
+        mention_type=MentionType.ACTION,
+        action_id="approve_task",
+        action_value=task_id,
+        raw_payload={"callback_query": {"data": cb_token}},
+    )
+    res2 = orchestrator.handle_chat_event(click2)
+    assert res2["status"] == "replay_rejected"
+
+
+def test_telegram_request_changes_follows_same_authorization_checks(tg_test_env, monkeypatch):
+    """Request Changes follows the exact same authorization, token, and audit checks as approval."""
+    orchestrator = tg_test_env["orchestrator"]
+    task_repo = tg_test_env["task_repo"]
+
+    owner_user_id = "888999333"
+    monkeypatch.setattr(settings, "TELEGRAM_OPERATOR_USER_ID", owner_user_id)
+
+    exec_event = ChatEvent(
+        event_id="tg_upd_changes_exec",
+        platform=PlatformType.TELEGRAM,
+        conversation_id="priv_conv_changes",
+        user_id=owner_user_id,
+        message_text="Execute the improvements",
+        mention_type=MentionType.DIRECT_MESSAGE,
+        raw_payload={"message": {"chat": {"type": "private"}}},
+    )
+    exec_res = orchestrator.handle_chat_event(exec_event)
+    task_id = exec_res["task_id"]
+
+    reject_token = generate_approval_callback_data("reject", task_id, expires_in_seconds=3600)
+
+    # 1. Unauthorized user attempting Request Changes is rejected
+    unauth_reject = ChatEvent(
+        event_id="tg_cb_unauth_reject",
+        platform=PlatformType.TELEGRAM,
+        conversation_id="priv_conv_changes",
+        user_id="unauthorized_actor",
+        message_text="Button click: reject",
+        mention_type=MentionType.ACTION,
+        action_id="reject_task",
+        action_value=task_id,
+        raw_payload={"callback_query": {"data": reject_token}},
+    )
+    res_unauth = orchestrator.handle_chat_event(unauth_reject)
+    assert res_unauth["status"] == "unauthorized"
+    assert task_repo.get_task(task_id).status == TaskStatus.AWAITING_HUMAN_APPROVAL
+
+    # 2. Authorized owner clicking Request Changes succeeds
+    auth_reject = ChatEvent(
+        event_id="tg_cb_auth_reject",
+        platform=PlatformType.TELEGRAM,
+        conversation_id="priv_conv_changes",
+        user_id=owner_user_id,
+        message_text="Button click: reject",
+        mention_type=MentionType.ACTION,
+        action_id="reject_task",
+        action_value=task_id,
+        raw_payload={"callback_query": {"data": reject_token}},
+    )
+    res_auth = orchestrator.handle_chat_event(auth_reject)
+    assert res_auth["status"] == "revision_requested"
+
+    # Task transitions back to FIX_PROPOSED
+    task_after = task_repo.get_task(task_id)
+    assert task_after.status == TaskStatus.FIX_PROPOSED
+
+    # Rejection recorded in approval_records table
+    approvals = task_repo.get_approval_records_for_task(task_id)
+    assert len(approvals) == 1
+    assert approvals[0].decision == "rejected"
+    assert approvals[0].reviewer_id == f"telegram:{owner_user_id}"
+
 
 
