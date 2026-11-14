@@ -346,3 +346,68 @@ def test_authorized_user_rejects_task_initiating_revision(test_env):
 
     # Revision message sent to chat
     assert any("Revision Requested" in m.text for m in slack_mock.outbound_messages)
+
+
+def test_discord_and_slack_instant_pairing_flow(tmp_path, monkeypatch):
+    """Verify /pair commands on Discord and Slack authorize operator and sync connected account."""
+    db_file = str(tmp_path / "test_discord_slack_pair.db")
+    init_db(db_file)
+    task_repo = TaskRepository(db_file)
+    platform_repo = PlatformRepository(db_file)
+    from app.core.config import settings
+
+    secret = "human-gate-key-092dad4bd98666850024de1e1dc8ae95"
+    monkeypatch.setattr(settings, "HUMAN_APPROVAL_SECRET", secret)
+
+    gateway = PlatformGateway(repository=platform_repo)
+    discord_mock = MockRecordingAdapter(PlatformType.DISCORD)
+    slack_mock = MockRecordingAdapter(PlatformType.SLACK)
+    gateway.register_adapter(discord_mock)
+    gateway.register_adapter(slack_mock)
+
+    orc = UniversalOrchestrator(
+        gateway=gateway,
+        task_repo=task_repo,
+        platform_repo=platform_repo,
+    )
+
+    # 1. Discord instant pairing
+    d_event = ChatEvent(
+        event_id="d_pair_1",
+        platform=PlatformType.DISCORD,
+        conversation_id="ch_dev_1",
+        user_id="999888777",
+        user_display_name="Discord Dev",
+        user_handle="discord_dev",
+        message_text=f"!pair {secret}",
+        mention_type=MentionType.DIRECT_MESSAGE,
+        raw_payload={},
+    )
+    res_d = orc.handle_chat_event(d_event)
+    assert res_d["status"] == "paired"
+    assert res_d["workspace_id"] == "ws_personal_default"
+    assert platform_repo.is_authorized_reviewer(PlatformType.DISCORD, "999888777", "ws_personal_default") is True
+    acc_d = orc.conn_repo.get_connected_account("ws_personal_default", "discord")
+    assert acc_d is not None
+    assert acc_d.external_user_id == "999888777"
+    assert acc_d.reviewer_role_authorized is True
+
+    # 2. Slack instant pairing
+    s_event = ChatEvent(
+        event_id="s_pair_1",
+        platform=PlatformType.SLACK,
+        conversation_id="C_SLACK_ENG",
+        user_id="U09988776",
+        user_display_name="Slack Dev",
+        message_text=f"@ShipDev pair {secret}",
+        mention_type=MentionType.MENTION,
+        raw_payload={},
+    )
+    res_s = orc.handle_chat_event(s_event)
+    assert res_s["status"] == "paired"
+    assert res_s["workspace_id"] == "ws_team_default"
+    assert platform_repo.is_authorized_reviewer(PlatformType.SLACK, "U09988776", "ws_team_default") is True
+    acc_s = orc.conn_repo.get_connected_account("ws_team_default", "slack")
+    assert acc_s is not None
+    assert acc_s.external_user_id == "U09988776"
+    assert acc_s.reviewer_role_authorized is True

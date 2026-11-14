@@ -57,21 +57,39 @@ def _get_telegram_bot_username() -> str:
     return "Shipdev_bot"
 
 
-@router.get("/telegram/pair-info", summary="Get Telegram Bot deep-link and pairing command")
-async def get_telegram_pair_info(
+@router.get("/{platform}/pair-info", summary="Get platform instant bot deep-link and pairing command")
+async def get_platform_pair_info(
+    platform: str,
     x_workspace_id: Optional[str] = Header("ws_personal_default", alias="X-Workspace-ID"),
 ):
-    """Return instant bot deep-link URL and pre-filled pairing command for Telegram.
-
-    Eliminates fragile oauth.telegram.org phone prompts and domain mismatch errors.
-    """
+    """Return instant bot deep-link URL and pre-filled pairing command for Telegram, Teams, Discord, or Slack."""
+    plat = platform.lower().strip()
     workspace_id = _resolve_workspace_id(x_workspace_id)
-    bot_username = _get_telegram_bot_username()
     secret = settings.HUMAN_APPROVAL_SECRET or settings.API_SECRET_KEY or "human-gate-key-092dad4bd98666850024de1e1dc8ae95"
-    deep_link = f"https://t.me/{bot_username}?start=pair_{secret}"
     pairing_command = f"/pair {secret}"
 
+    if plat == "telegram":
+        bot_username = _get_telegram_bot_username().lstrip("@")
+        deep_link = f"https://t.me/{bot_username}?start=pair_{secret}"
+    elif plat == "teams":
+        app_id = getattr(settings, "TEAMS_APP_ID", None) or "shipdev-assistant"
+        deep_link = f"https://teams.microsoft.com/l/chat/0/0?users=28:{app_id}"
+        bot_username = "ShipDev Teams Assistant"
+    elif plat == "discord":
+        client_id = "123456789012345678"
+        deep_link = f"https://discord.com/oauth2/authorize?client_id={client_id}&permissions=274878024768&scope=bot%20applications.commands"
+        bot_username = "ShipDev Discord Bot"
+    elif plat == "slack":
+        deep_link = "https://slack.com"
+        bot_username = "@ShipDev"
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unsupported pairing platform '{platform}'.",
+        )
+
     return {
+        "platform": plat,
         "bot_username": bot_username,
         "deep_link": deep_link,
         "pairing_command": pairing_command,

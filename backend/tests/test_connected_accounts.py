@@ -503,3 +503,26 @@ def test_telegram_pair_info_endpoint(conn_test_env, monkeypatch):
     assert data["workspace_id"] == "ws_personal_default"
 
 
+def test_all_platforms_pair_info_endpoints(conn_test_env, monkeypatch):
+    """Verify pair-info returns valid deep-links and commands for teams, discord, and slack."""
+    client = conn_test_env["client"]
+    from app.core.config import settings
+
+    secret = "human-gate-key-092dad4bd98666850024de1e1dc8ae95"
+    monkeypatch.setattr(settings, "HUMAN_APPROVAL_SECRET", secret)
+    monkeypatch.setattr(settings, "TEAMS_APP_ID", "test-teams-app-uuid")
+
+    for plat in ("teams", "discord", "slack"):
+        resp = client.get(
+            f"/api/v1/connected-accounts/{plat}/pair-info",
+            headers={"X-Workspace-ID": "ws_team_default"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["platform"] == plat
+        assert data["pairing_secret"] == secret
+        assert data["pairing_command"] == f"/pair {secret}"
+        assert "http" in data["deep_link"]
+
+
+

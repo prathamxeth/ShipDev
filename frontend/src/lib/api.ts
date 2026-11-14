@@ -14,6 +14,7 @@ import {
   Evidence,
   EvidenceCreate,
   OAuthAuthorizeResponse,
+  PlatformPairInfo,
   TelegramPairInfo,
   PlatformConnectionInfo,
   PlatformHealthItem,
@@ -585,15 +586,25 @@ export async function getConnectedAccounts(workspaceId?: string): Promise<Connec
 }
 
 /**
+ * Retrieve instant platform bot pairing link and pre-filled command (Telegram, Teams, Discord, Slack)
+ */
+export async function getPlatformPairInfo(
+  platform: PlatformType,
+  workspaceId?: string
+): Promise<PlatformPairInfo> {
+  const targetWs = workspaceId || currentActiveWorkspaceId;
+  return request<PlatformPairInfo>(`${API_BASE_URL}/connected-accounts/${platform}/pair-info`, {
+    headers: { "X-Workspace-ID": targetWs },
+  });
+}
+
+/**
  * Retrieve instant Telegram Bot pairing link and pre-filled command
  */
 export async function getTelegramPairInfo(
   workspaceId?: string
 ): Promise<TelegramPairInfo> {
-  const targetWs = workspaceId || currentActiveWorkspaceId;
-  return request<TelegramPairInfo>(`${API_BASE_URL}/connected-accounts/telegram/pair-info`, {
-    headers: { "X-Workspace-ID": targetWs },
-  });
+  return getPlatformPairInfo("telegram", workspaceId);
 }
 
 /**

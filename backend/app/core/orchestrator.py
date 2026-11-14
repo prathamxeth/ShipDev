@@ -414,23 +414,40 @@ class UniversalOrchestrator:
                 "reply_text": info_text,
             }
 
-        # 0b. Explicit Pairing Command: /pair <secret> or /authorize <secret>
-        pair_match = re.match(r"^/(?:pair|authorize|claim)\s+(.+)$", text_stripped, re.IGNORECASE)
+        # 0b. Explicit Pairing Command: /pair <secret>, @ShipDev pair <secret>, or /authorize <secret>
+        pair_match = re.match(
+            r"^(?:<@[A-Z0-9]+>\s+|@ShipDev\s+|/shipdev\s+|!|/)?(?:pair|authorize|claim)\s+(?:pair_)?(.+)$",
+            text_stripped,
+            re.IGNORECASE,
+        )
         if pair_match:
-            candidate_secret = pair_match.group(1).strip()
+            candidate_payload = pair_match.group(1).strip()
+            if candidate_payload.lower().startswith("pair_"):
+                candidate_payload = candidate_payload[5:].strip()
+
             valid_secrets = set()
             if settings.HUMAN_APPROVAL_SECRET:
                 valid_secrets.add(settings.HUMAN_APPROVAL_SECRET.strip())
             if settings.API_SECRET_KEY:
                 valid_secrets.add(settings.API_SECRET_KEY.strip())
 
-            is_secret_valid = any(
-                hmac.compare_digest(candidate_secret, s)
-                for s in valid_secrets
-                if s and not is_insecure_placeholder(s)
-            )
+            ws_match = re.match(r"^(ws_[a-zA-Z0-9_-]+)_(.+)$", candidate_payload)
+            matched_secret = None
+            if ws_match:
+                candidate_ws, sub_secret = ws_match.groups()
+                for s in valid_secrets:
+                    if s and not is_insecure_placeholder(s) and hmac.compare_digest(sub_secret, s):
+                        target_ws = candidate_ws
+                        matched_secret = sub_secret
+                        break
 
-            if is_secret_valid:
+            if not matched_secret:
+                for s in valid_secrets:
+                    if s and not is_insecure_placeholder(s) and hmac.compare_digest(candidate_payload, s):
+                        matched_secret = candidate_payload
+                        break
+
+            if matched_secret:
                 self.platform_repo.assign_reviewer_role(
                     platform=PlatformType.TEAMS,
                     user_id=event.user_id,
@@ -439,6 +456,22 @@ class UniversalOrchestrator:
                     user_handle=event.user_handle,
                     workspace_id=target_ws,
                 )
+
+                # Upsert native connected account & sync platform_connections summary
+                try:
+                    self.conn_repo.upsert_connected_account(
+                        workspace_id=target_ws,
+                        user_id="user_default_owner",
+                        platform="teams",
+                        external_user_id=str(event.user_id),
+                        external_username=event.user_handle or f"teams_{event.user_id}",
+                        external_display_name=event.user_display_name or event.user_handle or f"Teams User {event.user_id}",
+                        bot_messaging_authorized=True,
+                        bot_installed=True,
+                    )
+                except Exception as ex:
+                    logger.warning(f"[TEAMS_PAIRING] Failed to upsert connected account: {ex}")
+
                 success_text = (
                     f"✅ **Account Successfully Authorized as Workspace Operator!**\n\n"
                     f"• **Teams User:** `{event.user_display_name or event.user_id}`\n"
@@ -572,6 +605,252 @@ class UniversalOrchestrator:
             "reply_text": assistant_resp.reply_text,
         }
 
+    def handle_discord_assistant_turn(self, event: ChatEvent) -> Optional[Dict[str, Any]]:
+        """Route incoming Discord messages for identity lookup and instant /pair authorization."""
+        target_ws = "ws_personal_default"
+        text_stripped = event.message_text.strip()
+
+        # 0a. Identity Lookup: /id, /whoami, id
+        if text_stripped.lower() in ("/id", "/whoami", "/myid", "id", "whoami", "my id", "!id", "!whoami"):
+            info_text = (
+                f"👤 **Your Verified Discord Identity:**\n\n"
+                f"• **Display Name:** `{event.user_display_name or 'N/A'}`\n"
+                f"• **Discord User ID:** `{event.user_id}`\n"
+                f"• **Username:** @{event.user_handle or 'none'}\n\n"
+                f"**How to Authorize This Account:**\n"
+                f"1. **Instant Pairing:** Send `/pair <YOUR_HUMAN_APPROVAL_SECRET>` in this channel or DM.\n"
+                f"2. **Render Environment:** Add to your Render backend Environment Variables:\n"
+                f"   `DISCORD_OPERATOR_USER_ID={event.user_id}`"
+            )
+            self.gateway.send_outbound(
+                OutboundMessage(
+                    platform=event.platform,
+                    conversation_id=event.conversation_id,
+                    thread_id=event.thread_id,
+                    text=info_text,
+                )
+            )
+            return {
+                "status": "assistant_reply",
+                "category": "conversation",
+                "workspace_id": target_ws,
+                "reply_text": info_text,
+            }
+
+        # 0b. Explicit Pairing Command: /pair <secret>, !pair <secret>, or @ShipDev pair <secret>
+        pair_match = re.match(
+            r"^(?:<@[A-Z0-9]+>\s+|@ShipDev\s+|/shipdev\s+|!|/)?(?:pair|authorize|claim)\s+(?:pair_)?(.+)$",
+            text_stripped,
+            re.IGNORECASE,
+        )
+        if pair_match:
+            candidate_payload = pair_match.group(1).strip()
+            if candidate_payload.lower().startswith("pair_"):
+                candidate_payload = candidate_payload[5:].strip()
+
+            valid_secrets = set()
+            if settings.HUMAN_APPROVAL_SECRET:
+                valid_secrets.add(settings.HUMAN_APPROVAL_SECRET.strip())
+            if settings.API_SECRET_KEY:
+                valid_secrets.add(settings.API_SECRET_KEY.strip())
+
+            ws_match = re.match(r"^(ws_[a-zA-Z0-9_-]+)_(.+)$", candidate_payload)
+            matched_secret = None
+            if ws_match:
+                candidate_ws, sub_secret = ws_match.groups()
+                for s in valid_secrets:
+                    if s and not is_insecure_placeholder(s) and hmac.compare_digest(sub_secret, s):
+                        target_ws = candidate_ws
+                        matched_secret = sub_secret
+                        break
+
+            if not matched_secret:
+                for s in valid_secrets:
+                    if s and not is_insecure_placeholder(s) and hmac.compare_digest(candidate_payload, s):
+                        matched_secret = candidate_payload
+                        break
+
+            if matched_secret:
+                self.platform_repo.assign_reviewer_role(
+                    platform=PlatformType.DISCORD,
+                    user_id=event.user_id,
+                    role="operator",
+                    assigned_by="authenticated-pairing",
+                    user_handle=event.user_handle,
+                    workspace_id=target_ws,
+                )
+                try:
+                    self.conn_repo.upsert_connected_account(
+                        workspace_id=target_ws,
+                        user_id="user_default_owner",
+                        platform="discord",
+                        external_user_id=str(event.user_id),
+                        external_username=event.user_handle or f"user_{event.user_id}",
+                        external_display_name=event.user_display_name or event.user_handle or f"Discord User {event.user_id}",
+                        bot_messaging_authorized=True,
+                        bot_installed=True,
+                    )
+                except Exception as ex:
+                    logger.warning(f"[DISCORD_PAIRING] Failed to upsert connected account: {ex}")
+
+                success_text = (
+                    f"✅ **Discord Account Successfully Authorized as Workspace Operator!**\n\n"
+                    f"• **Discord User:** `{event.user_display_name or event.user_id}`\n"
+                    f"• **Discord ID:** `{event.user_id}`\n"
+                    f"• **Workspace:** `{target_ws}`\n"
+                    f"• **Role:** `operator` (Authorized Reviewer)\n\n"
+                    "You can now click **[ ✅ Approve & Ship ]** on Discord review cards to authorize production fixes."
+                )
+                self.gateway.send_outbound(
+                    OutboundMessage(
+                        platform=event.platform,
+                        conversation_id=event.conversation_id,
+                        thread_id=event.thread_id,
+                        text=success_text,
+                    )
+                )
+                return {
+                    "status": "paired",
+                    "workspace_id": target_ws,
+                    "user_id": event.user_id,
+                    "reply_text": success_text,
+                }
+            else:
+                fail_text = "⛔ **Pairing Failed:** Invalid secret key. Access denied."
+                self.gateway.send_outbound(
+                    OutboundMessage(
+                        platform=event.platform,
+                        conversation_id=event.conversation_id,
+                        thread_id=event.thread_id,
+                        text=fail_text,
+                    )
+                )
+                return {"status": "pairing_failed", "reply_text": fail_text}
+
+        return None
+
+    def handle_slack_assistant_turn(self, event: ChatEvent) -> Optional[Dict[str, Any]]:
+        """Route incoming Slack messages for identity lookup and instant /pair authorization."""
+        target_ws = "ws_team_default"
+        text_stripped = event.message_text.strip()
+
+        # 0a. Identity Lookup: /id, /whoami, id
+        if text_stripped.lower() in ("/id", "/whoami", "/myid", "id", "whoami", "my id", "@shipdev id", "@shipdev whoami"):
+            info_text = (
+                f"👤 **Your Verified Slack Identity:**\n\n"
+                f"• **Display Name:** `{event.user_display_name or 'N/A'}`\n"
+                f"• **Slack User ID:** `{event.user_id}`\n\n"
+                f"**How to Authorize This Account:**\n"
+                f"1. **Instant Pairing:** Send `/pair <YOUR_HUMAN_APPROVAL_SECRET>` or `@ShipDev pair <SECRET>` in this channel.\n"
+                f"2. **Render Environment:** Add to your Render backend Environment Variables:\n"
+                f"   `SLACK_OPERATOR_USER_ID={event.user_id}`"
+            )
+            self.gateway.send_outbound(
+                OutboundMessage(
+                    platform=event.platform,
+                    conversation_id=event.conversation_id,
+                    thread_id=event.thread_id,
+                    text=info_text,
+                )
+            )
+            return {
+                "status": "assistant_reply",
+                "category": "conversation",
+                "workspace_id": target_ws,
+                "reply_text": info_text,
+            }
+
+        # 0b. Explicit Pairing Command: /pair <secret>, @ShipDev pair <secret>, or /shipdev pair <secret>
+        pair_match = re.match(
+            r"^(?:<@[A-Z0-9]+>\s+|@ShipDev\s+|/shipdev\s+|!|/)?(?:pair|authorize|claim)\s+(?:pair_)?(.+)$",
+            text_stripped,
+            re.IGNORECASE,
+        )
+        if pair_match:
+            candidate_payload = pair_match.group(1).strip()
+            if candidate_payload.lower().startswith("pair_"):
+                candidate_payload = candidate_payload[5:].strip()
+
+            valid_secrets = set()
+            if settings.HUMAN_APPROVAL_SECRET:
+                valid_secrets.add(settings.HUMAN_APPROVAL_SECRET.strip())
+            if settings.API_SECRET_KEY:
+                valid_secrets.add(settings.API_SECRET_KEY.strip())
+
+            ws_match = re.match(r"^(ws_[a-zA-Z0-9_-]+)_(.+)$", candidate_payload)
+            matched_secret = None
+            if ws_match:
+                candidate_ws, sub_secret = ws_match.groups()
+                for s in valid_secrets:
+                    if s and not is_insecure_placeholder(s) and hmac.compare_digest(sub_secret, s):
+                        target_ws = candidate_ws
+                        matched_secret = sub_secret
+                        break
+
+            if not matched_secret:
+                for s in valid_secrets:
+                    if s and not is_insecure_placeholder(s) and hmac.compare_digest(candidate_payload, s):
+                        matched_secret = candidate_payload
+                        break
+
+            if matched_secret:
+                self.platform_repo.assign_reviewer_role(
+                    platform=PlatformType.SLACK,
+                    user_id=event.user_id,
+                    role="operator",
+                    assigned_by="authenticated-pairing",
+                    user_handle=event.user_handle,
+                    workspace_id=target_ws,
+                )
+                try:
+                    self.conn_repo.upsert_connected_account(
+                        workspace_id=target_ws,
+                        user_id="user_default_owner",
+                        platform="slack",
+                        external_user_id=str(event.user_id),
+                        external_username=event.user_handle or f"user_{event.user_id}",
+                        external_display_name=event.user_display_name or event.user_handle or f"Slack User {event.user_id}",
+                        bot_messaging_authorized=True,
+                        bot_installed=True,
+                    )
+                except Exception as ex:
+                    logger.warning(f"[SLACK_PAIRING] Failed to upsert connected account: {ex}")
+
+                success_text = (
+                    f"✅ **Slack Account Successfully Authorized as Workspace Operator!**\n\n"
+                    f"• **Slack User ID:** `{event.user_id}`\n"
+                    f"• **Workspace:** `{target_ws}`\n"
+                    f"• **Role:** `operator` (Authorized Reviewer)\n\n"
+                    "You can now click **[ ✅ Approve & Ship ]** on Slack Block Kit review cards to authorize production fixes."
+                )
+                self.gateway.send_outbound(
+                    OutboundMessage(
+                        platform=event.platform,
+                        conversation_id=event.conversation_id,
+                        thread_id=event.thread_id,
+                        text=success_text,
+                    )
+                )
+                return {
+                    "status": "paired",
+                    "workspace_id": target_ws,
+                    "user_id": event.user_id,
+                    "reply_text": success_text,
+                }
+            else:
+                fail_text = "⛔ **Pairing Failed:** Invalid secret key. Access denied."
+                self.gateway.send_outbound(
+                    OutboundMessage(
+                        platform=event.platform,
+                        conversation_id=event.conversation_id,
+                        thread_id=event.thread_id,
+                        text=fail_text,
+                    )
+                )
+                return {"status": "pairing_failed", "reply_text": fail_text}
+
+        return None
+
     def handle_chat_event(self, event: ChatEvent) -> Dict[str, Any]:
         """Main entrypoint for processing any verified incoming chat event."""
         # 1. Route interactive human review decisions (Approve / Reject buttons)
@@ -588,6 +867,18 @@ class UniversalOrchestrator:
             or event.message_text.strip().startswith("@ShipDev ")
         ):
             return self.handle_teams_assistant_turn(event)
+
+        # 2c. For Discord messages: check pairing / identity commands
+        if event.platform == PlatformType.DISCORD:
+            discord_turn = self.handle_discord_assistant_turn(event)
+            if discord_turn:
+                return discord_turn
+
+        # 2d. For Slack messages: check pairing / identity commands
+        if event.platform == PlatformType.SLACK:
+            slack_turn = self.handle_slack_assistant_turn(event)
+            if slack_turn:
+                return slack_turn
 
         # 3. Check for active conversation task in thread
         active_mapping = self.platform_repo.get_active_mapping(

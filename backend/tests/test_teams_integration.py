@@ -677,6 +677,12 @@ def test_teams_pair_command_authorizes_operator(teams_test_env, monkeypatch):
     sent = adapter.sent_messages[-1]
     assert "Account Successfully Authorized as Workspace Operator" in sent.text
 
+    # Connected account is persisted and synchronized
+    account = orchestrator.conn_repo.get_connected_account("ws_team_default", "teams")
+    assert account is not None
+    assert account.external_user_id == user_id
+    assert account.reviewer_role_authorized is True
+
 
 # =========================================================================
 # 9. Teams Webhook HTTP Endpoints & Connected Apps Integration

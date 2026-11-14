@@ -20,7 +20,7 @@ import {
   Check,
   Copy,
 } from "lucide-react";
-import { PlatformConnectionInfo, PlatformType, PlatformMapping, ConnectedAccount, TelegramPairInfo } from "@/types";
+import { PlatformConnectionInfo, PlatformType, PlatformMapping, ConnectedAccount, PlatformPairInfo } from "@/types";
 import {
   getPlatformConnections,
   connectPlatform,
@@ -28,7 +28,7 @@ import {
   getPlatformMappings,
   getConnectedAccounts,
   initiateOAuthFlow,
-  getTelegramPairInfo,
+  getPlatformPairInfo,
   disconnectConnectedAccount,
   authorizeAccountOperator,
 } from "@/lib/api";
@@ -58,8 +58,8 @@ export function PlatformsManagementPanel({
   // Disconnect Confirmation State
   const [disconnectingPlatform, setDisconnectingPlatform] = useState<PlatformType | null>(null);
 
-  // Instant Telegram Bot Pairing Modal State
-  const [telegramPairModal, setTelegramPairModal] = useState<TelegramPairInfo | null>(null);
+  // Instant Platform Bot Pairing Modal State (Telegram, Teams, Discord, Slack)
+  const [pairingModal, setPairingModal] = useState<PlatformPairInfo | null>(null);
   const [copiedPairCommand, setCopiedPairCommand] = useState(false);
   const [pairSuccess, setPairSuccess] = useState(false);
 
@@ -86,31 +86,32 @@ export function PlatformsManagementPanel({
     loadData();
   }, [loadData, activeWorkspaceType]);
 
-  // Poll connection status while Telegram pairing modal is open
+  // Poll connection status while pairing modal is open
   useEffect(() => {
-    if (!telegramPairModal) return;
+    if (!pairingModal) return;
+    const targetPlat = pairingModal.platform;
     const interval = setInterval(async () => {
       try {
         const [connList, accountsList] = await Promise.all([
           getPlatformConnections().catch(() => []),
           getConnectedAccounts().catch(() => []),
         ]);
-        const tgConn = connList.find((c) => c.platform === "telegram" && c.connected);
-        const tgAcc = accountsList.find((a) => a.platform === "telegram");
-        if (tgConn || tgAcc) {
+        const platConn = connList.find((c) => c.platform === targetPlat && c.connected);
+        const platAcc = accountsList.find((a) => a.platform === targetPlat);
+        if (platConn || platAcc) {
           setConnections(connList);
           setConnectedAccounts(accountsList);
           setPairSuccess(true);
           setTimeout(() => {
-            setTelegramPairModal(null);
+            setPairingModal(null);
             setPairSuccess(false);
-            setActionSuccess("✓ Successfully paired with @Shipdev_bot as Workspace Operator!");
+            setActionSuccess(`✓ Successfully paired with ${pairingModal.bot_username} as Workspace Operator!`);
           }, 1500);
         }
       } catch (_) {}
     }, 2000);
     return () => clearInterval(interval);
-  }, [telegramPairModal]);
+  }, [pairingModal]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -182,12 +183,12 @@ export function PlatformsManagementPanel({
     }
   };
 
-  // Instant Telegram Bot Pairing (Deep-link & pre-filled /pair command)
-  const handleConnectTelegram = async () => {
+  // Universal Instant Platform Bot Pairing (Telegram, Teams, Discord, Slack)
+  const handleConnectPlatform = async (platform: PlatformType) => {
     setIsProcessing(true);
     setActionError(null);
     try {
-      const info = await getTelegramPairInfo();
+      const info = await getPlatformPairInfo(platform);
       // Auto-copy pre-filled /pair command to clipboard
       if (typeof navigator !== "undefined" && navigator.clipboard) {
         try {
@@ -195,20 +196,35 @@ export function PlatformsManagementPanel({
         } catch (_) {}
       }
       // Open bot chat directly
-      if (typeof window !== "undefined") {
+      if (typeof window !== "undefined" && info.deep_link) {
         window.open(info.deep_link, "_blank");
       }
-      setTelegramPairModal(info);
+      setPairingModal(info);
       setCopiedPairCommand(true);
       setTimeout(() => setCopiedPairCommand(false), 3000);
     } catch (err: any) {
       const fallbackSecret = "human-gate-key-092dad4bd98666850024de1e1dc8ae95";
-      const fallbackInfo: TelegramPairInfo = {
-        bot_username: "Shipdev_bot",
-        deep_link: `https://t.me/Shipdev_bot?start=pair_${fallbackSecret}`,
+      const fallbackInfo: PlatformPairInfo = {
+        platform,
+        bot_username:
+          platform === "telegram"
+            ? "Shipdev_bot"
+            : platform === "teams"
+            ? "ShipDev Teams Assistant"
+            : platform === "discord"
+            ? "ShipDev Discord Bot"
+            : "@ShipDev",
+        deep_link:
+          platform === "telegram"
+            ? `https://t.me/Shipdev_bot?start=pair_${fallbackSecret}`
+            : platform === "teams"
+            ? "https://teams.microsoft.com"
+            : platform === "discord"
+            ? "https://discord.com"
+            : "https://slack.com",
         pairing_command: `/pair ${fallbackSecret}`,
         pairing_secret: fallbackSecret,
-        workspace_id: "ws_personal_default",
+        workspace_id: activeWorkspaceType === "PERSONAL" ? "ws_personal_default" : "ws_team_default",
       };
       if (typeof navigator !== "undefined" && navigator.clipboard) {
         try {
@@ -218,7 +234,7 @@ export function PlatformsManagementPanel({
       if (typeof window !== "undefined") {
         window.open(fallbackInfo.deep_link, "_blank");
       }
-      setTelegramPairModal(fallbackInfo);
+      setPairingModal(fallbackInfo);
     } finally {
       setIsProcessing(false);
     }
@@ -599,7 +615,7 @@ export function PlatformsManagementPanel({
                       {plat === "telegram" ? (
                         <>
                           <button
-                            onClick={handleConnectTelegram}
+                            onClick={() => handleConnectPlatform("telegram")}
                             disabled={isProcessing}
                             className="px-4 py-2 rounded-clay-md bg-[#229ED9] hover:bg-[#1E8BC3] text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shadow-clay-soft"
                           >
@@ -618,40 +634,59 @@ export function PlatformsManagementPanel({
                       ) : plat === "teams" ? (
                         <>
                           <button
-                            onClick={() => handleLaunchOAuth("teams")}
+                            onClick={() => handleConnectPlatform("teams")}
                             disabled={isProcessing}
                             className="px-4 py-2 rounded-clay-md bg-[#5B5FC7] hover:bg-[#4E52B2] text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shadow-clay-soft"
                           >
                             <Sparkles className="w-3.5 h-3.5" />
-                            <span>Connect Microsoft Account</span>
+                            <span>Connect Teams (1-Click Bot)</span>
                           </button>
-                          <button
-                            onClick={() => handleStartConnect(plat)}
-                            className="text-[11px] text-clay-muted hover:text-clay-ink font-medium cursor-pointer"
+                          <a
+                            href={conn?.chat_url || "https://teams.microsoft.com"}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[11px] text-clay-muted hover:text-clay-ink font-medium cursor-pointer flex items-center gap-1"
                           >
-                            Bot Setup
+                            <span>Open in Teams ↗</span>
+                          </a>
+                        </>
+                      ) : plat === "discord" ? (
+                        <>
+                          <button
+                            onClick={() => handleConnectPlatform("discord")}
+                            disabled={isProcessing}
+                            className="px-4 py-2 rounded-clay-md bg-[#5865F2] hover:bg-[#4752C4] text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shadow-clay-soft"
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>Connect Discord (1-Click Bot)</span>
                           </button>
+                          <a
+                            href={conn?.connect_url || "https://discord.com"}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[11px] text-clay-muted hover:text-clay-ink font-medium cursor-pointer flex items-center gap-1"
+                          >
+                            <span>Invite bot ↗</span>
+                          </a>
                         </>
                       ) : (
                         <>
                           <button
-                            onClick={() => handleStartConnect(plat)}
-                            className="px-4 py-2 rounded-clay-md bg-clay-primary hover:bg-clay-primary-active text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shadow-clay-soft"
+                            onClick={() => handleConnectPlatform("slack")}
+                            disabled={isProcessing}
+                            className="px-4 py-2 rounded-clay-md bg-[#4A154B] hover:bg-[#3D113E] text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shadow-clay-soft"
                           >
-                            <span>Connect {getPlatformDisplayName(plat)}</span>
-                            <ArrowRight className="w-3 h-3" />
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>Connect Slack (1-Click Bot)</span>
                           </button>
-
-                          {plat === "discord" && (
-                            <a
-                              href={conn?.connect_url || "https://discord.com"}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-[11px] text-clay-muted hover:text-clay-ink font-medium cursor-pointer flex items-center gap-1"
-                            >
-                              <span>Invite bot ↗</span>
-                            </a>
-                          )}
+                          <a
+                            href={conn?.chat_url || "https://slack.com"}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[11px] text-clay-muted hover:text-clay-ink font-medium cursor-pointer flex items-center gap-1"
+                          >
+                            <span>Open in Slack ↗</span>
+                          </a>
                         </>
                       )}
                     </>
@@ -791,7 +826,7 @@ export function PlatformsManagementPanel({
                       type="button"
                       onClick={() => {
                         setConnectingPlatform(null);
-                        handleConnectTelegram();
+                        handleConnectPlatform("telegram");
                       }}
                       className="mt-1 px-3 py-1.5 rounded-clay-md bg-[#229ED9] hover:bg-[#1E8BC3] text-white text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer shadow-clay-soft"
                     >
@@ -897,26 +932,24 @@ export function PlatformsManagementPanel({
           </div>
         )}
 
-        {/* Instant Telegram Bot Pairing Modal */}
-        {telegramPairModal && (
+        {/* Instant Platform Bot Pairing Modal (Telegram, Teams, Discord, Slack) */}
+        {pairingModal && (
           <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
             <div className="bg-white rounded-clay-xl border border-clay-hairline shadow-clay-card max-w-md w-full p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150">
               <div className="flex items-center justify-between border-b border-clay-hairline pb-3">
                 <div className="flex items-center gap-2.5">
-                  <span className="w-8 h-8 rounded-clay-md bg-[#229ED9]/10 border border-[#229ED9]/25 flex items-center justify-center text-lg shrink-0">
-                    ✈️
-                  </span>
+                  {getPlatformIcon(pairingModal.platform)}
                   <div>
                     <h3 className="text-sm font-bold text-clay-ink">
-                      Instant Telegram Pairing
+                      Instant {getPlatformDisplayName(pairingModal.platform)} Pairing
                     </h3>
                     <p className="text-[11px] text-clay-muted">
-                      Connecting to @{telegramPairModal.bot_username}
+                      Connecting to {pairingModal.bot_username}
                     </p>
                   </div>
                 </div>
                 <button
-                  onClick={() => setTelegramPairModal(null)}
+                  onClick={() => setPairingModal(null)}
                   className="p-1 rounded-clay-md hover:bg-clay-surface-soft text-clay-muted hover:text-clay-ink cursor-pointer"
                 >
                   <X className="w-4 h-4" />
@@ -928,18 +961,22 @@ export function PlatformsManagementPanel({
                   <CheckCircle2 className="w-10 h-10 text-clay-success mx-auto animate-bounce" />
                   <h4 className="text-sm font-bold text-clay-ink">Successfully Paired &amp; Authorized!</h4>
                   <p className="text-xs text-clay-muted">
-                    Your Telegram account is now an authorized workspace operator.
+                    Your {getPlatformDisplayName(pairingModal.platform)} account is now an authorized workspace operator.
                   </p>
                 </div>
               ) : (
                 <div className="space-y-3.5 text-xs text-clay-body">
-                  <div className="p-3 rounded-clay-md bg-[#229ED9]/5 border border-[#229ED9]/20 space-y-1.5">
+                  <div className="p-3 rounded-clay-md bg-clay-surface-soft border border-clay-hairline space-y-1.5">
                     <span className="font-semibold text-clay-ink flex items-center gap-1.5 text-[11px]">
-                      <Sparkles className="w-3.5 h-3.5 text-[#229ED9]" />
-                      Telegram Bot Opened Automatically
+                      <Sparkles className="w-3.5 h-3.5 text-clay-primary" />
+                      {pairingModal.platform === "telegram"
+                        ? "Telegram Bot Opened Automatically"
+                        : `${getPlatformDisplayName(pairingModal.platform)} App Opened`}
                     </span>
                     <p className="text-[11px] text-clay-muted leading-relaxed">
-                      In Telegram, tap <strong className="text-clay-ink">START</strong> to pair instantly, or send this pre-filled command:
+                      {pairingModal.platform === "telegram"
+                        ? "In Telegram, tap START to pair instantly, or send this pre-filled command:"
+                        : `In ${getPlatformDisplayName(pairingModal.platform)}, send this pre-filled command in any chat or channel with @ShipDev:`}
                     </p>
                   </div>
 
@@ -951,7 +988,7 @@ export function PlatformsManagementPanel({
                         type="button"
                         onClick={async () => {
                           try {
-                            await navigator.clipboard.writeText(telegramPairModal.pairing_command);
+                            await navigator.clipboard.writeText(pairingModal.pairing_command);
                             setCopiedPairCommand(true);
                             setTimeout(() => setCopiedPairCommand(false), 2000);
                           } catch (_) {}
@@ -972,12 +1009,12 @@ export function PlatformsManagementPanel({
                       </button>
                     </div>
                     <div className="p-2.5 rounded-clay-md bg-clay-surface-soft border border-clay-hairline font-mono text-[11px] text-clay-ink select-all break-all flex items-center justify-between gap-2">
-                      <code>{telegramPairModal.pairing_command}</code>
+                      <code>{pairingModal.pairing_command}</code>
                       <button
                         type="button"
                         onClick={async () => {
                           try {
-                            await navigator.clipboard.writeText(telegramPairModal.pairing_command);
+                            await navigator.clipboard.writeText(pairingModal.pairing_command);
                             setCopiedPairCommand(true);
                             setTimeout(() => setCopiedPairCommand(false), 2000);
                           } catch (_) {}
@@ -991,24 +1028,28 @@ export function PlatformsManagementPanel({
 
                   {/* Live Status Indicator */}
                   <div className="p-2.5 rounded-clay-md bg-clay-surface-soft border border-clay-hairline flex items-center gap-2.5">
-                    <RefreshCw className="w-3.5 h-3.5 text-[#229ED9] animate-spin shrink-0" />
+                    <RefreshCw className="w-3.5 h-3.5 text-clay-primary animate-spin shrink-0" />
                     <span className="text-[11px] text-clay-muted">
-                      Waiting for Telegram message... (Auto-pairs when you send the command)
+                      Waiting for {getPlatformDisplayName(pairingModal.platform)} message... (Auto-pairs when you send the command)
                     </span>
                   </div>
 
                   <div className="pt-2 flex items-center justify-between gap-2">
-                    <a
-                      href={telegramPairModal.deep_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-[#229ED9] hover:underline font-medium flex items-center gap-1"
-                    >
-                      <span>Re-open in Telegram ↗</span>
-                    </a>
+                    {pairingModal.deep_link ? (
+                      <a
+                        href={pairingModal.deep_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-clay-primary hover:underline font-medium flex items-center gap-1"
+                      >
+                        <span>Open in {getPlatformDisplayName(pairingModal.platform)} ↗</span>
+                      </a>
+                    ) : (
+                      <div />
+                    )}
                     <button
                       type="button"
-                      onClick={() => setTelegramPairModal(null)}
+                      onClick={() => setPairingModal(null)}
                       className="px-3 py-1.5 rounded-clay-md border border-clay-hairline bg-white hover:bg-clay-surface-soft text-xs text-clay-ink cursor-pointer"
                     >
                       Done
