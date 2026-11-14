@@ -166,13 +166,13 @@ sequenceDiagram
 VERIFICATION RELIABILITY  | Isolated CLI: 41% vs ShipDev Dual-Agent Oracle: 100%
 HUMAN APPROVAL BOUNDARY   | Auto-Commit CLI: 0% vs ShipDev Fail-Closed Gate: 100%
 ISOLATION OVERHEAD        | Docker VM: ~600MB vs ShipDev Scratch Clone: <1MB (<50ms)
-AUTOMATED TEST COVERAGE   | 169 Backend pytest (2.64s) + 14 Frontend Security Audits
+AUTOMATED TEST COVERAGE   | 225 Backend pytest (4.1s) + 14 Frontend Security Audits
 ```
 
 <details>
-<summary><b>🧪 View Automated Test Coverage (169 Backend + 14 Frontend Security Checks)</b></summary>
+<summary><b>🧪 View Automated Test Coverage (225 Backend + 14 Frontend Security Checks)</b></summary>
 
-* **Backend (`backend/tests/`, 169 passing)**: `test_api.py`, `test_conversation_and_gemini.py`, `test_demo_pipeline.py`, `test_harden.py`, `test_health.py`, `test_persistence.py`, `test_phase2_p1_gateway.py`, `test_phase2_p3_memory.py`, `test_phase2_p5_e2e.py`, `test_phase3_security.py`, `test_sse.py`, `test_state_machine.py`, `test_workspace_isolation.py`.
+* **Backend (`backend/tests/`, 225 passing)**: `test_api.py`, `test_connected_accounts.py`, `test_conversation_and_gemini.py`, `test_demo_pipeline.py`, `test_harden.py`, `test_health.py`, `test_persistence.py`, `test_phase2_p1_gateway.py`, `test_phase2_p2_adapters.py`, `test_phase2_p3_orchestration.py`, `test_phase2_p4_review_delivery.py`, `test_phase2_p5_e2e.py`, `test_phase3_security.py`, `test_sse.py`, `test_state_machine.py`, `test_teams_integration.py`, `test_telegram_gemini.py`, `test_workspace_isolation.py`.
 * **Frontend Security (`frontend/tests/security.test.mjs`, 14 passing)**: Enforces Origin & `Sec-Fetch-Site` anti-CSRF checks, task ID traversal rejection, server-derived reviewer identity anti-spoofing, fail-closed secret verification, and state-machine invariants (`AWAITING_HUMAN_APPROVAL -> APPROVED -> COMPLETED`).
 
 </details>
@@ -209,7 +209,7 @@ python3 scripts/switch_bridge.py --api-base http://127.0.0.1:8000/api/v1 --agent
 | Variable | Scope | Purpose / Default |
 | :--- | :--- | :--- |
 | `API_SECRET_KEY` | Backend, Bridge | Agent claim & evidence bearer key |
-| `HUMAN_APPROVAL_SECRET` | Backend, Frontend BFF | Canonical human gate secret (`human-gate-key-092dad4bd98666850024de1e1dc8ae95`) |
+| `HUMAN_APPROVAL_SECRET` | Backend, Frontend BFF | Server-side human gate bearer secret (configured via .env) |
 | `GEMINI_API_KEY` / `GEMINI_MODEL` | Backend | Google AI Studio key (`gemini-2.0-flash`) |
 | `NEXT_PUBLIC_API_URL` | Frontend | `https://shipdev.onrender.com` (prod) or `http://127.0.0.1:8000` (dev) |
 | `APP_ORIGIN` | Frontend BFF | `https://shipdev-frontend.vercel.app` (+ authorized Vercel preview origins) |

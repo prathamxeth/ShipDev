@@ -203,38 +203,7 @@ export function PlatformsManagementPanel({
       setCopiedPairCommand(true);
       setTimeout(() => setCopiedPairCommand(false), 3000);
     } catch (err: any) {
-      const fallbackSecret = "human-gate-key-092dad4bd98666850024de1e1dc8ae95";
-      const fallbackInfo: PlatformPairInfo = {
-        platform,
-        bot_username:
-          platform === "telegram"
-            ? "Shipdev_bot"
-            : platform === "teams"
-            ? "ShipDev Teams Assistant"
-            : platform === "discord"
-            ? "ShipDev Discord Bot"
-            : "@ShipDev",
-        deep_link:
-          platform === "telegram"
-            ? `https://t.me/Shipdev_bot?start=pair_${fallbackSecret}`
-            : platform === "teams"
-            ? "https://teams.microsoft.com"
-            : platform === "discord"
-            ? "https://discord.com"
-            : "https://slack.com",
-        pairing_command: `/pair ${fallbackSecret}`,
-        pairing_secret: fallbackSecret,
-        workspace_id: activeWorkspaceType === "PERSONAL" ? "ws_personal_default" : "ws_team_default",
-      };
-      if (typeof navigator !== "undefined" && navigator.clipboard) {
-        try {
-          await navigator.clipboard.writeText(fallbackInfo.pairing_command);
-        } catch (_) {}
-      }
-      if (typeof window !== "undefined") {
-        window.open(fallbackInfo.deep_link, "_blank");
-      }
-      setPairingModal(fallbackInfo);
+      setActionError(err.message || `Failed to retrieve instant pairing details for ${platform}. Please check backend connectivity.`);
     } finally {
       setIsProcessing(false);
     }
@@ -820,7 +789,7 @@ export function PlatformsManagementPanel({
                       Pair directly by sending this command to <strong>@Shipdev_bot</strong> in Telegram:
                     </p>
                     <div className="p-2 rounded bg-clay-surface-soft border border-clay-hairline font-mono text-[10px] select-all break-all text-clay-ink flex items-center justify-between">
-                      <code>/pair human-gate-key-092dad4bd98666850024de1e1dc8ae95</code>
+                      <code>/pair &lt;YOUR_APPROVAL_KEY&gt;</code>
                     </div>
                     <button
                       type="button"

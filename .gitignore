@@ -1,12 +1,33 @@
+# Environments & Secrets (Never commit secrets)
 .env
 .env.*
 !.env.example
+*.pem
+*.key
+
+# Python
 .venv/
 __pycache__/
 .pytest_cache/
+*.egg-info/
+*.egg
+build/
+dist/
+
+# Node & Next.js Build Artifacts
 node_modules/
 .next/
-dist/
-.DS_Store
+out/
+*.tsbuildinfo
+
+# Databases & Ephemeral Runtime State
 *.db
+*.db-journal
 *.sqlite3
+scratch/
+*.lock
+
+# OS
+.DS_Store
+Thumbs.db
+
