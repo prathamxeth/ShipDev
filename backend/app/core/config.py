@@ -63,6 +63,8 @@ class Settings(BaseModel):
     TEAMS_APP_PASSWORD: Optional[str] = os.getenv("TEAMS_APP_PASSWORD")
     TEAMS_WEBHOOK_SECRET: Optional[str] = os.getenv("TEAMS_WEBHOOK_SECRET")
     TEAMS_INCOMING_WEBHOOK_URL: Optional[str] = os.getenv("TEAMS_INCOMING_WEBHOOK_URL")
+    TEAMS_OPERATOR_USER_ID: Optional[str] = os.getenv("TEAMS_OPERATOR_USER_ID")
+    TEAMS_OPERATOR_WORKSPACE_ID: str = os.getenv("TEAMS_OPERATOR_WORKSPACE_ID", "ws_team_default")
 
     DISCORD_BOT_TOKEN: Optional[str] = os.getenv("DISCORD_BOT_TOKEN")
     DISCORD_PUBLIC_KEY: Optional[str] = os.getenv("DISCORD_PUBLIC_KEY")

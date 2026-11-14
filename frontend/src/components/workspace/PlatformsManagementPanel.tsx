@@ -42,6 +42,7 @@ export function PlatformsManagementPanel({
   // Connection Dialog State
   const [connectingPlatform, setConnectingPlatform] = useState<PlatformType | null>(null);
   const [selectedTarget, setSelectedTarget] = useState<string>("");
+  const [operatorUserId, setOperatorUserId] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Disconnect Confirmation State
@@ -73,6 +74,7 @@ export function PlatformsManagementPanel({
     setActionError(null);
     setActionSuccess(null);
     setConnectingPlatform(platform);
+    setOperatorUserId("");
     if (platform === "discord") setSelectedTarget("Personal Community Server");
     else if (platform === "telegram") setSelectedTarget("Private Chat");
     else if (platform === "slack") setSelectedTarget("Engineering Workspace");
@@ -95,6 +97,7 @@ export function PlatformsManagementPanel({
           ? "Workspace Bot (@ShipDev)"
           : "Teams Teammate",
         target_name: selectedTarget,
+        operator_user_id: operatorUserId.trim() || undefined,
       });
 
       setActionSuccess(`✓ Successfully connected ${getPlatformDisplayName(connectingPlatform)}! You can now mention ShipDev in conversations.`);
@@ -521,17 +524,36 @@ export function PlatformsManagementPanel({
                 )}
 
                 {connectingPlatform === "teams" && (
-                  <div className="p-3 rounded-clay-md bg-clay-surface-soft border border-clay-hairline flex flex-col gap-1.5">
-                    <span className="font-semibold text-clay-ink text-[11px]">Microsoft Teams Team:</span>
-                    <input
-                      type="text"
-                      value={selectedTarget}
-                      onChange={(e) => setSelectedTarget(e.target.value)}
-                      placeholder="e.g. Engineering"
-                      style={{ outline: "none", boxShadow: "none" }}
-                      className="w-full h-8 px-2.5 rounded-clay-md bg-white border border-clay-hairline text-xs text-clay-ink outline-none focus:outline-none focus:ring-0 shadow-xs"
-                    />
-                  </div>
+                  <>
+                    <div className="p-3 rounded-clay-md bg-clay-surface-soft border border-clay-hairline flex flex-col gap-1.5">
+                      <span className="font-semibold text-clay-ink text-[11px]">Microsoft Teams Team:</span>
+                      <input
+                        type="text"
+                        value={selectedTarget}
+                        onChange={(e) => setSelectedTarget(e.target.value)}
+                        placeholder="e.g. Engineering"
+                        style={{ outline: "none", boxShadow: "none" }}
+                        className="w-full h-8 px-2.5 rounded-clay-md bg-white border border-clay-hairline text-xs text-clay-ink outline-none focus:outline-none focus:ring-0 shadow-xs"
+                      />
+                    </div>
+                    <div className="p-3 rounded-clay-md bg-clay-surface-soft border border-clay-hairline flex flex-col gap-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-clay-ink text-[11px]">Designated Operator ID (optional):</span>
+                        <span className="text-[10px] text-clay-muted">Reviewer Role</span>
+                      </div>
+                      <input
+                        type="text"
+                        value={operatorUserId}
+                        onChange={(e) => setOperatorUserId(e.target.value)}
+                        placeholder="e.g. 29:1234567890abcdef or aadObjectId"
+                        style={{ outline: "none", boxShadow: "none" }}
+                        className="w-full h-8 px-2.5 rounded-clay-md bg-white border border-clay-hairline text-xs text-clay-ink outline-none focus:outline-none focus:ring-0 shadow-xs"
+                      />
+                      <p className="text-[10px] text-clay-muted mt-0.5">
+                        Authorizes this Teams account to click &quot;Approve &amp; Ship&quot; on Adaptive Cards. You can also pair dynamically by sending <code>/pair &lt;secret&gt;</code> in chat.
+                      </p>
+                    </div>
+                  </>
                 )}
               </div>
 

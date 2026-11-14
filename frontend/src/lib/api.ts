@@ -541,7 +541,7 @@ export async function getPlatformConnections(workspaceId?: string): Promise<Plat
  */
 export async function connectPlatform(
   platform: PlatformType,
-  payload?: { account_name?: string; target_name?: string },
+  payload?: { account_name?: string; target_name?: string; operator_user_id?: string },
   workspaceId?: string
 ): Promise<PlatformConnectionInfo> {
   const targetWs = workspaceId || currentActiveWorkspaceId;

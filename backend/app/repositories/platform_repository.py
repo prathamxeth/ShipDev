@@ -286,12 +286,35 @@ class PlatformRepository:
         if not clean_user_id:
             return False
 
+        # Positional compatibility: if caller passed workspace_id or string role as 3rd positional argument
+        if isinstance(allowed_roles, str):
+            if allowed_roles.startswith("ws_") or allowed_roles in ("*", "all", "both"):
+                workspace_id = allowed_roles
+                allowed_roles = None
+            else:
+                allowed_roles = {allowed_roles}
+
         # 1. Environment-level designated operator binding (Render / production)
         if plat_val == PlatformType.TELEGRAM.value and getattr(settings, "TELEGRAM_OPERATOR_USER_ID", None):
             op_config = settings.TELEGRAM_OPERATOR_USER_ID.strip()
             authorized_ids = {i.strip() for i in op_config.split(",") if i.strip()}
             if clean_user_id in authorized_ids:
                 target_ws = getattr(settings, "TELEGRAM_OPERATOR_WORKSPACE_ID", "ws_personal_default").strip()
+                allowed_workspaces = {w.strip() for w in target_ws.split(",") if w.strip()}
+                if (
+                    not workspace_id
+                    or "*" in allowed_workspaces
+                    or "all" in allowed_workspaces
+                    or "both" in allowed_workspaces
+                    or workspace_id.strip() in allowed_workspaces
+                ):
+                    return True
+
+        if plat_val == PlatformType.TEAMS.value and getattr(settings, "TEAMS_OPERATOR_USER_ID", None):
+            op_config = settings.TEAMS_OPERATOR_USER_ID.strip()
+            authorized_ids = {i.strip() for i in op_config.split(",") if i.strip()}
+            if clean_user_id in authorized_ids:
+                target_ws = getattr(settings, "TEAMS_OPERATOR_WORKSPACE_ID", "ws_team_default").strip()
                 allowed_workspaces = {w.strip() for w in target_ws.split(",") if w.strip()}
                 if (
                     not workspace_id

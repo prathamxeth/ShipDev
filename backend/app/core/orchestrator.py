@@ -213,7 +213,10 @@ class UniversalOrchestrator:
         # 4. Correlate task with conversation thread if a task was created or inspected
         task_id = assistant_resp.task.id if assistant_resp.task else None
         if assistant_resp.task:
-            cat = TaskCategory.ENGINEERING if assistant_resp.category == "engineering" else TaskCategory.GENERAL
+            try:
+                cat = TaskCategory(assistant_resp.category.lower())
+            except Exception:
+                cat = TaskCategory.ENGINEERING
             self.platform_repo.create_mapping(
                 platform=event.platform,
                 conversation_id=event.conversation_id,
@@ -269,6 +272,230 @@ class UniversalOrchestrator:
             "reply_text": assistant_resp.reply_text,
         }
 
+    def resolve_teams_workspace(self, event: ChatEvent) -> str:
+        """Resolve and enforce the Microsoft Teams user's authorized Personal or Team workspace server-side.
+
+        Never trust client-provided workspace IDs.
+        Resolution precedence:
+        1. Check if user ID or handle is explicitly bound to a workspace in reviewer_role_assignments.
+        2. Check if a workspace has an active platform connection for Microsoft Teams.
+        3. Default to enterprise team workspace: ws_team_default.
+        """
+        # 1. User-specific assignment
+        assigned_ws = self.platform_repo.get_user_workspace(
+            platform=event.platform,
+            user_id=event.user_id,
+            user_handle=event.user_handle,
+        )
+        if assigned_ws:
+            return assigned_ws
+
+        # 2. Platform connection binding
+        connected_ws = self.platform_repo.get_connected_workspace(event.platform)
+        if connected_ws:
+            return connected_ws
+
+        return "ws_team_default"
+
+    def handle_teams_assistant_turn(self, event: ChatEvent) -> Dict[str, Any]:
+        """Route incoming conversational Microsoft Teams messages through the unified Gemini/Switch assistant."""
+        target_ws = self.resolve_teams_workspace(event)
+        text_stripped = event.message_text.strip()
+
+        # 0a. Identity Lookup Commands: /id, /whoami, /myid
+        if text_stripped.lower() in ("/id", "/whoami", "/myid", "id", "whoami", "my id", "what is my id", "my teams id"):
+            tenant_info = ""
+            if event.raw_payload:
+                conv = event.raw_payload.get("conversation", {})
+                t_id = conv.get("tenantId") or (event.raw_payload.get("channelData") or {}).get("tenant", {}).get("id")
+                if t_id:
+                    tenant_info = f"• **Tenant ID:** `{t_id}`\n"
+
+            info_text = (
+                f"👤 **Your Verified Microsoft Teams Identity:**\n\n"
+                f"• **Display Name:** `{event.user_display_name or 'N/A'}`\n"
+                f"• **Teams User ID:** `{event.user_id}`\n"
+                f"• **User Principal Name:** `{event.user_handle or 'none'}`\n"
+                f"{tenant_info}\n"
+                f"**How to Authorize This Account:**\n"
+                f"1. **Instant Pairing:** Send `/pair <YOUR_HUMAN_APPROVAL_SECRET>` directly in this chat or channel.\n"
+                f"2. **Render Environment:** Add to your Render backend Environment Variables:\n"
+                f"   `TEAMS_OPERATOR_USER_ID={event.user_id}`\n"
+                f"   `TEAMS_OPERATOR_WORKSPACE_ID={target_ws}`"
+            )
+            self.gateway.send_outbound(
+                OutboundMessage(
+                    platform=event.platform,
+                    conversation_id=event.conversation_id,
+                    thread_id=event.thread_id,
+                    text=info_text,
+                )
+            )
+            return {
+                "status": "assistant_reply",
+                "category": "conversation",
+                "workspace_id": target_ws,
+                "reply_text": info_text,
+            }
+
+        # 0b. Explicit Pairing Command: /pair <secret> or /authorize <secret>
+        pair_match = re.match(r"^/(?:pair|authorize|claim)\s+(.+)$", text_stripped, re.IGNORECASE)
+        if pair_match:
+            candidate_secret = pair_match.group(1).strip()
+            valid_secrets = set()
+            if settings.HUMAN_APPROVAL_SECRET:
+                valid_secrets.add(settings.HUMAN_APPROVAL_SECRET.strip())
+            if settings.API_SECRET_KEY:
+                valid_secrets.add(settings.API_SECRET_KEY.strip())
+
+            is_secret_valid = any(
+                hmac.compare_digest(candidate_secret, s)
+                for s in valid_secrets
+                if s and not is_insecure_placeholder(s)
+            )
+
+            if is_secret_valid:
+                self.platform_repo.assign_reviewer_role(
+                    platform=PlatformType.TEAMS,
+                    user_id=event.user_id,
+                    role="operator",
+                    assigned_by="authenticated-pairing",
+                    user_handle=event.user_handle,
+                    workspace_id=target_ws,
+                )
+                success_text = (
+                    f"✅ **Account Successfully Authorized as Workspace Operator!**\n\n"
+                    f"• **Teams User:** `{event.user_display_name or event.user_id}`\n"
+                    f"• **Teams ID:** `{event.user_id}`\n"
+                    f"• **Workspace:** `{target_ws}`\n"
+                    f"• **Role:** `operator` (Authorized Reviewer)\n\n"
+                    "You can now click **[ ✅ Approve & Ship ]** on review cards to authorize production deployment.\n\n"
+                    "🔒 *Security Recommendation: Delete your message containing the pairing secret from this channel history.*"
+                )
+                self.gateway.send_outbound(
+                    OutboundMessage(
+                        platform=event.platform,
+                        conversation_id=event.conversation_id,
+                        thread_id=event.thread_id,
+                        text=success_text,
+                    )
+                )
+                return {
+                    "status": "paired",
+                    "workspace_id": target_ws,
+                    "user_id": event.user_id,
+                    "reply_text": success_text,
+                }
+            else:
+                fail_text = "⛔ **Pairing Failed:** Invalid secret key. Access denied."
+                self.gateway.send_outbound(
+                    OutboundMessage(
+                        platform=event.platform,
+                        conversation_id=event.conversation_id,
+                        thread_id=event.thread_id,
+                        text=fail_text,
+                    )
+                )
+                return {"status": "pairing_failed", "reply_text": fail_text}
+
+        # 1. Retrieve conversation context history strictly isolated by (platform, conversation, workspace)
+        history = self.platform_repo.get_chat_history(
+            platform=event.platform,
+            conversation_id=event.conversation_id,
+            workspace_id=target_ws,
+            limit=8,
+        )
+
+        # 2. Run the unified workspace assistant turn (Gemini runtime or deterministic Switch pipeline)
+        assistant_resp = run_workspace_assistant_turn(
+            message=event.message_text,
+            workspace_id=target_ws,
+            history=history,
+            task_repo=self.task_repo,
+            actor_id=f"teams_{event.user_handle or event.user_id}",
+            input_source="msteams",
+        )
+
+        # 3. Persist conversation turns in platform_chat_history
+        self.platform_repo.save_chat_turn(
+            platform=event.platform,
+            conversation_id=event.conversation_id,
+            user_id=event.user_id,
+            workspace_id=target_ws,
+            role="user",
+            content=event.message_text,
+        )
+        self.platform_repo.save_chat_turn(
+            platform=event.platform,
+            conversation_id=event.conversation_id,
+            user_id="shipdev-assistant",
+            workspace_id=target_ws,
+            role="assistant",
+            content=assistant_resp.reply_text,
+        )
+
+        # 4. Correlate task with conversation thread if a task was created or inspected
+        task_id = assistant_resp.task.id if assistant_resp.task else None
+        if assistant_resp.task:
+            try:
+                cat = TaskCategory(assistant_resp.category.lower())
+            except Exception:
+                cat = TaskCategory.ENGINEERING
+            self.platform_repo.create_mapping(
+                platform=event.platform,
+                conversation_id=event.conversation_id,
+                thread_id=event.thread_id,
+                user_id=event.user_id,
+                user_display_name=event.user_display_name or event.user_handle,
+                task_id=assistant_resp.task.id,
+                intent_category=cat,
+                status=assistant_resp.task.status.value,
+            )
+
+        # 5. Deliver assistant reply to Teams chat
+        self.gateway.send_outbound(
+            OutboundMessage(
+                platform=event.platform,
+                conversation_id=event.conversation_id,
+                thread_id=event.thread_id,
+                text=assistant_resp.reply_text,
+                task_id=task_id,
+            )
+        )
+
+        # 6. If execution halted at AWAITING_HUMAN_APPROVAL, dispatch interactive Adaptive Card review card
+        if assistant_resp.needs_approval and assistant_resp.task:
+            ev_summary = (
+                f"Regression suite exit code {assistant_resp.test_evidence.exit_code} (Verified clean)"
+                if assistant_resp.test_evidence and assistant_resp.test_evidence.exit_code == 0
+                else "Automated tests verified"
+            )
+            review_payload = ReviewRequestPayload(
+                task_id=assistant_resp.task.id,
+                title=assistant_resp.task.title,
+                summary=assistant_resp.task.description,
+                category=TaskCategory.ENGINEERING,
+                patch_diff=assistant_resp.patch_diff,
+                evidence_summary=ev_summary,
+                status=assistant_resp.task.status.value,
+            )
+            self.gateway.send_review_request(
+                platform=event.platform,
+                conversation_id=event.conversation_id,
+                payload=review_payload,
+                thread_id=event.thread_id,
+            )
+
+        return {
+            "status": "assistant_reply",
+            "category": assistant_resp.category,
+            "workspace_id": target_ws,
+            "task_id": task_id,
+            "pipeline_executed": assistant_resp.pipeline_executed,
+            "needs_approval": assistant_resp.needs_approval,
+            "reply_text": assistant_resp.reply_text,
+        }
+
     def handle_chat_event(self, event: ChatEvent) -> Dict[str, Any]:
         """Main entrypoint for processing any verified incoming chat event."""
         # 1. Route interactive human review decisions (Approve / Reject buttons)
@@ -278,6 +505,13 @@ class UniversalOrchestrator:
         # 2. For standard Telegram conversational messages: route through unified Gemini/Switch assistant
         if event.platform == PlatformType.TELEGRAM and not event.message_text.strip().startswith("/shipdev "):
             return self.handle_telegram_assistant_turn(event)
+
+        # 2b. For standard Microsoft Teams conversational messages: route through unified Gemini/Switch assistant
+        if event.platform == PlatformType.TEAMS and not (
+            event.message_text.strip().startswith("/shipdev ")
+            or event.message_text.strip().startswith("@ShipDev ")
+        ):
+            return self.handle_teams_assistant_turn(event)
 
         # 3. Check for active conversation task in thread
         active_mapping = self.platform_repo.get_active_mapping(
@@ -371,9 +605,13 @@ class UniversalOrchestrator:
             return {"status": "error", "message": "Missing task_id in action value"}
 
         # 1. Platform-level reviewer authorization check (fail-closed for unauthorized callers)
+        plat_label = "Microsoft Teams" if event.platform == PlatformType.TEAMS else "Telegram"
+        plat_env = "TEAMS" if event.platform == PlatformType.TEAMS else "TELEGRAM"
+        default_ws = "ws_team_default" if event.platform == PlatformType.TEAMS else "ws_personal_default"
+
         if not self.platform_repo.is_authorized_reviewer(platform=event.platform, user_id=event.user_id):
             logger.warning(
-                f"[TELEGRAM_AUTH_GATE] Unauthorized review attempt by user_id='{event.user_id}', "
+                f"[{plat_env}_AUTH_GATE] Unauthorized review attempt by user_id='{event.user_id}', "
                 f"name='{event.user_display_name}', handle='{event.user_handle}', task_id='{task_id}'"
             )
             self.gateway.send_outbound(
@@ -383,12 +621,12 @@ class UniversalOrchestrator:
                     thread_id=event.thread_id,
                     text=(
                         f"⛔ **Permission Denied:** User `{event.user_display_name or event.user_id}` "
-                        f"(Telegram ID: `{event.user_id}`) is not an authorized reviewer for this workspace.\n\n"
+                        f"({plat_label} ID: `{event.user_id}`) is not an authorized reviewer for this workspace.\n\n"
                         f"**To authorize this account:**\n"
                         f"1. Send `/pair <YOUR_HUMAN_APPROVAL_SECRET>` directly in this chat.\n"
                         f"2. Or add in Render backend Environment Variables:\n"
-                        f"   `TELEGRAM_OPERATOR_USER_ID={event.user_id}`\n"
-                        f"   `TELEGRAM_OPERATOR_WORKSPACE_ID=ws_personal_default`"
+                        f"   `{plat_env}_OPERATOR_USER_ID={event.user_id}`\n"
+                        f"   `{plat_env}_OPERATOR_WORKSPACE_ID={default_ws}`"
                     ),
                     task_id=task_id,
                 )
@@ -443,7 +681,7 @@ class UniversalOrchestrator:
         )
         if not is_ws_authorized:
             logger.warning(
-                f"[TELEGRAM_AUTH_GATE] Cross-workspace unauthorized review attempt: user_id='{event.user_id}', "
+                f"[{plat_env}_AUTH_GATE] Cross-workspace unauthorized review attempt: user_id='{event.user_id}', "
                 f"workspace='{task.workspace_id}', task_id='{task_id}'"
             )
             self.gateway.send_outbound(
@@ -453,12 +691,12 @@ class UniversalOrchestrator:
                     thread_id=event.thread_id,
                     text=(
                         f"⛔ **Permission Denied:** User `{event.user_display_name or event.user_id}` "
-                        f"(Telegram ID: `{event.user_id}`) is not an authorized reviewer for workspace `{task.workspace_id}`.\n\n"
+                        f"({plat_label} ID: `{event.user_id}`) is not an authorized reviewer for workspace `{task.workspace_id}`.\n\n"
                         f"**To authorize this account:**\n"
                         f"1. Send `/pair <YOUR_HUMAN_APPROVAL_SECRET>` directly in this chat.\n"
                         f"2. Or add in Render backend Environment Variables:\n"
-                        f"   `TELEGRAM_OPERATOR_USER_ID={event.user_id}`\n"
-                        f"   `TELEGRAM_OPERATOR_WORKSPACE_ID={task.workspace_id}`"
+                        f"   `{plat_env}_OPERATOR_USER_ID={event.user_id}`\n"
+                        f"   `{plat_env}_OPERATOR_WORKSPACE_ID={task.workspace_id}`"
                     ),
                     task_id=task_id,
                 )

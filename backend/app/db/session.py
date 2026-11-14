@@ -346,6 +346,27 @@ def migrate_workspaces_schema(conn: sqlite3.Connection) -> None:
                     (role_id, op_id, now, ws_id),
                 )
 
+    # 7. Auto-provision Teams operator reviewer role if configured in settings
+    if getattr(settings, "TEAMS_OPERATOR_USER_ID", None):
+        teams_op_ids = [i.strip() for i in settings.TEAMS_OPERATOR_USER_ID.split(",") if i.strip()]
+        teams_target_ws = getattr(settings, "TEAMS_OPERATOR_WORKSPACE_ID", "ws_team_default").strip()
+        teams_workspaces = (
+            ["ws_personal_default", "ws_team_default"]
+            if teams_target_ws in ("*", "all", "both")
+            else [w.strip() for w in teams_target_ws.split(",") if w.strip()]
+        )
+        for op_id in teams_op_ids:
+            for ws_id in teams_workspaces:
+                role_id = f"rev_teams_{op_id}_{ws_id}"
+                conn.execute(
+                    """
+                    INSERT OR IGNORE INTO reviewer_role_assignments
+                    (id, platform, user_id, user_handle, role, assigned_by, created_at, workspace_id)
+                    VALUES (?, 'teams', ?, 'operator', 'operator', 'server-config', ?, ?);
+                    """,
+                    (role_id, op_id, now, ws_id),
+                )
+
 
 def init_db(db_path: Optional[str] = None) -> None:
     """Initialize SQLite database tables, indexes, and workspace isolation schema."""

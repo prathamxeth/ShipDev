@@ -7,6 +7,7 @@ import re
 import urllib.request
 from typing import Any, Dict, Optional
 from app.adapters.base import BasePlatformAdapter
+from app.core.approval_tokens import generate_approval_callback_data
 from app.core.config import settings
 from app.models.platform import (
     ChatEvent,
@@ -73,18 +74,23 @@ class TeamsAdapter(BasePlatformAdapter):
         # 1. Handle Adaptive Card Interactive Action Submits (Approve / Reject)
         action_data = data.get("value")
         if action_data and isinstance(action_data, dict) and "action" in action_data:
+            token = action_data.get("callback_data")
+            raw_payload = dict(data)
+            if token:
+                raw_payload["callback_query"] = {"data": token}
             return ChatEvent(
                 event_id=event_id,
                 platform=PlatformType.TEAMS,
                 conversation_id=conversation.get("id", ""),
                 thread_id=data.get("replyToId"),
-                user_id=from_user.get("id", ""),
+                user_id=str(from_user.get("id", "")),
                 user_display_name=from_user.get("name"),
+                user_handle=from_user.get("userPrincipalName") or from_user.get("aadObjectId"),
                 message_text=f"Action: {action_data.get('action')}",
                 mention_type=MentionType.ACTION,
                 action_id=action_data.get("action"),
                 action_value=action_data.get("task_id"),
-                raw_payload=data,
+                raw_payload=raw_payload,
             )
 
         # 2. Standard Message Activity
@@ -97,8 +103,9 @@ class TeamsAdapter(BasePlatformAdapter):
             platform=PlatformType.TEAMS,
             conversation_id=conversation.get("id", ""),
             thread_id=data.get("replyToId"),
-            user_id=from_user.get("id", ""),
+            user_id=str(from_user.get("id", "")),
             user_display_name=from_user.get("name"),
+            user_handle=from_user.get("userPrincipalName") or from_user.get("aadObjectId"),
             message_text=cleaned_text,
             mention_type=MentionType.MENTION if "<at>" in raw_text else MentionType.DIRECT_MESSAGE,
             raw_payload=data,
@@ -205,6 +212,9 @@ class TeamsAdapter(BasePlatformAdapter):
                 "wrap": True,
             })
 
+        approve_token = generate_approval_callback_data("approve", payload.task_id)
+        reject_token = generate_approval_callback_data("reject", payload.task_id)
+
         adaptive_actions: list = [
             {
                 "type": "Action.Submit",
@@ -213,6 +223,7 @@ class TeamsAdapter(BasePlatformAdapter):
                 "data": {
                     "action": "approve_task",
                     "task_id": payload.task_id,
+                    "callback_data": approve_token,
                 },
             },
             {
@@ -222,6 +233,7 @@ class TeamsAdapter(BasePlatformAdapter):
                 "data": {
                     "action": "reject_task",
                     "task_id": payload.task_id,
+                    "callback_data": reject_token,
                 },
             },
         ]
