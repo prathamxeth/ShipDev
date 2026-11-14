@@ -12,6 +12,7 @@ import hashlib
 import json
 import logging
 from typing import Any, Dict, Optional
+from urllib.parse import urlparse
 import httpx
 import jwt
 from jwt import PyJWKClient
@@ -63,7 +64,7 @@ class TelegramOIDCService:
 
         effective_client_id = bot_id or (str(self.client_id).strip() if self.client_id else "shipdev_bot")
 
-        parsed = httpx.URL(redirect_uri)
+        parsed = urlparse(redirect_uri)
         origin = f"{parsed.scheme}://{parsed.netloc}" if parsed.scheme and parsed.netloc else redirect_uri
 
         params = {
