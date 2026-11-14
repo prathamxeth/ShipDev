@@ -74,9 +74,20 @@ async def initiate_oauth_flow(
     code_verifier = secrets.token_urlsafe(48)
     nonce = secrets.token_hex(16)
 
-    resolved_redirect_uri = redirect_uri or (
-        settings.TELEGRAM_OAUTH_REDIRECT_URI if plat == "telegram" else settings.TEAMS_OAUTH_REDIRECT_URI
-    )
+    # In production, use the authoritative configured redirect URI registered with the provider (e.g. BotFather / Azure)
+    # to avoid domain mismatch errors caused by dynamic Vercel preview hashes.
+    if plat == "telegram":
+        configured = getattr(settings, "TELEGRAM_OAUTH_REDIRECT_URI", None)
+        if configured and ("localhost" not in str(configured)):
+            resolved_redirect_uri = configured
+        else:
+            resolved_redirect_uri = redirect_uri or configured or "http://localhost:3000/auth/callback/telegram"
+    else:
+        configured = getattr(settings, "TEAMS_OAUTH_REDIRECT_URI", None)
+        if configured and ("localhost" not in str(configured)):
+            resolved_redirect_uri = configured
+        else:
+            resolved_redirect_uri = redirect_uri or configured or "http://localhost:3000/auth/callback/teams"
 
     state = _conn_repo.save_oauth_state(
         workspace_id=workspace_id,

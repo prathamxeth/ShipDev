@@ -29,8 +29,8 @@ class TelegramAdapter(BasePlatformAdapter):
         webhook_secret: Optional[str] = None,
     ):
         super().__init__(PlatformType.TELEGRAM)
-        self.bot_token = bot_token or settings.TELEGRAM_BOT_TOKEN
-        self.webhook_secret = webhook_secret or settings.TELEGRAM_WEBHOOK_SECRET
+        self.bot_token = bot_token if bot_token is not None else settings.TELEGRAM_BOT_TOKEN
+        self.webhook_secret = webhook_secret if webhook_secret is not None else settings.TELEGRAM_WEBHOOK_SECRET
         self._cached_bot_identity: Optional[Dict[str, Any]] = None
 
     def verify_signature(self, headers: Dict[str, str], body_bytes: bytes) -> bool:

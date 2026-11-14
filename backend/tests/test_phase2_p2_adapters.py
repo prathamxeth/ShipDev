@@ -260,7 +260,7 @@ def test_review_card_schemas_across_all_platforms():
     assert "DISCORD" in discord_res.error
 
     # Telegram review card
-    telegram_adapter = TelegramAdapter()
+    telegram_adapter = TelegramAdapter(bot_token="")
     telegram_res = telegram_adapter.send_review_card("chat_test", payload)
     assert telegram_res.success is False
     assert "TELEGRAM_BOT_TOKEN" in telegram_res.error
