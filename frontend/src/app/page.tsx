@@ -98,6 +98,18 @@ export default function ShipDevIDE() {
   }, []);
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const wsParam = params.get("workspace")?.toUpperCase();
+      const tabParam = params.get("tab") as ActivityTab | null;
+      if (wsParam === "TEAM" || wsParam === "PERSONAL") {
+        setActiveWorkspaceType(wsParam as "PERSONAL" | "TEAM");
+        setActiveWorkspaceId(wsParam === "TEAM" ? "ws_team_default" : "ws_personal_default");
+      }
+      if (tabParam && ["assistant", "graph", "agents", "reviews", "platforms"].includes(tabParam)) {
+        setActiveActivityTab(tabParam);
+      }
+    }
     loadTasks();
     const interval = setInterval(() => loadTasks(true), 15000);
     return () => clearInterval(interval);

@@ -121,6 +121,10 @@ export function PlatformsManagementPanel({
         setActionSuccess(`✓ Successfully connected ${connected === "teams" ? "Microsoft Teams" : "Telegram"} via official OAuth/OIDC!`);
         window.history.replaceState({}, "", window.location.pathname);
       }
+      const connectParam = params.get("connect") as PlatformType | null;
+      if (connectParam && ["telegram", "teams", "discord", "slack"].includes(connectParam)) {
+        handleConnectPlatform(connectParam);
+      }
     }
   }, []);
 
