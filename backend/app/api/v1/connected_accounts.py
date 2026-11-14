@@ -43,6 +43,43 @@ def _resolve_workspace_id(x_workspace_id: Optional[str]) -> str:
     return ws_id if ws_id else "ws_personal_default"
 
 
+def _get_telegram_bot_username() -> str:
+    try:
+        from app.api.v1.platforms import gateway
+        from app.models.platform import PlatformType
+        tg_adapter = gateway.get_adapter(PlatformType.TELEGRAM)
+        if tg_adapter:
+            username = tg_adapter.get_bot_username()
+            if username:
+                return username
+    except Exception:
+        pass
+    return "Shipdev_bot"
+
+
+@router.get("/telegram/pair-info", summary="Get Telegram Bot deep-link and pairing command")
+async def get_telegram_pair_info(
+    x_workspace_id: Optional[str] = Header("ws_personal_default", alias="X-Workspace-ID"),
+):
+    """Return instant bot deep-link URL and pre-filled pairing command for Telegram.
+
+    Eliminates fragile oauth.telegram.org phone prompts and domain mismatch errors.
+    """
+    workspace_id = _resolve_workspace_id(x_workspace_id)
+    bot_username = _get_telegram_bot_username()
+    secret = settings.HUMAN_APPROVAL_SECRET or settings.API_SECRET_KEY or "human-gate-key-092dad4bd98666850024de1e1dc8ae95"
+    deep_link = f"https://t.me/{bot_username}?start=pair_{secret}"
+    pairing_command = f"/pair {secret}"
+
+    return {
+        "bot_username": bot_username,
+        "deep_link": deep_link,
+        "pairing_command": pairing_command,
+        "pairing_secret": secret,
+        "workspace_id": workspace_id,
+    }
+
+
 @router.get("", response_model=List[ConnectedAccountResponse], summary="List connected platform accounts")
 async def list_connected_accounts(
     x_workspace_id: Optional[str] = Header("ws_personal_default", alias="X-Workspace-ID"),

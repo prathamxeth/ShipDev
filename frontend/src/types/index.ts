@@ -265,3 +265,11 @@ export interface OAuthAuthorizeResponse {
   platform: string;
   code_challenge_method: string;
 }
+
+export interface TelegramPairInfo {
+  bot_username: string;
+  deep_link: string;
+  pairing_command: string;
+  pairing_secret: string;
+  workspace_id: string;
+}

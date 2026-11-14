@@ -1172,5 +1172,68 @@ def test_telegram_pair_command_authorizes_operator(tg_test_env, monkeypatch):
     assert task_repo.get_task(task_id).status == TaskStatus.COMPLETED
 
 
+def test_telegram_start_deep_link_pairing_authorizes_and_upserts_account(tg_test_env, monkeypatch):
+    """Deep-link /start pair_<secret> securely authorizes operator and links account."""
+    orchestrator = tg_test_env["orchestrator"]
+    platform_repo = tg_test_env["platform_repo"]
+    adapter = tg_test_env["adapter"]
+
+    secret = "human-gate-key-092dad4bd98666850024de1e1dc8ae95"
+    monkeypatch.setattr(settings, "HUMAN_APPROVAL_SECRET", secret)
+
+    user_id = "6830453572"
+
+    # User clicks deep-link: Telegram transmits /start pair_<secret>
+    start_pair_event = ChatEvent(
+        event_id="tg_upd_start_pair_1",
+        platform=PlatformType.TELEGRAM,
+        conversation_id="priv_conv_deeplink",
+        user_id=user_id,
+        user_display_name="Prathmesh Upadhyay",
+        user_handle="pratham_tg",
+        message_text=f"/start pair_{secret}",
+        mention_type=MentionType.DIRECT_MESSAGE,
+        raw_payload={"message": {"chat": {"type": "private"}}},
+    )
+
+    res = orchestrator.handle_chat_event(start_pair_event)
+    assert res["status"] == "paired"
+    assert res["user_id"] == user_id
+    assert platform_repo.is_authorized_reviewer(PlatformType.TELEGRAM, user_id, workspace_id="ws_personal_default") is True
+
+    # Connected accounts repository reflects active connection and operator privileges
+    account = orchestrator.conn_repo.get_connected_account("ws_personal_default", "telegram")
+    assert account is not None
+    assert account.external_user_id == user_id
+    assert account.external_username == "pratham_tg"
+    assert account.reviewer_role_authorized is True
+
+    # Confirmation sent to Telegram
+    assert any("Account Successfully Paired & Authorized" in m.text for m in adapter.sent_messages)
+
+
+def test_telegram_bare_start_returns_welcome_and_guidance(tg_test_env):
+    """Bare /start without payload sends welcome message and instructions."""
+    orchestrator = tg_test_env["orchestrator"]
+    adapter = tg_test_env["adapter"]
+
+    start_event = ChatEvent(
+        event_id="tg_upd_bare_start",
+        platform=PlatformType.TELEGRAM,
+        conversation_id="priv_conv_start",
+        user_id="123456",
+        user_display_name="New User",
+        message_text="/start",
+        mention_type=MentionType.DIRECT_MESSAGE,
+        raw_payload={"message": {"chat": {"type": "private"}}},
+    )
+
+    res = orchestrator.handle_chat_event(start_event)
+    assert res["status"] == "assistant_reply"
+    assert "Welcome to ShipDev Assistant" in res["reply_text"]
+    assert "/pair <YOUR_HUMAN_APPROVAL_SECRET>" in res["reply_text"]
+
+
+
 
 

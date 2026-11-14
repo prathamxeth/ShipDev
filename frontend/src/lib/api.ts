@@ -14,6 +14,7 @@ import {
   Evidence,
   EvidenceCreate,
   OAuthAuthorizeResponse,
+  TelegramPairInfo,
   PlatformConnectionInfo,
   PlatformHealthItem,
   PlatformMapping,
@@ -579,6 +580,18 @@ export async function disconnectPlatform(
 export async function getConnectedAccounts(workspaceId?: string): Promise<ConnectedAccount[]> {
   const targetWs = workspaceId || currentActiveWorkspaceId;
   return request<ConnectedAccount[]>(`${API_BASE_URL}/connected-accounts`, {
+    headers: { "X-Workspace-ID": targetWs },
+  });
+}
+
+/**
+ * Retrieve instant Telegram Bot pairing link and pre-filled command
+ */
+export async function getTelegramPairInfo(
+  workspaceId?: string
+): Promise<TelegramPairInfo> {
+  const targetWs = workspaceId || currentActiveWorkspaceId;
+  return request<TelegramPairInfo>(`${API_BASE_URL}/connected-accounts/telegram/pair-info`, {
     headers: { "X-Workspace-ID": targetWs },
   });
 }

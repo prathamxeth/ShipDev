@@ -24,6 +24,7 @@ from app.models.platform import (
     TaskCategory,
 )
 from app.models.task import ApprovalRequest, RejectionRequest, TaskCreate, TransitionRequest
+from app.repositories.connected_accounts_repository import ConnectedAccountsRepository
 from app.repositories.platform_repository import PlatformRepository
 from app.repositories.task_repository import TaskRepository
 from app.services.assistant_service import run_workspace_assistant_turn
@@ -35,6 +36,7 @@ class UniversalOrchestrator:
         gateway: Optional[PlatformGateway] = None,
         task_repo: Optional[TaskRepository] = None,
         platform_repo: Optional[PlatformRepository] = None,
+        conn_repo: Optional[ConnectedAccountsRepository] = None,
         classifier: Optional[UniversalIntentClassifier] = None,
         planner: Optional[UniversalTaskPlanner] = None,
         agent_registry: Optional[SpecialistAgentRegistry] = None,
@@ -42,6 +44,7 @@ class UniversalOrchestrator:
         self.platform_repo = platform_repo or PlatformRepository()
         self.gateway = gateway or PlatformGateway(repository=self.platform_repo)
         self.task_repo = task_repo or TaskRepository()
+        self.conn_repo = conn_repo or ConnectedAccountsRepository(getattr(self.platform_repo, "db_path", None))
         self.classifier = classifier or UniversalIntentClassifier()
         self.planner = planner or UniversalTaskPlanner()
         self.agents = agent_registry or SpecialistAgentRegistry()
@@ -94,6 +97,31 @@ class UniversalOrchestrator:
         target_ws = self.resolve_telegram_workspace(event)
         text_stripped = event.message_text.strip()
 
+        # 0. Bare /start command
+        if text_stripped.lower() == "/start":
+            welcome_text = (
+                "👋 **Welcome to ShipDev Assistant!**\n\n"
+                "I am your automated software engineering assistant. I can diagnose code issues, "
+                "propose production fixes, and submit interactive review cards right in this chat.\n\n"
+                "**To Pair & Authorize This Account:**\n"
+                "Send `/pair <YOUR_HUMAN_APPROVAL_SECRET>` directly in this chat, or click "
+                "**Connect Telegram** in your ShipDev workspace dashboard to pair instantly in 1 click."
+            )
+            self.gateway.send_outbound(
+                OutboundMessage(
+                    platform=event.platform,
+                    conversation_id=event.conversation_id,
+                    thread_id=event.thread_id,
+                    text=welcome_text,
+                )
+            )
+            return {
+                "status": "assistant_reply",
+                "category": "conversation",
+                "workspace_id": target_ws,
+                "reply_text": welcome_text,
+            }
+
         # 0a. Identity Lookup Commands: /id, /whoami, /myid
         if text_stripped.lower() in ("/id", "/whoami", "/myid", "id", "whoami", "my id", "what is my id", "my telegram id"):
             info_text = (
@@ -122,23 +150,39 @@ class UniversalOrchestrator:
                 "reply_text": info_text,
             }
 
-        # 0b. Explicit Pairing Command: /pair <secret> or /authorize <secret>
-        pair_match = re.match(r"^/(?:pair|authorize|claim)\s+(.+)$", text_stripped, re.IGNORECASE)
+        # 0b. Explicit Pairing / Deep-Link Command:
+        # Matches: /pair <secret>, /authorize <secret>, /start pair_<secret>, /start <secret>
+        pair_match = re.match(r"^/(?:start(?:\s+pair_|\s+)|\bpair\s+|\bauthorize\s+|\bclaim\s+)(.+)$", text_stripped, re.IGNORECASE)
         if pair_match:
-            candidate_secret = pair_match.group(1).strip()
+            candidate_payload = pair_match.group(1).strip()
+            if candidate_payload.lower().startswith("pair_"):
+                candidate_payload = candidate_payload[5:].strip()
+
             valid_secrets = set()
             if settings.HUMAN_APPROVAL_SECRET:
                 valid_secrets.add(settings.HUMAN_APPROVAL_SECRET.strip())
             if settings.API_SECRET_KEY:
                 valid_secrets.add(settings.API_SECRET_KEY.strip())
 
-            is_secret_valid = any(
-                hmac.compare_digest(candidate_secret, s)
-                for s in valid_secrets
-                if s and not is_insecure_placeholder(s)
-            )
+            # Check if payload contains workspace prefix, e.g. ws_personal_default_<secret>
+            ws_match = re.match(r"^(ws_[a-zA-Z0-9_-]+)_(.+)$", candidate_payload)
+            matched_secret = None
+            if ws_match:
+                candidate_ws, sub_secret = ws_match.groups()
+                for s in valid_secrets:
+                    if s and not is_insecure_placeholder(s) and hmac.compare_digest(sub_secret, s):
+                        target_ws = candidate_ws
+                        matched_secret = sub_secret
+                        break
 
-            if is_secret_valid:
+            if not matched_secret:
+                for s in valid_secrets:
+                    if s and not is_insecure_placeholder(s) and hmac.compare_digest(candidate_payload, s):
+                        matched_secret = candidate_payload
+                        break
+
+            if matched_secret:
+                # 1. Assign reviewer role in reviewer_role_assignments strictly scoped to workspace
                 self.platform_repo.assign_reviewer_role(
                     platform=PlatformType.TELEGRAM,
                     user_id=event.user_id,
@@ -147,8 +191,24 @@ class UniversalOrchestrator:
                     user_handle=event.user_handle,
                     workspace_id=target_ws,
                 )
+
+                # 2. Upsert native connected account & sync platform_connections summary
+                try:
+                    self.conn_repo.upsert_connected_account(
+                        workspace_id=target_ws,
+                        user_id="user_default_owner",
+                        platform="telegram",
+                        external_user_id=str(event.user_id),
+                        external_username=event.user_handle or f"user_{event.user_id}",
+                        external_display_name=event.user_display_name or event.user_handle or f"Telegram User {event.user_id}",
+                        bot_messaging_authorized=True,
+                        bot_installed=True,
+                    )
+                except Exception as ex:
+                    logger.warning(f"[TELEGRAM_PAIRING] Failed to upsert connected account: {ex}")
+
                 success_text = (
-                    f"✅ **Account Successfully Authorized as Workspace Operator!**\n\n"
+                    f"✅ **Account Successfully Paired & Authorized as Workspace Operator!**\n\n"
                     f"• **Telegram User:** `{event.user_display_name or event.user_id}`\n"
                     f"• **Telegram ID:** `{event.user_id}`\n"
                     f"• **Workspace:** `{target_ws}`\n"

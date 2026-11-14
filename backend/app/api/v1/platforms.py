@@ -8,6 +8,7 @@ from app.adapters.slack_adapter import SlackAdapter
 from app.adapters.teams_adapter import TeamsAdapter
 from app.adapters.telegram_adapter import TelegramAdapter
 from app.api.deps import get_api_key_or_human_secret
+from app.core.config import settings
 from app.core.platform_gateway import PlatformGateway, PlatformSecurityError
 from app.models.platform import (
     ConversationTaskMapping,
