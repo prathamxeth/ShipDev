@@ -483,7 +483,7 @@ export function PlatformsManagementPanel({
                   {connectedAccount ? (
                     <>
                       <a
-                        href={conn?.chat_url || (plat === "telegram" ? "https://t.me/ShipDevBot" : "https://teams.microsoft.com")}
+                        href={conn?.chat_url || conn?.connect_url || (plat === "telegram" ? "https://t.me/ShipDevBot" : "https://teams.microsoft.com")}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-3.5 py-1.5 rounded-clay-md bg-clay-surface-soft hover:bg-clay-surface-card border border-clay-hairline text-clay-ink text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shadow-clay-soft"

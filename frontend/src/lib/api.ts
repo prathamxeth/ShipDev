@@ -639,8 +639,19 @@ export async function authorizeAccountOperator(
   workspaceId?: string
 ): Promise<ConnectedAccount> {
   const targetWs = workspaceId || currentActiveWorkspaceId;
-  return request<ConnectedAccount>(`${API_BASE_URL}/connected-accounts/${platform}/authorize-operator`, {
-    method: "POST",
-    headers: { "X-Workspace-ID": targetWs },
-  });
+  try {
+    return await request<ConnectedAccount>("/api/gate/authorize-operator", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Workspace-ID": targetWs,
+      },
+      body: JSON.stringify({ platform, workspaceId: targetWs }),
+    });
+  } catch (bffErr) {
+    return request<ConnectedAccount>(`${API_BASE_URL}/connected-accounts/${platform}/authorize-operator`, {
+      method: "POST",
+      headers: { "X-Workspace-ID": targetWs },
+    });
+  }
 }

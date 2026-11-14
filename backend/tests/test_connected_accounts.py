@@ -373,3 +373,110 @@ def test_connected_account_routes_webhook_to_correct_workspace(conn_test_env):
 
     resolved_ws = orchestrator.resolve_telegram_workspace(event)
     assert resolved_ws == "ws_team_default"
+
+
+# =========================================================================
+# 9. Cryptographic Nonce & Cross-Workspace Hijack Prevention
+# =========================================================================
+
+def test_telegram_id_token_nonce_mismatch_rejected(conn_test_env):
+    """Ensure id_token verification fails closed when cryptographic nonce does not match."""
+    from app.services.telegram_oidc_service import TelegramOIDCService
+    import jwt
+
+    service = TelegramOIDCService(client_id="test_client_id")
+
+    # Mock PyJWKClient to return a test RSA key
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from cryptography.hazmat.primitives import serialization
+
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    public_key = private_key.public_key()
+
+    mock_signing_key = MagicMock()
+    mock_signing_key.key = public_key
+
+    with patch("app.services.telegram_oidc_service.PyJWKClient") as mock_jwks_cls:
+        mock_jwks = MagicMock()
+        mock_jwks.get_signing_key_from_jwt.return_value = mock_signing_key
+        mock_jwks_cls.return_value = mock_jwks
+
+        # Token encoded with nonce 'nonce_A'
+        token_payload = {
+            "iss": "https://oauth.telegram.org",
+            "aud": "test_client_id",
+            "sub": "12345678",
+            "nonce": "nonce_attacker_substitute",
+            "exp": int(time.time()) + 3600,
+        }
+        token = jwt.encode(token_payload, private_key, algorithm="RS256")
+
+        # Expecting 'nonce_authentic'
+        with pytest.raises(ValueError, match="nonce does not match"):
+            service.verify_id_token(token, expected_nonce="nonce_authentic")
+
+
+def test_cross_workspace_oauth_callback_hijack_prevented(conn_test_env):
+    """Ensure callback binds account strictly to initiation workspace, ignoring forged client headers."""
+    client = conn_test_env["client"]
+    conn_repo = conn_test_env["conn_repo"]
+
+    # 1. Initiate OAuth in ws_personal_default
+    auth_resp = client.get(
+        "/api/v1/connected-accounts/telegram/authorize",
+        headers={"X-Workspace-ID": "ws_personal_default", "X-User-ID": "user_legit"},
+    )
+    assert auth_resp.status_code == 200
+    state = auth_resp.json()["state"]
+
+    # 2. Attacker attempts callback while sending X-Workspace-ID: ws_team_default
+    with patch("app.api.v1.connected_accounts._telegram_service.exchange_and_verify", new_callable=AsyncMock) as mock_verify:
+        mock_verify.return_value = {
+            "external_user_id": "11223344",
+            "external_username": "victim_tg",
+            "external_display_name": "Victim",
+            "access_token": "tg_token",
+            "token_expires_at": None,
+            "granted_scopes": ["openid", "profile"],
+        }
+
+        cb_resp = client.post(
+            "/api/v1/connected-accounts/telegram/callback",
+            headers={"X-Workspace-ID": "ws_team_default"},  # Malicious attempt to hijack to team ws
+            json={
+                "code": "auth_code",
+                "state": state,
+                "redirect_uri": "http://localhost:3000/auth/callback/telegram",
+            },
+        )
+        assert cb_resp.status_code == 200
+        account = cb_resp.json()
+
+        # Invariant: Must be bound to ws_personal_default (from server state), NOT ws_team_default
+        assert account["workspace_id"] == "ws_personal_default"
+
+        # Verify database state
+        assert conn_repo.get_connected_account("ws_personal_default", "telegram") is not None
+        assert conn_repo.get_connected_account("ws_team_default", "telegram") is None
+
+
+def test_unauthenticated_authorize_operator_rejected(conn_test_env):
+    """Verify that calling authorize-operator without credentials returns HTTP 401."""
+    client = conn_test_env["client"]
+    conn_repo = conn_test_env["conn_repo"]
+
+    conn_repo.upsert_connected_account(
+        workspace_id="ws_personal_default",
+        user_id="user_owner",
+        platform="telegram",
+        external_user_id="555444",
+    )
+
+    # Calling without Bearer token or X-API-Key
+    resp = client.post(
+        "/api/v1/connected-accounts/telegram/authorize-operator",
+        headers={"X-Workspace-ID": "ws_personal_default"},
+    )
+    assert resp.status_code == 401
+    assert "Authentication Required" in resp.json()["detail"]
+

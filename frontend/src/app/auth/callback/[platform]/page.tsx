@@ -18,6 +18,7 @@ function OAuthCallbackContent() {
     async function handleCallback() {
       const code = searchParams.get("code");
       const state = searchParams.get("state");
+      const idToken = searchParams.get("id_token");
       const error = searchParams.get("error");
       const errorDescription = searchParams.get("error_description");
 
@@ -39,6 +40,7 @@ function OAuthCallbackContent() {
 
         await completeOAuthCallback(platform, {
           code: code || undefined,
+          id_token: idToken || undefined,
           state: state,
           redirect_uri: redirectUri,
         });
